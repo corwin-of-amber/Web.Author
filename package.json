@@ -1,0 +1,7 @@
+{
+    "name": "toxin",
+    "main": "src/rich.html",
+    "scripts": {
+        "start": "../Web.RealTime/node_modules/.bin/nw .&"
+    }
+}
