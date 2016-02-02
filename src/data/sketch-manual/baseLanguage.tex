@@ -150,17 +150,6 @@ Expressions can also be final if they are composed from final sub-expressions. I
 \item A field dereference \C{e.f} is final if \C{e} is a final expression and \C{f} is a final field.
 \end{itemize}
 
-Since assignments to final variables are disallowed by the rules, final variables must be initialized upon declaration. For fields, final fields must be initialized upon allocation through the use of named parameters to the constructor.
-
-Expressions can also be final if they are composed from final sub-expressions. In particular:
-
-\begin{itemize}
-\item Final variables are final.
-\item A binary expression \C{a}  $op$  \C{b} is final if \C{a} and \C{b} are final.
-\item A ternary expression \C{a ? b : c} is final if \C{a},\C{b} and \C{c} are final.
-\item A field dereference \C{e.f} is final if \C{e} is a final expression and \C{f} is a final field.
-\end{itemize}
-
 Note that expressions involving function calls or side effects cannot be final. As we will see in the next section, final types will be relevant when specifying the sizes of arrays.
 
 \subsection{Arrays}\seclabel{array}

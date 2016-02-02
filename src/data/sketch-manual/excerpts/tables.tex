@@ -1,0 +1,51 @@
+
+\begin{tabular}{r}
+\lstinline!bit[N] & bit[M] $\rightarrow$ bit[max(N,M)]! not inline \\
+\lstinline!bit[N] | bit[M]  $\rightarrow$ bit[max(N,M)]! & next col \\
+\lstinline!bit[N] ^ bit[M]  $\rightarrow$ bit[max(N,M)]!\\
+\lstinline!bit[N] + bit[M]  $\rightarrow$ bit[max(N,M)]!\\
+\lstinline!bit[N] >> int    $\rightarrow$ bit[N]!\\
+\lstinline!bit[N] << int    $\rightarrow$ bit[N]!\\
+!\lstinline!bit[N] $\rightarrow$ bit[N]!\\
+\end{tabular}
+
+\begin{tabular}{cp{2cm}c}
+\begin{lstlisting}
+// Begin file farm.sk
+package farm;
+struct Goat{
+   int weight;  }
+struct Ram{
+   int age;     }
+struct Mouse{
+   int age;     }
+// End file farm.sk
+\end{lstlisting} & ~ &
+\begin{lstlisting}
+// Begin file computer.sk
+package computer;
+struct Cpu{
+   int freq;    }
+struct Ram{
+   int size;    }
+struct Mouse{
+   bit isWireless; }
+// End file computer.sk
+\end{lstlisting}
+\end{tabular}
+\begin{lstlisting}
+//Begin file test.sk
+include "computer.sk";
+include "farm.sk";
+struct Mouse{
+   int t;  
+}
+harness main(){
+   Cpu c = new Cpu(); // No ambiguity here.
+   Ram@farm r = new Ram@farm() //Without @farm, this would be an error.
+   Ram@computer rc = new Ram@computer();
+   Mouse m = new Mouse(); // Give preference to the locally defined mouse.
+   m.t = 10;
+}
+//End file test.sk
+\end{lstlisting}

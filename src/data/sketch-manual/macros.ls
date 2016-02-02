@@ -1,13 +1,5 @@
-{consume-next, peek-next, next-until-cond, par, env} = Traversal
+{is-text, is-block, is-command, ungroup, consume-next, peek-next, next-until-cond, par, env} = Traversal
 txt = document~createTextNode
-
-is-text = (dom, txt) ->
-  dom.nodeType == document.TEXT_NODE && (!txt? || dom.nodeValue == txt)
-is-command = (dom, cmd) ->
-  $(dom).has-class 'command' and (!cmd? || $(dom).text! == cmd)
-is-block = (dom) ->
-  dom.nodeType == document.ELEMENT_NODE && \
-    <[ DIV P DL UL OL TABLE ]>.indexOf(dom.nodeName) >= 0
 
 newcounter = (start-from, f) ->
   f.counter-value = start-from
@@ -25,6 +17,7 @@ commands =
   vdash: -> $ '<span>' .add-class 'rm' .text "⊢"
   sqcup: -> $ '<span>' .add-class 'rm' .text "⊔"
   bigsqcup: -> $ '<span>' .add-class 'rm big' .text "⊔"
+  rightarrow: -> $ '<span>' .add-class 'rm' .text "→"
   Rightarrow: -> $ '<span>' .add-class 'rm' .text "⇒"
   wedge: -> $ '<span>' .add-class 'rm' .text "∧"
   forall: -> $ '<span>' .add-class 'rm' .text "∀"
@@ -42,6 +35,8 @@ commands =
   secref: -> $ '<a>' .text "link" .attr 'href' (consume-next it .text!)
   emph: -> $ '<em>' .append consume-next it
   textit: -> $ '<i>' .append consume-next it
+  lstinline: -> $ '<code>' .add-class 'lstinline' .append consume-next it
+  
   begin: ->
     name = peek-next it .text!
     if (envf = environments[name])?
@@ -59,6 +54,22 @@ commands =
   ie: -> $ '<i>' .add-class 'latin' .text "i.e."
   eg: -> $ '<i>' .add-class 'latin' .text "e.g."
     
+
+# Extend TeX parser with a state for inline code via \lstinline
+LSTINLINE = 
+  token-re: // (.) //g
+  transition: (mo, texg) ->
+    _ = texg
+    _.state =
+      token-re:  // ([$]) | (#{mo.1}) //g  # TODO: requires escaping
+      transition: (mo, texg) ->
+        _ = texg
+        if mo.1 then _.enter(mo.1, TexGrouping.INITIAL)
+        else _.emit _.leave ''
+
+TexGrouping.INITIAL.special['\\lstinline'] = (, _) ->
+  _.enter '{}', LSTINLINE
+
 
 verbatim = (jdoms) ->
   jdoms.each ->
@@ -87,9 +98,23 @@ environments =
   center: ->
     $ '<div>' .add-class 'center' .append env it
   tabular: ->
+    [opt, ...inner] = env it .remove!toArray!
+    container = $ '<div>' .append inner
+    expand-macros container
+    inner = container.contents!
     $ '<table>' .add-class 'tabular'
-      $ '<tr>' .append-to ..
-        $ '<td>' .append env it .append-to ..
+      next-row = ->
+        $ '<td>' .append-to ($ '<tr>' .append-to ..)
+      next-column = ->
+        $ '<td>' .insert-after current-cell
+      current-cell = next-row!
+      for node in inner
+        if $(node).is('.command') && $(node).text! == '\\\\'
+          current-cell = next-row!
+        else if node.nodeType == document.TEXT_NODE && node.nodeValue == '&'
+          current-cell = next-column!
+        else
+          current-cell.append node
 
     
 aftermath =

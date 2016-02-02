@@ -1,9 +1,7 @@
 fs = require \fs
 htmldoc = fs.readFileSync "#{projdir}/data/sketch-manual/baseLanguage.html" "utf-8"
 texdoc = fs.readFileSync "#{projdir}/data/sketch-manual/baseLanguage.tex" "utf-8"
-
-assert = (cond, msg) ->
-  if !cond then throw Error (if msg? then "Assertion failed; #msg" else "Assertion failed.")
+#texdoc = fs.readFileSync "#{projdir}/data/sketch-manual/excerpts/tables.tex" "utf-8"
 
 compile-dom = (dom) ->
   if dom.nodeType == document.TEXT_NODE
@@ -51,42 +49,9 @@ compile-latex-groups = (tree) ->
     if sub instanceof Tree
       jdom.append compile-latex-groups sub
     else
-      jdom.append document.createTextNode sub #($ '<span>' .text sub)
+      jdom.append document.createTextNode sub
   jdom
 
-
-ungroup = -> it.contents!
-consume-next = -> ungroup it.next!remove!
-peek-next = -> ungroup it.next!
-prev-bound = (dom, pred) ->
-  x = void
-  while dom? && !pred(dom) then x = dom ; dom = dom.previousSibling
-  x ? dom.nextSibling
-next-until-cond = (dom, pred) -> []
-  while dom? && !pred(dom) then ..push dom ; dom = dom.nextSibling
-
-par = (jdom) ->
-  assert jdom.length == 1, "'par' must get a single element"
-  dom = jdom[0]
-  start = prev-bound dom, (-> $ it .has-class 'par-break')
-  $ next-until-cond start, (-> $ it .has-class 'par-break')
-
-env = (jdom) ->
-  assert jdom.length == 1, "'env' must get a single element"
-  name = consume-next jdom .text!
-  dom = jdom[0]
-  $ next-until-cond dom.nextSibling, -> 
-    $ it .has-class 'command' and $ it .text! == '\\end' and peek-next $ it .text! == name
-
-forward = (jdom) ->
-  forward0 = (jdom) ->
-    if      (x = jdom.next!).length then x
-    else if (x = jdom.parent!).length then forward0 x
-    else $ []
-  if      (x = $(jdom.children![0])).length then x
-  else forward0 jdom
-
-@ <<< {Traversal: {ungroup, consume-next, peek-next, prev-bound, next-until-cond, par, env, forward}}
 
 lookup-command = (name) -> commands[if name == /^\\(.*)$/ then that.1 else name]
 
@@ -97,15 +62,19 @@ expand-macros = (jdom) ->
     if child.has-class 'command' and (f = lookup-command child.text!)?
       child = do -> f child
         child.replace-with ..
-    child = forward child
+    child = Traversal.forward child
     
   if i >= NLIMIT
     console.error "warning: iteration limit reach (infinite loop?)"
 
 post-process = (jdom) ->
-  for class-name, amf of aftermath
+  for class-name, am-func of aftermath
     for dom in jdom.find ".#class-name"
-      amf $(dom)
+      am-func $(dom)
+
+
+@ <<< {expand-macros}
+
 
 $ ->
   #$ '#document' .html htmldoc

@@ -1,3 +1,4 @@
 *.ls.js
 *.ne.js
 src/rich.html
+node_modules

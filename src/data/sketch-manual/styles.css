@@ -38,6 +38,9 @@ div.code {
 }
 .math.rm, .math .rm { font-style: normal; }
 .big { font-size: larger; }
+table {
+  font-size: inherit;  /* nwjs' default is 'medium' for some reason */
+}
 dd.flagdoc {
   text-align: justify;  /* has no effect? */
 }
