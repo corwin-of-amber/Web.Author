@@ -2,3 +2,4 @@
 *.ne.js
 src/rich.html
 node_modules
+bower_components

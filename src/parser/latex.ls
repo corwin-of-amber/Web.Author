@@ -63,6 +63,8 @@ Traversal = do ->
     dom.nodeType == document.TEXT_NODE && (!txt? || dom.nodeValue == txt)
   is-command = (dom, cmd) ->
     $(dom).has-class 'command' and (!cmd? || $(dom).text! == cmd)
+  is-math = (dom) ->
+    dom.nodeType == document.ELEMENT_NODE && $(dom).has-class 'math'
   is-block = (dom) ->
     dom.nodeType == document.ELEMENT_NODE && \
       <[ DIV P DL UL OL TABLE ]>.indexOf(dom.nodeName) >= 0
@@ -102,15 +104,17 @@ Traversal = do ->
     $ next-until-cond dom.nextSibling, -> 
       $ it .has-class 'command' and $ it .text! == '\\end' and peek-next $ it .text! == name
 
+  forward0 = (jdom) ->
+    if      (x = jdom.next!).length then x
+    else if (x = jdom.parent!).length then forward0 x
+    else $ []
+
   forward = (jdom) ->
-    forward0 = (jdom) ->
-      if      (x = jdom.next!).length then x
-      else if (x = jdom.parent!).length then forward0 x
-      else $ []
-    if      (x = $(jdom.children![0])).length then x
+    if   !is-math(jdom[0]) && (x = $(jdom.children![0])).length then x
     else forward0 jdom
 
-  {is-text, is-command, is-block, ungroup, consume-next, peek-next, prev-bound, next-until-cond, par, env, forward}
+  {is-text, is-command, is-block, ungroup, consume-next, 
+  peek-next, prev-bound, next-until-cond, par, env, forward, forward0}
 
 
 @ <<< {TexGrouping, Traversal, assert}

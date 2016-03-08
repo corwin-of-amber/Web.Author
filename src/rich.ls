@@ -1,7 +1,5 @@
 fs = require \fs
-htmldoc = fs.readFileSync "#{projdir}/data/sketch-manual/baseLanguage.html" "utf-8"
-texdoc = fs.readFileSync "#{projdir}/data/sketch-manual/baseLanguage.tex" "utf-8"
-#texdoc = fs.readFileSync "#{projdir}/data/sketch-manual/excerpts/tables.tex" "utf-8"
+
 
 compile-dom = (dom) ->
   if dom.nodeType == document.TEXT_NODE
@@ -44,13 +42,32 @@ compile-latex-groups = (tree) ->
     jdom = $ '<span>' .add-class 'par-break'# .text tree.root
   else
     jdom = $ '<span>' .text tree.root
-    
-  for sub in tree.subtrees
-    if sub instanceof Tree
-      jdom.append compile-latex-groups sub
-    else
-      jdom.append document.createTextNode sub
+
+  append-text-aware jdom, do
+    for sub in tree.subtrees
+      if sub instanceof Tree
+        compile-latex-groups sub
+      else
+        document.createTextNode sub
+
   jdom
+
+/**
+ * Appends all the `elements` to `jdom`, but merges adjacent text
+ * nodes.
+ */
+append-text-aware = (jdom, elements) ->
+  last = jdom.children![*-1]
+  for element in elements
+    if element.nodeType == document.TEXT_NODE
+      if last?.nodeType == document.TEXT_NODE
+        last.nodeValue += element.nodeValue
+      else
+        jdom.append (last = element)
+    else
+      if last?.nodeType == document.TEXT_NODE && last.nodeValue == /\S\s$/
+        last.nodeValue += "\t"   # this is a hack to work around a rendering bug in nwjs
+      jdom.append (last = element)
 
 
 lookup-command = (name) -> commands[if name == /^\\(.*)$/ then that.1 else name]
@@ -76,8 +93,26 @@ post-process = (jdom) ->
 @ <<< {expand-macros}
 
 
+doc-fn = "#{projdir}/data/sketch-manual/baseLanguage.html"
+
+doc-text = fs.readFileSync doc-fn, "utf-8"
+if doc-fn == /\.html$/
+  doc-type = 'text/html'
+else if doc-fn == /\.tex$/
+  doc-type = 'text/tex'
+else
+  doc-type = void
+  console.warn "Can't detect document type (#doc-fn)"
+  
+#texdoc = fs.readFileSync "#{projdir}/data/sketch-manual/baseLanguage.tex" "utf-8"
+#texdoc = fs.readFileSync "#{projdir}/data/sketch-manual/excerpts/math.tex" "utf-8"
+
+
 $ ->
-  #$ '#document' .html htmldoc
-  #$ '#tex' .text compile document.getElementById 'document'
-  $ '#tex' .text texdoc
-  $ '#document' .append compile-latex texdoc
+  switch doc-type
+  | 'text/html'
+    $ '#document' .html doc-text
+    $ '#tex' .text compile-dom document.getElementById 'document'
+  | 'text/tex'
+    $ '#tex' .text doc-text
+    $ '#document' .append compile-latex doc-text

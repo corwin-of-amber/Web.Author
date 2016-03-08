@@ -2,9 +2,11 @@
   "name": "toxin",
   "main": "src/rich.html",
   "scripts": {
-    "start": "../Web.RealTime/node_modules/.bin/nw .&"
+    "start": "nw .&"
   },
   "dependencies": {
+    "jquery": "^2.2.1",
+    "jquery-contextmenu": "^2.1.1",
     "prelude-ls": "^1.1.2"
   }
 }

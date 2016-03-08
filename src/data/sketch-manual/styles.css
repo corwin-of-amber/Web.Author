@@ -5,8 +5,13 @@
   text-align: justify;
 }
 h1, h2 {
-  font-family: "CMU Serif Extra";
+  font-family: "KaTeX_Main"; /*CMU Serif Extra";*/
   font-weight: bold;
+}
+h1[counter-value]::before,
+h2[counter-value]::before {
+  content: attr(counter-value);
+  margin-right: 1em;
 }
 p {
   text-align: justify;
@@ -17,7 +22,7 @@ p.indent::before {
   width: .5em;
 }
 p.paragraph > a.title {
-  font-family: "CMU Serif Extra";
+  font-family: "KaTeX_Main"; /*CMU Serif Extra";*/
   font-weight: bold;
   margin-right: 1em;
 }
@@ -25,18 +30,29 @@ code, div.code {
   font-family: "CMU Typewriter Text";
   font-style: normal;
 }
-code.kw {
+code.kw, code .kw, div.code .kw {
   font-weight: bold;
+}
+code.comment, code .comment, div.code .comment {
+  font-style: oblique;
 }
 div.code {
   white-space: pre;
   margin: .4em 0;
+  overflow: auto;
 }
 .math {
   font-family: "CMU Serif";
   font-style: italic;
 }
 .math.rm, .math .rm { font-style: normal; }
+.math .katex {
+  font-family: inherit;
+  font-size: 1em;
+}
+.math .katex .mathit {
+  font-family: inherit;
+}
 .big { font-size: larger; }
 table {
   font-size: inherit;  /* nwjs' default is 'medium' for some reason */
@@ -46,7 +62,7 @@ dd.flagdoc {
 }
 dl.flagdoc::before {
   content: "Flag ";
-  font-family: "CMU Serif Bold";
+  font-family: "KaTeX_Main"; /*CMU Serif Extra";*/
   font-weight: bold;
 }
 dl.flagdoc > dt::before {
@@ -61,6 +77,21 @@ dl.flagdoc > dd {
   margin-left: 1em;
   display: inline;
   font-style: italic;
+}
+ul.itemize {
+ list-style: none;
+ margin-left: 1em;
+ padding-left: 1em;
+ text-indent: -1em;
+}
+ul.itemize li::before {
+  content: "●";
+  text-indent: -.1em;
+  display: inline-block;
+  width: 1.1em;
+}
+li {
+  margin-bottom: .5em;
 }
 div.example > p:first-child::before {
   content: "Example " attr(counter-value) ".";

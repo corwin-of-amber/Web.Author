@@ -1,12 +1,12 @@
-<h1 class="section">Core Language</h1>
+<h1 class="section" counter-value="2">Core Language</h1>
 <p>
 The core sketch language is a simple imperative language that borrows most of its syntax from Java and C.
 </p>
 
-<h2 class="subsection">Primitive Types</h2><a class="label" kind="sec" name="primitives"></a>
+<h2 class="subsection" counter-value="2.1">Primitive Types</h2><a class="label" kind="sec" name="primitives"></a>
 <p>
 The sketch language contains five primitive types, <code class="code kw">bit</code>, <code class="code kw">int</code>, <code class="code kw">char</code>, <code class="code kw">double</code> and <code class="code kw">float</code>. There is a subtyping relation between three of them:
-<code class="code kw">bit<span class="math rm spaced symbol" nspaces=6 latex="\sqsubseteq">⊑</span>char<span class="math rm spaced symbol" nspaces=6 latex="\sqsubseteq">⊑</span>int</code>, so bit variables can be used wherever a character or integer is required. 
+<code class="code kw">bit<span class="math rm  symbol" latex="\sqsubseteq">⊑</span>char<span class="math rm symbol" latex="\sqsubseteq">⊑</span>int</code>, so bit variables can be used wherever a character or integer is required. 
 <code class="code">float</code> and <code class="code">double</code> are completely interchangeable, but there is no subtyping relationship between them and the other types, so for example, you cannot use <span class="math rm">1</span> in place of <span class="math rm">1.0</span>, or <span class="math rm">0</span> in place of <span class="math rm">0.0</span>.
 </p>
 
@@ -26,7 +26,7 @@ The sketch language contains five primitive types, <code class="code kw">bit</co
   </dd>
 </dl>
 
-<h2 class="subsection">Structs</h2>
+<h2 class="subsection" counter-value="2.2">Structs</h2>
 <p>
 More interesting types can be constructed from simpler types in two ways: by creating arrays of them (see <a class="ref" kind="sec" href="#array">link</a>) and by defining new types of heap allocated records.
 </p>
@@ -36,7 +36,7 @@ To define a new record type, the programmer uses the following syntax (borrowed 
 </p>
 <div class="code"
 >struct <span class="math">name</span> {
-  <span class="math">type<sub class="symbol" latex="_1">1</sub></span> <span class="math">field<sub class="symbol" latex="_1">1</sub></span>;
+  <span class="math">type<sub class="symbol rm" latex="_1">1</sub></span> <span class="math">field<sub class="symbol rm" latex="_1">1</sub></span>;
   ...
   <span class="math">type<sub class="symbol" latex="_k">k</sub></span> <span class="math">field<sub class="symbol" latex="_k">k</sub></span>;
 }
@@ -49,7 +49,7 @@ To allocate a new record in the heap, the programmer uses the keyword <code clas
 <div class="example">
 <p counter-value="1">Use of named parameters to initialize the fields of a struct.</p>
 <div class="code"
->struct Point{
+>struct Point {
   int x;
   int y;
 }
@@ -99,7 +99,7 @@ void strange(Car x, Car y) {
 Just like in Java, references are typesafe and the heap is assumed to be garbage collected (which is another way of saying the synthesizer doesn't model deallocation). A consequence of this is that a reference to a record of type T must either be <code class="code kw">null</code> or point to a valid object of type T. All dereferences have an implicit null pointer check, so dereferencing <code class="code kw">null</code> will cause an assertion failure.
 </p>
 
-<h2 class="subsection">Temporary Structures</h2>
+<h2 class="subsection" counter-value="2.3">Temporary Structures</h2>
 
 <p>
 There are instances where it is desirable to have the convenience of structures but without the cost of allocation and dereferencing, and without the burden of reasoning about aliasing.
@@ -127,24 +127,24 @@ The following example illustrates the use of unboxed functions.
 
 <div class="example"><p counter-value="3"></p>
 <div class="code"
->struct Point {
-   int x;
-   int y;
+><span class="kw">struct</span> Point {
+   <span class="kw">int</span> x;
+   <span class="kw">int</span> y;
 }
 
 ...
-|Point| p1 = |Point|(x=5, y=3); // temporary point initialized to (5,3).
-Point p2 = new Point(x=3, y=2); // heap allocated point initialized to (3,2).
-|Point| p3 = p1; // temporary point p3 is a copy of p1.
+|Point| p1 = |Point|(x=5, y=3); <span class="comment">// temporary point initialized to (5,3).</span>
+Point p2 = <span class="kw">new</span> Point(x=3, y=2); <span class="comment">// heap allocated point initialized to (3,2).</span>
+|Point| p3 = p1; <span class="comment">// temporary point p3 is a copy of p1.</span>
 p3.x = 10;
-Point p4 = p2; // p4 and p2 point to the same heap allocated object.
+Point p4 = p2; <span class="comment">// p4 and p2 point to the same heap allocated object.</span>
 p4.x= 15;
-assert p1.x == 5;
-assert p2.x == 15;
-assert p3.x = 10;
-assert p4.x == 15;
-if(??) assert p1 == p2; // equivalent to p1.x == p2.x && p1.y==p2.y
-if(??) assert p1 != p2; // equivalent to !(p1==p2)
+<span class="kw">assert</span> p1.x == 5;
+<span class="kw">assert</span> p2.x == 15;
+<span class="kw">assert</span> p3.x = 10;
+<span class="kw">assert</span> p4.x == 15;
+<span class="kw">if</span>(??) <span class="kw">assert</span> p1 == p2; <span class="comment">// equivalent to p1.x == p2.x && p1.y==p2.y</span>
+<span class="kw">if</span>(??) <span class="kw">assert</span> p1 != p2; <span class="comment">// equivalent to !(p1==p2)</span>
 </div>
 </div>
 

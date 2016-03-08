@@ -9,7 +9,7 @@ commands =
   section: -> $ '<h1>' .append consume-next it
   subsection: -> $ '<h2>' .append consume-next it
   seclabel: -> $ '<a>' .attr 'name' (consume-next it .text!)
-  C: -> $ '<code>' .append consume-next it
+  C: -> $ '<code>' .add-class 'code' .append consume-next it
   sqsubseteq: -> $ '<span>' .add-class 'rm' .text "⊑"
   geq: -> $ '<span>' .add-class 'rm' .text "≥"
   leq: -> $ '<span>' .add-class 'rm' .text "≤"
@@ -32,11 +32,11 @@ commands =
   paragraph: ->
     p = par it .wrap-all '<p>' .parent! .add-class 'paragraph'
     $ '<a>' .add-class "parameter title" .append consume-next it
-  secref: -> $ '<a>' .text "link" .attr 'href' (consume-next it .text!)
+  secref: -> $ '<a>' .text "link" .attr 'href' ('#' + consume-next it .text!)
   emph: -> $ '<em>' .append consume-next it
   textit: -> $ '<i>' .append consume-next it
   lstinline: -> $ '<code>' .add-class 'lstinline' .append consume-next it
-  
+
   begin: ->
     name = peek-next it .text!
     if (envf = environments[name])?
@@ -119,6 +119,15 @@ environments =
     
 aftermath =
   math: ->
+    verbatim it.children!
+    for dom in it.contents!
+      if dom.nodeType == document.TEXT_NODE 
+        if dom.nodeValue == /^~+$/
+          dom.remove!
+    katex.render it.text!, it[0], {displayMode: it.is('div'), -throwOnError}
+    it.find '.katex-mathml' .remove!
+
+  not-math: ->
     for dom in it.contents!
       if dom.nodeType == document.TEXT_NODE 
         if dom.nodeValue == /^~+$/
