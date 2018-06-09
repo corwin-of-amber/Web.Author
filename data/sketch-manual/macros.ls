@@ -25,7 +25,7 @@ commands =
   Gamma: -> $ '<span>' .add-class 'rm' .text "Γ"
   ldots: -> $ '<span>' .text "..."
   cdot: -> $ '<span>' .text "·"
-  flagdoc: -> 
+  flagdoc: ->
     $ '<dl>' .add-class 'flagdoc'
       $ '<dt>' .add-class 'parameter' .append consume-next it .append-to ..
       $ '<dd>' .append consume-next it .append-to ..
@@ -46,17 +46,17 @@ commands =
   end: ->
     consume-next it
     $ '<span>' .add-class 'empty'
-    
+
   item: -> $ '<li>' .add-class 'item' .append next-until-cond it[0].nextSibling, ->
     is-command it, '\\item'
-  
+
   Sk: -> $ '<span>' .add-class 'Sketch'
   ie: -> $ '<i>' .add-class 'latin' .text "i.e."
   eg: -> $ '<i>' .add-class 'latin' .text "e.g."
-    
+
 
 # Extend TeX parser with a state for inline code via \lstinline
-LSTINLINE = 
+LSTINLINE =
   token-re: // (.) //g
   transition: (mo, texg) ->
     _ = texg
@@ -82,16 +82,16 @@ verbatim = (jdoms) ->
         $(@).replace-with [txt "\\"] ++ contents[to]
       else if jdom.is('.par-break')
         $(@).replace-with contents
-      
+
       contents.each -> verbatim $(@)
-  
+
 environments =
   lstlisting: ->
     $ '<div>' .add-class 'code' .append env it
       verbatim ..children!
       if is-text (x = (..0.firstChild)), "\n" then x.remove!
   Example: ->
-    $ '<div>' .add-class 'example' 
+    $ '<div>' .add-class 'example'
     .append ($ '<p>' .attr 'counter-value' '?') .append env it
   itemize: ->
     $ '<ul>' .add-class 'itemize' .append env it
@@ -116,12 +116,12 @@ environments =
         else
           current-cell.append node
 
-    
+
 aftermath =
   math: ->
     verbatim it.children!
     for dom in it.contents!
-      if dom.nodeType == document.TEXT_NODE 
+      if dom.nodeType == document.TEXT_NODE
         if dom.nodeValue == /^~+$/
           dom.remove!
     katex.render it.text!, it[0], {displayMode: it.is('div'), -throwOnError}
@@ -129,7 +129,7 @@ aftermath =
 
   not-math: ->
     for dom in it.contents!
-      if dom.nodeType == document.TEXT_NODE 
+      if dom.nodeType == document.TEXT_NODE
         if dom.nodeValue == /^~+$/
           dom.remove!
         else if dom.nodeValue == /~/
@@ -149,9 +149,9 @@ aftermath =
       p.attr 'counter-value' aftermath.example.counter-value++
       gobble = next-until-cond p[0].nextSibling, is-block
       p.append $ gobble
-      
+
   group: ->
     if it.contents!length == 0 then it.remove!
 
 
-@ <<< {commands, aftermath}
+export commands, aftermath

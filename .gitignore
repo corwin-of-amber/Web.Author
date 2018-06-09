@@ -1,5 +1,6 @@
 *.ls.js
 *.ne.js
 src/rich.html
+src/hub.html
 node_modules
 bower_components

@@ -1,6 +1,6 @@
 {
   "name": "toxin",
-  "main": "src/rich.html",
+  "main": "src/hub.html",
   "scripts": {
     "start": "nw .&"
   },
