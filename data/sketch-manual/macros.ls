@@ -27,15 +27,15 @@ commands =
   cdot: -> $ '<span>' .text "·"
   flagdoc: ->
     $ '<dl>' .add-class 'flagdoc'
-      $ '<dt>' .add-class 'parameter' .append consume-next it .append-to ..
-      $ '<dd>' .append consume-next it .append-to ..
+      $ '<dt>' .add-class 'parameter' .append consume-next(it) .append-to ..
+      $ '<dd>' .append consume-next(it) .append-to ..
   paragraph: ->
     p = Traversal.par it .wrap-all '<p>' .parent! .add-class 'paragraph'
-    $ '<a>' .add-class "parameter title" .append consume-next it
+    $ '<a>' .add-class "parameter title" .append consume-next(it)
   secref: -> $ '<a>' .text "link" .attr 'href' ('#' + consume-next it .text!)
-  emph: -> $ '<em>' .append consume-next it
-  textit: -> $ '<i>' .append consume-next it
-  lstinline: -> $ '<code>' .add-class 'lstinline' .append consume-next it
+  emph: -> $ '<em>' .append consume-next(it)
+  textit: -> $ '<i>' .append consume-next(it)
+  lstinline: -> $ '<code>' .add-class 'lstinline' .append consume-next(it)
 
   begin: ->
     name = Traversal.peek-next it .text!
@@ -99,6 +99,8 @@ environments =
     .append ($ '<p>' .attr 'counter-value' '?') .append env it
   itemize: ->
     $ '<ul>' .add-class 'itemize' .append env it
+  enumerate: ->
+    $ '<ol>' .add-class 'enumerate' .append env it
   center: ->
     $ '<div>' .add-class 'center' .append env it
   tabular: ->

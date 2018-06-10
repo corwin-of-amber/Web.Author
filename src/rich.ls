@@ -29,3 +29,16 @@ $ ->
   | 'text/tex'
     $ '#tex' .text doc-text
     $ '#document' .append compile-latex doc-text
+
+  if doc-fn? && (doc-settings = localStorage["doc.#{doc-fn}"])?
+    doc-settings = JSON.parse(doc-settings)
+    $(window).scrollTop(doc-settings.scroll-pos)
+    setTimeout -> $(window).scrollTop(doc-settings.scroll-pos)
+    , 1000
+    # ^ ok that's a very inaccurate way to say "after KaTeX settles down"
+
+
+window.addEventListener 'unload', ->
+  if doc-fn?
+    localStorage["doc.#{doc-fn}"] = JSON.stringify do
+      scroll-pos: $(window).scrollTop!

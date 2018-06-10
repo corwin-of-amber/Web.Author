@@ -1,15 +1,13 @@
 
 {flatten} = require 'prelude-ls'
-assert = (cond, msg) ->
-  if !cond then throw Error (if msg? then "Assertion failed; #msg" else "Assertion failed.")
 
 
 class TexGrouping
 
   @INITIAL =
-    token-re: // ([{$] | \\\[)  |  ([}] | \\\])   |
-                 (\\[a-zA-Z]+)  |  (\\[\\~^])     |  \\([^a-zA-Z])  |
-                 (\n\n+)        |  (\s+?)         //g
+    token-re: // ([{$] | \\\[)    |  ([}] | \\\])   |
+                 (\\[a-zA-Z]+)    |  (\\[\\~^])     |  \\([^a-zA-Z])  |
+                 (\n\s*?(?:\n\s*)+)                 |  (\s+?)         //g
     matching: {'{': '}', '$': '$', '\\[': '\\]'}
 
     special: {}
@@ -22,7 +20,7 @@ class TexGrouping
       else if mo.2 || mo.3 || mo.4 then _.emit T(mo.0)
       else if mo.5 then _.emit T("\\").of(mo.5)
       else if mo.6 then _.emit T("¶").of(mo.6)
-      else _.emit mo.0
+      else _.emit _.strip(mo.0)
 
       if (f = @special[mo.0]) then f mo.0, texg
 
@@ -40,6 +38,9 @@ class TexGrouping
   state:~
     -> @stack[*-1].state
     (it) -> @stack[*-1].state = it
+
+  strip: (str) ->
+    str.replace(/^\r+/, '')
 
   process: (text) ->
     exec-from = (re, text, pos) -> re.lastIndex = pos ; re.exec(text)
