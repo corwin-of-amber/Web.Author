@@ -20,6 +20,8 @@ else
 
 
 $ ->
+  if doc-fn?
+    $ 'title' .text "toxin [#{doc-fn}]"
   switch doc-type
   | 'text/html'
     $ '#document' .html doc-text

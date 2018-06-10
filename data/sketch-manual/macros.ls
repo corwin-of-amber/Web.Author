@@ -1,4 +1,4 @@
-{is-text, is-block, is-command, ungroup, consume-next, peek-next, next-until-cond, par, env} = Traversal
+{consume-next, env} = Traversal
 txt = document~createTextNode
 
 newcounter = (start-from, f) ->
@@ -30,7 +30,7 @@ commands =
       $ '<dt>' .add-class 'parameter' .append consume-next it .append-to ..
       $ '<dd>' .append consume-next it .append-to ..
   paragraph: ->
-    p = par it .wrap-all '<p>' .parent! .add-class 'paragraph'
+    p = Traversal.par it .wrap-all '<p>' .parent! .add-class 'paragraph'
     $ '<a>' .add-class "parameter title" .append consume-next it
   secref: -> $ '<a>' .text "link" .attr 'href' ('#' + consume-next it .text!)
   emph: -> $ '<em>' .append consume-next it
@@ -38,7 +38,7 @@ commands =
   lstinline: -> $ '<code>' .add-class 'lstinline' .append consume-next it
 
   begin: ->
-    name = peek-next it .text!
+    name = Traversal.peek-next it .text!
     if (envf = environments[name])?
       envf it
     else
@@ -47,8 +47,8 @@ commands =
     consume-next it
     $ '<span>' .add-class 'empty'
 
-  item: -> $ '<li>' .add-class 'item' .append next-until-cond it[0].nextSibling, ->
-    is-command it, '\\item'
+  item: -> $ '<li>' .add-class 'item' .append Traversal.next-until-cond it[0].nextSibling, ->
+    Traversal.is-command it, '\\item'
 
   Sk: -> $ '<span>' .add-class 'Sketch'
   ie: -> $ '<i>' .add-class 'latin' .text "i.e."
@@ -75,13 +75,14 @@ verbatim = (jdoms) ->
   jdoms.each ->
     jdom = $(@)
     if ! jdom.is('.math')
+      # essentially reverses the effects of the parser :\
       contents = jdom.contents!
       if jdom.is('.group')
-        $(@).replace-with [txt "{"] ++ contents[to] ++ [txt "}"]
+        $(@).replaceWith [txt "{"] ++ contents[to] ++ [txt "}"]
       else if jdom.is('.escaped')
-        $(@).replace-with [txt "\\"] ++ contents[to]
+        $(@).replaceWith [txt "\\"] ++ contents[to]
       else if jdom.is('.par-break')
-        $(@).replace-with contents
+        $(@).replaceWith contents
 
       contents.each -> verbatim $(@)
 
@@ -89,7 +90,10 @@ environments =
   lstlisting: ->
     $ '<div>' .add-class 'code' .append env it
       verbatim ..children!
-      if is-text (x = (..0.firstChild)), "\n" then x.remove!
+      # strip leading whitespace (including newline)
+      if Traversal.is-text(x = (..0.firstChild))
+        x.nodeValue = x.nodeValue.replace(/^\s+/, '')
+        if x.nodeValue == '' then x.remove!
   Example: ->
     $ '<div>' .add-class 'example'
     .append ($ '<p>' .attr 'counter-value' '?') .append env it
@@ -128,6 +132,8 @@ aftermath =
     it.find '.katex-mathml' .remove!
 
   not-math: ->
+    # @deprecated
+    # A toy math processor
     for dom in it.contents!
       if dom.nodeType == document.TEXT_NODE
         if dom.nodeValue == /^~+$/
@@ -147,11 +153,19 @@ aftermath =
     p = it.find "p[counter-value]"
     if p.length
       p.attr 'counter-value' aftermath.example.counter-value++
-      gobble = next-until-cond p[0].nextSibling, is-block
-      p.append $ gobble
+      gobble = Traversal.next-until-cond p[0].nextSibling, Traversal.is-block
+      p.append gobble
 
   group: ->
     if it.contents!length == 0 then it.remove!
+
+  'par-break': ->
+    # collect preceding nodes up to a block element or beginning of parent
+    # (this has to be done at DOM level to collect text nodes as well)
+    gobble = Traversal.prev-until-cond it[0].previousSibling, Traversal.is-block
+    it.replaceWith $('<p>').append(gobble)
+
+
 
 
 export commands, aftermath

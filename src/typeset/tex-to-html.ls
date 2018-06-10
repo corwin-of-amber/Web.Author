@@ -45,8 +45,9 @@ append-text-aware = (jdom, elements) ->
       else
         jdom.append (last = element)
     else
-      if last?.nodeType == document.TEXT_NODE && last.nodeValue == /\S\s$/
-        last.nodeValue += "\t"   # this is a hack to work around a rendering bug in nwjs
+      # >> I did not witness this happen in NWjs 0.30.2. perhaps it's gone...
+      #if last?.nodeType == document.TEXT_NODE && last.nodeValue == /\S\s$/
+      #  last.nodeValue += "\t"   # this is a hack to work around a rendering bug in nwjs
       jdom.append (last = element)
 
 
