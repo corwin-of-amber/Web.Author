@@ -5,6 +5,10 @@ newcounter = (start-from, f) ->
   f.counter-value = start-from
   f
 
+mk-option = (tree, name) ->
+  content = consume-next tree
+  $ '<span>' .add-class 'option' .attr 'name', name
+
 commands =
   section: -> $ '<h1>' .append consume-next it
   subsection: -> $ '<h2>' .append consume-next it
@@ -36,6 +40,13 @@ commands =
   emph: -> $ '<em>' .append consume-next(it)
   textit: -> $ '<i>' .append consume-next(it)
   lstinline: -> $ '<code>' .add-class 'lstinline' .append consume-next(it)
+
+  # Metadata and front matter
+  documentclass: -> mk-option it, 'documentclass'
+  title: -> mk-option it, 'title'
+  author: -> mk-option it, 'author'
+  date: -> mk-option it, 'date'
+  usepackage: -> mk-option it, 'usepackage'
 
   begin: ->
     name = Traversal.peek-next it .text!
@@ -87,6 +98,7 @@ verbatim = (jdoms) ->
       contents.each -> verbatim $(@)
 
 environments =
+  document: -> $ '<div>' .append env it
   lstlisting: ->
     $ '<div>' .add-class 'code' .append env it
       verbatim ..children!

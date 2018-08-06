@@ -1,6 +1,6 @@
 
-nw.Window.open "", {id: "rich1", focus: false}, ->
-  it.window.location = "/src/rich.html?data/sketch-manual/baseLanguage.html"
+#nw.Window.open "", {id: "rich1", focus: false}, ->
+#  it.window.location = "/src/rich.html?data/sketch-manual/baseLanguage.html"
 
 nw.Window.open "", {id: "rich2", focus: false}, ->
-  it.window.location = "/src/rich.html?data/sketch-manual/baseLanguage.tex"
+  it.window.location = "/src/rich.html?data/sketch-manual/manual.tex"

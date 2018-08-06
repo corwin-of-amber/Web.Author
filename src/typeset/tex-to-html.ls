@@ -20,6 +20,8 @@ compile-latex-groups = (tree) ->
     jdom = $ '<span>' .add-class 'escaped'
   else if tree.root == "¶"
     jdom = $ '<span>' .add-class 'par-break'
+  else if tree.root == "%"
+    jdom = $ '<span>' .add-class 'comment'
   else
     jdom = $ '<span>' .text tree.root
 

@@ -17,7 +17,7 @@ p {
   text-align: justify;
 }
 p.indent::before {
-  display: inline-block; 
+  display: inline-block;
   content: " ";
   width: .5em;
 }
@@ -92,6 +92,9 @@ ul.itemize li::before {
 }
 li {
   margin-bottom: .5em;
+}
+span.comment {
+  display: none;
 }
 div.example > p:first-child::before {
   content: "Example " attr(counter-value) ".";

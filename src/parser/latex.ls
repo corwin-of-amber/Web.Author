@@ -7,7 +7,8 @@ class TexGrouping
   @INITIAL =
     token-re: // ([{$] | \\\[)    |  ([}] | \\\])   |
                  (\\[a-zA-Z]+)    |  (\\[\\~^])     |  \\([^a-zA-Z])  |
-                 (\n\s*?(?:\n\s*)+)                 |  (\s+?)         //g
+                 (\n\s*?(?:\n\s*)+)                 |  (\s+?)         |
+                 (%.*\n)  //g
     matching: {'{': '}', '$': '$', '\\[': '\\]'}
 
     special: {}
@@ -20,6 +21,7 @@ class TexGrouping
       else if mo.2 || mo.3 || mo.4 then _.emit T(mo.0)
       else if mo.5 then _.emit T("\\").of(mo.5)
       else if mo.6 then _.emit T("¶").of(mo.6)
+      else if mo.8 then _.emit T("%").of(mo.8)
       else _.emit _.strip(mo.0)
 
       if (f = @special[mo.0]) then f mo.0, texg
