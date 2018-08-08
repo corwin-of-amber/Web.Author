@@ -81,6 +81,7 @@ Traversal = do ->
       if is-text(@)
         txt @nodeValue[0]
           .. ; @nodeValue = @nodeValue.substring 1
+            if ..length == 0 then @remove!
       else
         treat-elements $(@).remove!  |>  (.[to])
   peek-next = (dom, treat-elements=ungroup) ->
