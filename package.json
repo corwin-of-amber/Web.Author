@@ -7,6 +7,9 @@
   "dependencies": {
     "jquery": "^2.2.1",
     "jquery-contextmenu": "^2.1.1",
-    "prelude-ls": "^1.1.2"
+    "prelude-ls": "^1.1.2",
+    "find": "^0.2.9",
+    "child-process-promise": "^2.2.1",
+    "mkdirp": "^0.5.1"
   }
 }

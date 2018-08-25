@@ -1,4 +1,4 @@
-{consume-next, env} = Traversal
+{consume-next, is-text, peek-next, env} = Traversal
 txt = document~createTextNode
 
 newcounter = (start-from, f) ->
@@ -10,9 +10,22 @@ mk-option = (tree, name) ->
   $ '<span>' .add-class 'option' .attr 'name', name
     ..append content
 
+Commands =
+  consume-optarg: (tree) ->
+    tok = peek-next tree, (-> it)  /* don't ungroup */
+    if Traversal.is-text(tok.0) && tok.0.nodeValue == '['
+      /* consume until ] */
+      arg =
+        while tok.length && !(Traversal.is-text(tok.0) && tok.0.nodeValue == ']')
+          tok = consume-next tree, (-> it)
+          tok.0
+      $(arg[1 til arg.length - 1])
+
+
 commands =
   section: -> $ '<h1>' .append consume-next it
   subsection: -> $ '<h2>' .append consume-next it
+  subsubsection: -> $ '<h3>' .append consume-next it
   seclabel: -> $ '<a>' .attr 'name' (consume-next it .text!)
   sqsubseteq: -> $ '<span>' .add-class 'rm' .text "⊑"
   geq: -> $ '<span>' .add-class 'rm' .text "≥"
@@ -36,6 +49,7 @@ commands =
   secref: -> $ '<a>' .text "link" .attr 'href' ('#' + consume-next it .text!)
   emph: -> $ '<em>' .append consume-next(it)
   textit: -> $ '<i>' .append consume-next(it)
+  textsf: -> $ '<span>' .append consume-next(it) .add-class 'sffamily'
   lstinline: -> $ '<code>' .add-class 'lstinline' .append consume-next(it)
 
   # Metadata and front matter
@@ -75,6 +89,16 @@ commands =
 
   ie: -> $ '<i>' .add-class 'latin' .text "i.e."
   eg: -> $ '<i>' .add-class 'latin' .text "e.g."
+  etc: ->
+    next = it.0.nextSibling
+    text =
+      if is-text(next) && next.nodeValue[0] == '.' then 'etc'
+      else 'etc.'
+    $ '<i>' .add-class 'latin' .text text
+
+  medskip: ->
+    $ '<div>' .add-class 'vspace' .add-class 'medskip'
+
 
 
 # Extend TeX parser with a state for inline code via \lstinline
@@ -145,6 +169,10 @@ environments =
         else
           current-cell.append node
 
+  figure: ->
+    $ '<div>' .add-class 'float', 'figure' .append env it
+
+
 
 aftermath =
   math: ->
@@ -188,9 +216,22 @@ aftermath =
     # collect preceding nodes up to a block element or beginning of parent
     # (this has to be done at DOM level to collect text nodes as well)
     gobble = Traversal.prev-until-cond it[0].previousSibling, Traversal.is-block
-    it.replaceWith $('<p>').append(gobble)
+    if gobble.length > 0
+      it.replaceWith $('<p>').append(gobble)
+    else
+      it.remove!
+
+  medskip: ->
+    next = it.next!
+    if next.is('p') then it.remove! ; next.add-class 'medskip'
+
+  'special-token': ->
+    switch it.attr('token')
+    | '``' =>  it.text '\u201c'
+    | "''" =>  it.text '\u201d'
+    | '--' =>  it.text '\u2013'
+    | '---' => it.text '\u2014'
 
 
 
-
-export commands, aftermath
+export commands, aftermath, Commands

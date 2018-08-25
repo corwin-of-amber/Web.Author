@@ -3,6 +3,7 @@
   font-size: 12.5pt;
   padding: 0 .5cm;
   text-align: justify;
+  font-display: block;  /* avoid network heuristics. fonts are local. */
 }
 h1, h2 {
   font-family: "KaTeX_Main"; /*CMU Serif Extra";*/
@@ -26,6 +27,10 @@ p.paragraph > a.title {
   font-weight: bold;
   margin-right: 1em;
 }
+.sffamily {
+  font-family: sans-serif;
+  font-size: 85%;
+}
 code, div.code {
   font-family: "CMU Typewriter Text";
   font-style: normal;
@@ -47,11 +52,11 @@ div.code {
 }
 .math.rm, .math .rm { font-style: normal; }
 .math .katex {
-  font-family: inherit;
+  /*font-family: inherit;*/
   font-size: 1em;
 }
 .math .katex .mathit {
-  font-family: inherit;
+  /*font-family: inherit;*/
 }
 .big { font-size: larger; }
 table {
@@ -105,4 +110,20 @@ div.example > p:first-child::before {
 }
 div.example {
   font-style: italic;
+}
+div.vspace.medskip {
+  height: 1em;
+}
+p.medskip {
+  margin-top: 2em;
+}
+div.float {
+  float: right;
+  padding-left: 1em;
+  padding-bottom: 1em;
+  margin-left: 0.5em;
+  background: rgba(0, 0, 0, 0.05);
+}
+img[data-width] {
+  width: attr(data-width px)
 }

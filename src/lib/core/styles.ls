@@ -1,6 +1,7 @@
 styles =
   section: -> "\\section{#it}"
   subsection: -> "\\subsection{#it}"
+  subsubsection: -> "\\subsubsection{#it}"
   math: -> "$#{it}$"
   symbol: (txt, {latex}) -> latex ? "\\?"
   spaced: (txt, {nspaces}) -> ['', txt, ''].join '~'*(nspaces ? 1)

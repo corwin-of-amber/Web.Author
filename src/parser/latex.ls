@@ -8,7 +8,7 @@ class TexGrouping
     token-re: // ([{$] | \\\[)    |  ([}] | \\\])   |
                  (\\[a-zA-Z]+)    |  (\\[\\~^])     |  \\([^a-zA-Z])  |
                  (\n\s*?(?:\n\s*)+)                 |  (\s+?)         |
-                 (%.*\n)  //g
+                 (---? | ['`]{1,2})                 |  (%.*\n)        //g
     matching: {'{': '}', '$': '$', '\\[': '\\]'}
 
     special: {}
@@ -21,7 +21,8 @@ class TexGrouping
       else if mo.2 || mo.3 || mo.4 then _.emit T(mo.0)
       else if mo.5 then _.emit T("\\").of(mo.5)
       else if mo.6 then _.emit T("¶").of(mo.6)
-      else if mo.8 then _.emit T("%").of(mo.8)
+      else if mo.8 then _.emit T("!").of(mo.8)
+      else if mo.9 then _.emit T("%").of(mo.9)
       else _.emit _.strip(mo.0)
 
       if (f = @special[mo.0]) then f mo.0, texg
@@ -57,6 +58,8 @@ class TexGrouping
     while @stack.length > 1
       @emit @leave('')
 
+    @emit T("¶")  # force document to end with a par break
+
     @out
 
 
@@ -86,7 +89,7 @@ Traversal = do ->
         treat-elements $(@).remove!  |>  (.[to])
   peek-next = (dom, treat-elements=ungroup) ->
     n = dom.map -> @nextSibling
-    $ flatten n.map -> if is-text(@) then $ txt @nodeValue[0] else treat-elements $(@) |> (.[to])
+    $ flatten n.map -> if is-text(@) then txt @nodeValue[0] else treat-elements $(@) |> (.[to])
   prev-bound = (dom, pred) ->
     x = void
     while dom? && !pred(dom) then x = dom ; dom = dom.previousSibling
