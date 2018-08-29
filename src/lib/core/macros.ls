@@ -11,6 +11,9 @@ mk-option = (tree, name) ->
     ..append content
 
 Commands =
+  digest-func: (f) -> f
+      ..digest = true
+
   consume-optarg: (tree) ->
     tok = peek-next tree, (-> it)  /* don't ungroup */
     if Traversal.is-text(tok.0) && tok.0.nodeValue == '['

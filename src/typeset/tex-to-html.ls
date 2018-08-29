@@ -71,8 +71,10 @@ expand-macros = (jdom) ->
 
 post-process = (jdom) ->
   for class-name, am-func of aftermath
-    for dom in jdom.find ".#class-name"
-      am-func $(dom)
+    jdom.find ".#class-name"
+      if am-func.digest then am-func ..
+      else
+        for dom in .. then am-func $(dom)
 
 
 
