@@ -1,6 +1,6 @@
-require! fs
-require! mkdirp
+fs = require 'fs-extra'
 require! path
+require! tempy
 child-process-promise = require 'child-process-promise'
 
 
@@ -22,7 +22,9 @@ class EmbedPdf
         @_gs-result = result
         new Blob([fs.readFileSync(@output-filename)])
 
-  mktemp: -> '/tmp/embed-pdf.png'  # TODO
+  mktemp: -> tempy.file({extension: '.png'})
+
+  cleanup: -> if @output-filename then fs.remove @output-filename
 
 
 
@@ -35,10 +37,9 @@ class EmbedPdfLatex
     ->
       if @_promise? then return @_promise
       @output-dir = @mktemp!
-        mkdirp.sync ..
       @jobname = 'pdfembed'
       @output-filename = path.join(@output-dir, "#{@jobname}.pdf")
-      @promise = child-process-promise.spawn('pdflatex',
+      @_promise = child-process-promise.spawn('pdflatex',
           ['-file-line-error', '-interaction', 'nonstopmode', '-output-dir',
           @output-dir, '-jobname', @jobname, @input-filename],
           {capture: <[ stdout stderr ]>})
@@ -47,7 +48,35 @@ class EmbedPdfLatex
         @_embed-pdf = new EmbedPdf(@output-filename)
         @_embed-pdf.promise
 
-  mktemp: -> '/tmp/embed-pdflatex'  # TODO
+  mktemp: -> tempy.directory!
+
+  cleanup: ->
+    if @output-dir then fs.remove @output-dir
+    @_embed-pdf?cleanup!
 
 
-export EmbedPdf, EmbedPdfLatex
+/**
+ * Like EmbedPdfLatex, but gets the LaTeX source as a string.
+ */
+class EmbedPdfLatexDirect
+
+  (@latex-source-text) ->
+    @_promise = void
+
+  promise:~
+    ->
+      if @_promise? then return @_promise
+      @latex-file = @mktemp!
+        fs.writeFileSync .., @latex-source-text
+      @_embed-pdflatex = new EmbedPdfLatex(@latex-file)
+      @_promise = @_embed-pdflatex.promise
+
+  mktemp: -> tempy.file({extension: '.tex'})
+
+  cleanup: ->
+    if @latex-file then fs.remove @latex-file
+    @_embed-pdflatex?cleanup!
+
+
+
+export EmbedPdf, EmbedPdfLatex, EmbedPdfLatexDirect

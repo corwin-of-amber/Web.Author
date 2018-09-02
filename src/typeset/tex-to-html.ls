@@ -67,7 +67,7 @@ expand-macros = (jdom) ->
     child = Traversal.forward child
 
   if i >= NLIMIT
-    console.error "warning: iteration limit reach (infinite loop?)"
+    console.error "warning: iteration limit reached (infinite loop?)"
 
 post-process = (jdom) ->
   for class-name, am-func of aftermath

@@ -78,8 +78,8 @@ Traversal = do ->
   txt = document~createTextNode
 
   ungroup = -> it.contents!
-  consume-next = (dom, treat-elements=ungroup) ->
-    n = dom.map -> @nextSibling
+  consume-next = (jdom, treat-elements=ungroup) ->
+    n = jdom.map -> @nextSibling
     $ flatten n.map ->
       if is-text(@)
         txt @nodeValue[0]
@@ -100,6 +100,11 @@ Traversal = do ->
   prev-until-cond = (dom, pred, inclusive=false) -> []
     while dom? && !pred(dom) then ..unshift dom ; dom = dom.previousSibling
     if inclusive && dom? then ..push dom
+
+  containing-document = (jdom) ->
+    while (p = jdom.parent!).length
+      jdom = p
+    jdom
 
   par = (jdom) ->
     assert jdom.length == 1, "'par' must get a single element"
@@ -124,7 +129,7 @@ Traversal = do ->
     else forward0 jdom
 
   {is-text, is-command, is-block, ungroup, consume-next,
-  peek-next, prev-bound, next-until-cond, prev-until-cond,
+  peek-next, prev-bound, next-until-cond, prev-until-cond, containing-document,
   par, env, forward, forward0}
 
 

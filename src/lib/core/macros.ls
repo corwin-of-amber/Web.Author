@@ -16,10 +16,10 @@ Commands =
 
   consume-optarg: (tree) ->
     tok = peek-next tree, (-> it)  /* don't ungroup */
-    if Traversal.is-text(tok.0) && tok.0.nodeValue == '['
+    if tok.0? && Traversal.is-text(tok.0) && tok.0.nodeValue == '['
       /* consume until ] */
       arg =
-        while tok.length && !(Traversal.is-text(tok.0) && tok.0.nodeValue == ']')
+        while tok.length && tok.0? && !(Traversal.is-text(tok.0) && tok.0.nodeValue == ']')
           tok = consume-next tree, (-> it)
           tok.0
       $(arg[1 til arg.length - 1])
@@ -237,4 +237,4 @@ aftermath =
 
 
 
-export commands, aftermath, Commands
+export commands, environments, aftermath, Commands, verbatim
