@@ -1,4 +1,5 @@
 {EventEmitter} = require 'events'
+_ = require 'lodash'
 
 
 
@@ -14,9 +15,14 @@ class ViewerCore extends EventEmitter
     @zoom = 1
     @resolution = 2
 
+    @watcher = new FileWatcher
+      ..on 'change' ~> console.log window; requestAnimationFrame @~reload
+
   open: (filename) ->>
+    console.log 'open' filename
     @pdf = await pdfjsLib.getDocument(filename).promise
       ..filename = filename
+      @watcher.single filename
     @refresh!
     @
 
@@ -74,12 +80,12 @@ class Nav_MixIn
 
 
 
-class SyncTeX
+class SyncTeX extends EventEmitter
 
   (@sync-data) ->
     @overlay = $('<svg xmlns="http://www.w3.org/2000/svg">')
       ..addClass('synctex-overlay')
-      ..on 'mousemove' @~mouse-handler
+      ..on 'mousemove mousedown' @~mouse-handler
     @highlight = $(document.createElementNS('http://www.w3.org/2000/svg', 'rect'))
       ..addClass 'highlight'
       @overlay.append ..
@@ -128,6 +134,7 @@ class SyncTeX
       p = {x: ev.offsetX, y: ev.offsetY}
       if (ht = @hit-test-single(@sync-data.pages[page-num], p))?
         @focus ht
+        if ev.type === 'mousedown' then @emit 'synctex-goto' ht
       else
         @blur!
 
@@ -138,13 +145,26 @@ class SyncTeX_MixIn
     @synctex-init!
 
     require! fs
-    err, txt <~ fs.readFile filename, 'utf-8'
+    err, txt <~ @_read filename
     if err
       console.error "open synctex:", err
     else
       parseSyncTex txt
         @synctex = new SyncTeX(..)
           ..filename = filename
+          ..on 'synctex-goto' ~> @emit 'synctex-goto' it
+
+  _read: (filename, callback) !->
+    require! fs
+    if filename.endsWith('.gz')
+      # apply gunzip (use stream to save memory)
+      require! zlib; require! 'stream-buffers'
+      fs.createReadStream(filename)  .on 'error' -> callback it
+      .pipe(zlib.createGunzip())     .on 'error' -> callback it
+      .pipe(new streamBuffers.WritableStreamBuffer)
+      .on 'finish' -> callback null, @getContentsAsString('utf-8')
+    else
+      fs.readFile filename, 'utf-8', callback
 
   synctex-init: ->
     if !@_synctex-init
@@ -155,7 +175,29 @@ class SyncTeX_MixIn
           @synctex.cover canvas
           @synctex.selected-page = @selected-page
 
-  
+
+class FileWatcher extends EventEmitter
+  ->
+    @watches = []
+    if (typeof window !== 'undefined')
+      window.addEventListener('unload', @~clear)
+    
+    @debounce-handler = _.debounce @~handler, 500
+
+  add: (filename) !->
+    filename .= replace(/^file:\/\//, '')
+    require! fs
+    @watches.push fs.watch(filename, {persistent: false}, @~debounce-handler)
+
+  clear: !->
+    for @watches => ..close!
+    @watches = []
+
+  single: (filename) !-> @clear! ; @add filename
+
+  handler: (ev, filename) -> @emit 'change' {filename}
+
+
 
 
 class Viewer extends ViewerCore
@@ -163,8 +205,14 @@ class Viewer extends ViewerCore
   open: (pdf, synctex) ->
     super pdf .then ~>
       if synctex? then @synctex-open synctex
+      @ui-init! || @refresh!
+
+  ui-init: ->
+    if !@_ui-init
       @goto-page 1
       @nav-bind-ui!
+      @_ui-init = true      
+      
 
 Viewer:: <<<< Nav_MixIn:: <<<< SyncTeX_MixIn::
 

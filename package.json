@@ -10,8 +10,10 @@
     "find": "^0.2.9",
     "fs-extra": "^7.0.0",
     "jquery": "^3.4.1",
+    "lodash": "^4.17.11",
     "pdfjs-dist": "^2.0.943",
     "prelude-ls": "^1.1.2",
+    "stream-buffers": "^3.0.2",
     "synctex-js": "github:corwin-of-amber/synctex-js",
     "tempy": "^0.2.1"
   }
