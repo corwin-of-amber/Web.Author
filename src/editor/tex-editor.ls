@@ -1,5 +1,5 @@
+_ = require 'lodash'
 
-is-mac = navigator.appVersion is /Mac/
 
 
 class TeXEditor
@@ -9,32 +9,56 @@ class TeXEditor
       lineWrapping: true
       lineNumbers: true
 
-    Ctrl = if is-mac then "Cmd" else "Ctrl"
+    Ctrl = if @@is-mac then "Cmd" else "Ctrl"
 
     @cm.addKeyMap do
       "#{Ctrl}-S": @~save
 
-  open: (filename) -> new Promise (resolve, reject) ~>
+    @watcher = new FileWatcher  /* defined in viewer.ls :/ */
+      ..on 'change' @~reload
+
+  open: (filename, unless-identical=void) -> new Promise (resolve, reject) ~>
     require! fs
     err, txt <~ fs.readFile filename, 'utf-8'
     if err?
       console.error "open in editor:", err
       reject err
     else
-      @cm.setValue txt
-      @filename = filename
-      resolve @
+      try
+        if txt != unless-identical
+          @cm.setOption 'lineSeparator' @@detect-line-ends(txt)
+          @cm.setValue txt
+          @_last-file-contents = txt
+          @filename = filename
+            @watcher.single ..
+        resolve @
+      catch e => reject e
+
+  reload: ->
+    if @filename then @open that, @_last-file-contents
 
   save: ->
     if @filename?
       require! fs
-      fs.writeFile @filename, @cm.getValue!, ->
+      @watcher.clear!
+      @cm.getValue!
+        @_last-file-contents = ..
+        fs.writeFile @filename, .., ~>
+          @watcher.single @filename
 
   jump-to: (filename, {line, ch}) ->>
-    await @open filename
+    if filename != @filename
+      await @open filename
     if line?
       @cm.setCursor {line: line - 1, ch: ch ? 0}
-      @cm.focus!
+      @cm.scrollIntoView null, 150
+      requestAnimationFrame ~> @cm.focus!
+
+  @is-mac = navigator.appVersion is /Mac/
+
+  @detect-line-ends = (txt) ->
+    eols = _.groupBy(txt.match(/\r\n?|\n/g), -> it)
+    _.maxBy(Object.keys(eols), -> eols[it].length) ? '\n'
 
 
 export TeXEditor
