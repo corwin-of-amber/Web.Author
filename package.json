@@ -13,6 +13,7 @@
     "lodash": "^4.17.11",
     "pdfjs-dist": "^2.0.943",
     "prelude-ls": "^1.1.2",
+    "split.js": "^1.5.11",
     "stream-buffers": "^3.0.2",
     "synctex-js": "github:corwin-of-amber/synctex-js",
     "tempy": "^0.2.1"
