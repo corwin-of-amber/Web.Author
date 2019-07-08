@@ -7,20 +7,23 @@ class ViewerCore extends EventEmitter
 
   (@pdf, @containing-element ? $('body')) ->
     super!
-    @canvas = {}
+    @pages = {}
     if @pdf?
-      @canvas[1] = @render-page(1)
+      @pages[1] = @render-page(1)
     @selected-page = undefined
+    @canvas = undefined
 
-    @zoom = 1
+    @zoom = 1.5
     @resolution = 2
 
     @watcher = new FileWatcher
-      ..on 'change' ~> console.log window; requestAnimationFrame @~reload
+      ..on 'change' @~reload
 
   open: (filename) ->>
     console.log 'open' filename
-    @pdf = await pdfjsLib.getDocument(filename).promise
+    await pdfjsLib.getDocument(filename).promise
+      @pdf?.destroy!
+      @pdf = ..
       ..filename = filename
       @watcher.single filename
     @refresh!
@@ -32,7 +35,6 @@ class ViewerCore extends EventEmitter
   render-page: (page-num) ->
     canvas = $('<canvas>')
     @pdf.getPage(page-num).then (page) ~>
-      @page = page
       viewport = page.getViewport(1)
       scale = @zoom * @resolution
       viewport = page.getViewport(scale)
@@ -45,18 +47,17 @@ class ViewerCore extends EventEmitter
         canvasContext: ctx
         viewport: viewport
       .then ~>
-        canvas
+        {page, canvas}
 
   goto-page: (page-num) ->
     @selected-page = page-num
-    @canvas[page-num] ?= @render-page(page-num)
-      ..then (canvas) ~> @containing-element
-        ..find 'canvas' .remove!
-        ..append canvas
-        @blob <~ canvas.0.toBlob
-        @emit 'displayed' canvas
+    @pages[page-num] ?= @render-page(page-num)
+      ..then (page) ~> @containing-element
+        @canvas?remove!
+        ..append (@canvas = page.canvas)
+        @emit 'displayed' page
 
-  flush: -> @canvas = {}
+  flush: -> @pages = {}
 
   refresh: -> @flush! ; if @selected-page then @goto-page that
 
@@ -65,19 +66,40 @@ class Nav_MixIn
   nav-bind-ui: ->
     @containing-element .keydown keydown_eh = (ev) ~>
       switch ev.code
-        case "ArrowRight", "PageDown" => @next-page! ; ev.preventDefault!
-        case "ArrowLeft", "PageUp"    => @prev-page! ; ev.preventDefault!
+        case "ArrowRight", "PageDown" => @go-next-page!  ; ev.preventDefault!
+        case "ArrowLeft", "PageUp"    => @go-prev-page!  ; ev.preventDefault!
+        case "Home"                   => @go-first-page! ; ev.preventDefault!
+        case "End"                    => @go-last-page!  ; ev.preventDefault!
     @on 'close' ~>
       @containing-element .off 'click', click_eh
 
-  next-page: ->
+  go-next-page: ->
     if @pdf? && @selected-page < @pdf.num-pages
       @goto-page ++@selected-page
 
-  prev-page: ->
+  go-prev-page: ->
     if @pdf? && @selected-page > 1
       @goto-page --@selected-page
 
+  go-first-page: ->
+    if @pdf then @goto-page 1
+
+  go-last-page: ->
+    if @pdf then @goto-page @pdf.num-pages
+
+
+class Zoom_MixIn
+  zoom-bind-ui: ->
+    @_debounce-refresh = _.debounce @~refresh, 300
+    @containing-element .on 'wheel' (ev) ~>
+      if ev.ctrlKey
+        if @canvas?
+          z = @zoom
+          @zoom -= ev.originalEvent.deltaY / 100
+          @canvas.width @canvas.width() * @zoom / z
+        @emit 'resizing' @canvas
+        @_debounce-refresh!
+        ev.preventDefault()
 
 
 class SyncTeX extends EventEmitter
@@ -90,11 +112,16 @@ class SyncTeX extends EventEmitter
       ..addClass 'highlight'
       @overlay.append ..
 
-  cover: (canvas) ->
+  cover: (canvas, scale) ->
     canvas.parent!append @overlay
-    @overlay.attr width: canvas.0.width, height: canvas.0.height
-    canvas.0.getBoundingClientRect!
-      @overlay.width ..width ; @overlay.height ..height
+    @overlay.attr viewBox: "0 0 #{canvas.0.width / scale} #{canvas.0.height / scale}"
+    @snap canvas
+
+  snap: (canvas) ->
+    @overlay.0.style.width = canvas.0.style.width
+
+  remove: ->
+    @overlay.remove! ; @
 
   walk: (block) ->*
     yield block
@@ -131,30 +158,15 @@ class SyncTeX extends EventEmitter
 
   mouse-handler: (ev) ->
     if (page-num = @selected-page)?
-      p = {x: ev.offsetX, y: ev.offsetY}
+      ctm = @overlay.0.getScreenCTM()  # assuming ctm.a, ctm.d are the scaling factors
+      p = {x: ev.offsetX / ctm.a, y: ev.offsetY / ctm.d}
       if (ht = @hit-test-single(@sync-data.pages[page-num], p))?
         @focus ht
         if ev.type === 'mousedown' then @emit 'synctex-goto' ht
       else
         @blur!
 
-
-class SyncTeX_MixIn
-
-  synctex-open: (filename) ->
-    @synctex-init!
-
-    require! fs
-    err, txt <~ @_read filename
-    if err
-      console.error "open synctex:", err
-    else
-      parseSyncTex txt
-        @synctex = new SyncTeX(..)
-          ..filename = filename
-          ..on 'synctex-goto' ~> @emit 'synctex-goto' it
-
-  _read: (filename, callback) !->
+  @read-file = (filename, callback) !->
     require! fs
     if filename.endsWith('.gz')
       # apply gunzip (use stream to save memory)
@@ -166,14 +178,43 @@ class SyncTeX_MixIn
     else
       fs.readFile filename, 'utf-8', callback
 
+
+
+class SyncTeX_MixIn
+
+  synctex-open: (filename) ->
+    console.log 'open synctex' filename
+    @synctex-init!
+
+    @synctex?.remove!
+
+    err, txt <~ SyncTeX.read-file filename
+    if err
+      console.error "open synctex:", err
+    else
+      parseSyncTex txt
+        @synctex = new SyncTeX(..)
+          ..filename = filename
+          ..on 'synctex-goto' ~> @emit 'synctex-goto' it
+      @_synctex-watcher.single filename
+
   synctex-init: ->
     if !@_synctex-init
       @_synctex-init = true
-      @on 'displayed' (canvas) ~>
+      @on 'displayed' (page) ~>
         if @synctex?
           @synctex.blur!
-          @synctex.cover canvas
+          @synctex.cover page.canvas, @zoom * @resolution
           @synctex.selected-page = @selected-page
+      @on 'resizing' (canvas) ~>
+        @synctex?.snap canvas
+      @_synctex-watcher = new FileWatcher
+        ..on 'change' @~synctex-reload
+
+  synctex-reload: ->
+    if @synctex.filename
+      @synctex-open that
+      @refresh!
 
 
 class FileWatcher extends EventEmitter
@@ -211,11 +252,12 @@ class Viewer extends ViewerCore
     if !@_ui-init
       @goto-page 1
       @nav-bind-ui!
+      @zoom-bind-ui!
       @_ui-init = true      
       
 
-Viewer:: <<<< Nav_MixIn:: <<<< SyncTeX_MixIn::
+Viewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::
 
 
 
-export Viewer
+export Viewer, FileWatcher
