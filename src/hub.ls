@@ -7,19 +7,19 @@
 
 process = _process
 
-WORKDIR = "#{process.env.HOME}/var/workspace/papers/tech-srl-refl/oe"
 
 $ ->
   ide = new IDELayout
 
   $('body').append ide.el
 
-  editor = new TeXEditor(ide.create-pane!attr 'id' 'ide-pane-editor')
-  viewer = new Viewer(, ide.create-pane!attr 'id' 'ide-pane-viewer')
-    ..open "file://#{WORKDIR}/out/popl2020.pdf" "#{WORKDIR}/out/popl2020.synctex.gz"
-    ..on 'synctex-goto' -> editor.jump-to it.file.path, line: it.line
+  editor = ide.createEditor!
+  viewer = ide.createViewer!
 
   ide.make-resizable!
+
+  ide.config = new IDEConfig
+    ..restore-session ide
 
   editor.cm.focus!
 

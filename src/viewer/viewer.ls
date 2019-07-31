@@ -216,6 +216,16 @@ class SyncTeX_MixIn
       @synctex-open that
       @refresh!
 
+  synctex-locate: (pdf-filename) ->
+    require! fs
+    pdf-filename .= replace(/^file:\/\//, '')
+
+    for suffix in ['.synctex.gz', '.synctex']
+      try
+        fn = pdf-filename.replace(/(\.pdf|)$/, suffix)
+        if fs.statSync(fn).isFile! then return fn
+      catch
+
 
 class FileWatcher extends EventEmitter
   ->
@@ -245,6 +255,7 @@ class Viewer extends ViewerCore
 
   open: (pdf, synctex) ->
     super pdf .then ~>
+      synctex = synctex ? @synctex-locate(pdf)
       if synctex? then @synctex-open synctex
       @ui-init! || @refresh!
 
