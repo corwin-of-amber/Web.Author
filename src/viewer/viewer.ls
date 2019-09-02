@@ -131,7 +131,7 @@ class SyncTeX extends EventEmitter
   hit-test: (block, point) !->*
     w = @walk(block)
     while !(cur = w.next!).done
-      b = cur.value
+      b = @_block-touchup(cur.value)
       if @hit-test-shallow(b, point) then yield b
 
   hit-test-shallow: (block, point) ->
@@ -142,9 +142,32 @@ class SyncTeX extends EventEmitter
   hit-test-single: (block, point) ->
     ht = @hit-test(block, point)
     while !(cur = ht.next!).done
-      if cur.value?type == 'horizontal'
+      if @_block-criteria(cur.value)
         b = cur.value
     b
+
+  /**
+   * Hack: crop oversized boxes, which are sometimes created by title macros
+   * or included graphics.
+   */
+  _block-touchup: (block) ->
+    if block.elements?length == 0 && block.parent.width == 0
+      ^^block
+        anc = @_block-ancestors(block)
+        while !(cur = anc.next!).done && (c = cur.value)
+          if c.width  then ..width  = Math.min(..width,  c.width)
+          if c.height then ..height = Math.min(..height, c.height)
+    else block
+
+  _block-criteria: (block) ->
+    # A block is selectable if it contains some text/math element(s)
+    block.type == 'horizontal' && \
+      ((block.elements.some (.type in ['x', '$'])) || block.blocks.length == 0)
+
+  _block-ancestors: (block) ->*
+    c = block.parent; while c
+      yield c
+      c = c.parent
 
   focus: (block) ->
     @selected-block = block
