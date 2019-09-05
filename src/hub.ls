@@ -5,7 +5,10 @@
 #nw.Window.open "", {id: "rich2", focus: false}, ->
 #  it.window.location = "/src/rich.html?data/scratch/document.tex"
 
-process = _process
+process = @_process
+
+{IDELayout} = require './ide/layout.ls'
+{IDEConfig} = require './ide/config.ls'
 
 
 $ ->

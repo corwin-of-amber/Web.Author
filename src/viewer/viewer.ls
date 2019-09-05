@@ -1,6 +1,8 @@
 {EventEmitter} = require 'events'
 _ = require 'lodash'
 
+node_require = global.require ? -> {}
+fs = node_require 'fs'
 
 
 class ViewerCore extends EventEmitter
@@ -20,12 +22,18 @@ class ViewerCore extends EventEmitter
       ..on 'change' @~reload
 
   open: (filename) ->>
+    if filename instanceof Blob
+      filename = URL.createObjectURL(filename)
+
     console.log 'open' filename
     await pdfjsLib.getDocument(filename).promise
       @pdf?.destroy!
       @pdf = ..
       ..filename = filename
-      @watcher.single filename
+      if filename.startsWith('file://')
+        @watcher.single filename
+      else
+        @watcher.clear!
     @refresh!
     @
 
@@ -190,7 +198,6 @@ class SyncTeX extends EventEmitter
         @blur!
 
   @read-file = (filename, callback) !->
-    require! fs
     if filename.endsWith('.gz')
       # apply gunzip (use stream to save memory)
       require! zlib; require! 'stream-buffers'
@@ -240,7 +247,8 @@ class SyncTeX_MixIn
       @refresh!
 
   synctex-locate: (pdf-filename) ->
-    require! fs
+    if typeof pdf-filename != 'string' then return
+
     pdf-filename .= replace(/^file:\/\//, '')
 
     for suffix in ['.synctex.gz', '.synctex']
@@ -260,7 +268,6 @@ class FileWatcher extends EventEmitter
 
   add: (filename) !->
     filename .= replace(/^file:\/\//, '')
-    require! fs
     @watches.push fs.watch(filename, {persistent: false}, @~debounce-handler)
 
   clear: !->

@@ -1,4 +1,5 @@
 _ = require 'lodash'
+{FileWatcher} = require '../viewer/viewer.ls'
 
 
 

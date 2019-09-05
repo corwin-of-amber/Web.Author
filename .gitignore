@@ -4,3 +4,6 @@ src/rich.html
 src/hub.html
 node_modules
 bower_components
+/data/scratch
+.*.swp
+*.bundle.js

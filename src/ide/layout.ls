@@ -1,3 +1,6 @@
+{TeXEditor} = require '../editor/tex-editor.ls'
+{Viewer} = require '../viewer/viewer.ls'
+
 
 
 class IDELayout

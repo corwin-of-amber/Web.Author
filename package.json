@@ -1,6 +1,7 @@
 {
   "name": "toxin",
-  "main": "src/hub.html",
+  "main": "src/hub.bundle.html",
+  "chromium-args": "--disable-background-timer-throttling",
   "scripts": {
     "start": "nw .&"
   },
@@ -9,13 +10,17 @@
     "codemirror": "^5.48.0",
     "find": "^0.2.9",
     "fs-extra": "^7.0.0",
+    "glob-all": "^3.1.0",
     "jquery": "^3.4.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "pdfjs-dist": "^2.0.943",
     "prelude-ls": "^1.1.2",
     "split.js": "^1.5.11",
     "stream-buffers": "^3.0.2",
     "synctex-js": "github:corwin-of-amber/synctex-js",
     "tempy": "^0.2.1"
+  },
+  "devDependencies": {
+    "browserify-livescript": "^0.2.4"
   }
 }
