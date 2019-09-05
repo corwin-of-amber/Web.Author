@@ -1,5 +1,9 @@
-_ = require 'lodash'
-{FileWatcher} = require '../viewer/viewer.ls'
+node_require = global.require ? -> {}
+fs = node_require 'fs'
+require! { 
+    lodash: _
+    '../viewer/viewer.ls': {FileWatcher}
+}
 
 
 
@@ -19,7 +23,6 @@ class TeXEditor
       ..on 'change' @~reload
 
   open: (filename, unless-identical=void) -> new Promise (resolve, reject) ~>
-    require! fs
     err, txt <~ fs.readFile filename, 'utf-8'
     if err?
       console.error "open in editor:", err
@@ -40,7 +43,6 @@ class TeXEditor
 
   save: ->
     if @filename?
-      require! fs
       @watcher.clear!
       @cm.getValue!
         @_last-file-contents = ..

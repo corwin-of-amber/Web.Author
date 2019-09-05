@@ -1,8 +1,11 @@
-{EventEmitter} = require 'events'
-_ = require 'lodash'
-
 node_require = global.require ? -> {}
 fs = node_require 'fs'
+require! { 
+    events: {EventEmitter}
+    lodash: _
+    'synctex-js': {parser: synctex-parser}
+}
+
 
 
 class ViewerCore extends EventEmitter
@@ -197,35 +200,34 @@ class SyncTeX extends EventEmitter
       else
         @blur!
 
-  @read-file = (filename, callback) !->
+  @from-file = (filename) ->>
+    
+    txt = await SyncTeX.read-file filename  
+    new SyncTeX(synctex-parser.parseSyncTex(txt))
+      ..filename = filename
+
+  @read-file = (filename) -> new Promise (resolve, reject) ->
     if filename.endsWith('.gz')
       # apply gunzip (use stream to save memory)
       require! zlib; require! 'stream-buffers'
-      fs.createReadStream(filename)  .on 'error' -> callback it
-      .pipe(zlib.createGunzip())     .on 'error' -> callback it
+      fs.createReadStream(filename)  .on 'error' -> reject it
+      .pipe(zlib.createGunzip())     .on 'error' -> reject it
       .pipe(new streamBuffers.WritableStreamBuffer)
-      .on 'finish' -> callback null, @getContentsAsString('utf-8')
+      .on 'finish' -> resolve @getContentsAsString('utf-8')
     else
-      fs.readFile filename, 'utf-8', callback
+      fs.readFile filename, 'utf-8', resolve
 
 
 
 class SyncTeX_MixIn
 
-  synctex-open: (filename) ->
+  synctex-open: (filename) ->>
     console.log 'open synctex' filename
     @synctex-init!
-
     @synctex?.remove!
 
-    err, txt <~ SyncTeX.read-file filename
-    if err
-      console.error "open synctex:", err
-    else
-      parseSyncTex txt
-        @synctex = new SyncTeX(..)
-          ..filename = filename
-          ..on 'synctex-goto' ~> @emit 'synctex-goto' it
+    @synctex = await SyncTeX.from-file filename
+      ..on 'synctex-goto' ~> @emit 'synctex-goto' it
       @_synctex-watcher.single filename
 
   synctex-init: ->
