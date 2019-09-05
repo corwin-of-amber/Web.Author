@@ -9,6 +9,7 @@ process = @_process
 
 {IDELayout} = require './ide/layout.ls'
 {IDEConfig} = require './ide/config.ls'
+{AuthorP2P} = require './net/p2p.ls'
 
 
 $ ->
@@ -26,4 +27,10 @@ $ ->
 
   editor.cm.focus!
 
-  export ide, editor, viewer
+  p2p = new AuthorP2P
+    ..getPdf!on 'change' ->
+      if !viewer.pdf?filename?
+        viewer.open it
+    window.addEventListener 'beforeunload' ..~close
+
+  window <<< {ide, editor, viewer, p2p}
