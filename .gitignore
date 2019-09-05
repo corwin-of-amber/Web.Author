@@ -7,3 +7,4 @@ bower_components
 /data/scratch
 .*.swp
 *.bundle.js
+/dist
