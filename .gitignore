@@ -2,9 +2,11 @@
 *.ne.js
 src/rich.html
 src/hub.html
+src/index.dev.html
 node_modules
 bower_components
 /data/scratch
 .*.swp
 *.bundle.js
 /dist
+/npm-link

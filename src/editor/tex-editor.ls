@@ -21,8 +21,11 @@ class TeXEditor
 
     @watcher = new FileWatcher  /* defined in viewer.ls :/ */
       ..on 'change' @~reload
+    
+    @file-positions = new Map
 
   open: (filename, unless-identical=void) -> new Promise (resolve, reject) ~>
+    @_remember-positions!
     err, txt <~ fs.readFile filename, 'utf-8'
     if err?
       console.error "open in editor:", err
@@ -35,6 +38,7 @@ class TeXEditor
           @_last-file-contents = txt
           @filename = filename
             @watcher.single ..
+          @_recall-positions!
         resolve @
       catch e => reject e
 
@@ -49,13 +53,24 @@ class TeXEditor
         fs.writeFile @filename, .., ~>
           @watcher.single @filename
 
-  jump-to: (filename, {line, ch}) ->>
+  jump-to: (filename, {line, ch}={}) ->>
     if filename != @filename
       await @open filename
     if line?
       @cm.setCursor {line: line - 1, ch: ch ? 0}
       @cm.scrollIntoView null, 150
-      requestAnimationFrame ~> @cm.focus!
+    requestAnimationFrame ~> @cm.focus!
+
+  _remember-positions: ->
+    if @filename
+      @file-positions.set @filename, do
+        selections: @cm.listSelections!
+        scroll: @cm.getScrollInfo!
+
+  _recall-positions: ->
+    if @filename && (rec = @file-positions.get(@filename))?
+      @cm.setSelections rec.selections
+      @cm.scrollTo rec.scroll.left, rec.scroll.top
 
   @is-mac = navigator.appVersion is /Mac/
 

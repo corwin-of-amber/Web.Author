@@ -11,26 +11,38 @@ process = @_process
 {IDEConfig} = require './ide/config.ls'
 {AuthorP2P} = require './net/p2p.ls'
 
+global.console = window.console
+
 
 $ ->
   ide = new IDELayout
 
   $('body').append ide.el
 
-  editor = ide.createEditor!
-  viewer = ide.createViewer!
+  project = ide.create-project!
+  editor = ide.create-editor!
+  viewer = ide.create-viewer!
 
   ide.make-resizable!
 
   ide.config = new IDEConfig
     ..restore-session ide
 
+  project.open '/tmp/toxin'
+
   editor.cm.focus!
 
   p2p = new AuthorP2P
     ..getPdf!on 'change' ->
-      if !viewer.pdf?filename?
-        viewer.open it
+      if !viewer.pdf?filename? then viewer.open it
     window.addEventListener 'beforeunload' ..~close
 
-  window <<< {ide, editor, viewer, p2p}
+  window <<< {ide, project, editor, viewer, p2p}
+
+  window.addEventListener 'beforeunload' ->
+    for own prop of window
+      if typeof window[prop] == 'object' then window[prop] = null
+    document.body.innerHTML = ""
+
+    Date::com$cognitect$transit$equals = \
+    Date::com$cognitect$transit$hashCode = null

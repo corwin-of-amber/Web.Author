@@ -9,6 +9,8 @@ class IDEConfig
   restore-session: (ide) ->
     if (pdf = @config?pdf?last-filename)? && ide.viewer
       ide.viewer.open "file://#{pdf}"
+    if (sizes = @config?panes?sizes)? && ide.split
+      ide.split.setSizes sizes
 
 
 

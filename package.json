@@ -1,6 +1,6 @@
 {
   "name": "toxin",
-  "main": "src/hub.bundle.html",
+  "main": "src/index.dev.html",
   "chromium-args": "--disable-background-timer-throttling",
   "scripts": {
     "start": "nw .&"
@@ -18,7 +18,8 @@
     "split.js": "^1.5.11",
     "stream-buffers": "^3.0.2",
     "synctex-js": "github:corwin-of-amber/synctex-js",
-    "tempy": "^0.2.1"
+    "tempy": "^0.2.1",
+    "vue": "^2.6.10"
   },
   "devDependencies": {
     "browserify-livescript": "^0.2.4"
