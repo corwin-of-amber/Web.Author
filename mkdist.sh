@@ -12,4 +12,4 @@ cp node_modules/split.js/dist/split.js dist/
 cp node_modules/pdfjs-dist/build/*.min.js dist/
 
 # Sources
-cp src/browser.bundle.js src/**/*.css dist/
+cp src/browser.bundle.js `find src -name *.css` dist/

@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 
-<script src="../node_modules/nwjs-kremlin/reload.js"></script>
-<script>Reload.config.delay = 1500; /* for watchify's sake */</script>
+<script data-mode="dev" src="../node_modules/nwjs-kremlin/reload.js"></script>
+<script data-mode="dev">Reload.config.delay = 1500; /* for watchify's sake */</script>
 
 <meta charset="utf-8">
 
 <%= jquery />
 
-<script src="../node_modules/codemirror/lib/codemirror.js"></script>
-<link href="../node_modules/codemirror/lib/codemirror.css" rel="stylesheet" type="text/css">
-<script src="../node_modules/codemirror/mode/stex/stex.js"></script>
+<%= codemirror />
+<%= codemirror/mode/stex/stex.js />
 
-<script src="../node_modules/split.js/dist/split.js"></script>
+<%= split.js />
 
-<script src="../node_modules/pdfjs-dist/build/pdf.js"></script>
+<script data-mode="dev">
+    /* hack for pdfjs in nwjs */
+    var _process = process, _Response = Response; process = Response = undefined;
+</script>
+<%= pdfjs-dist />
 
 <link href="./viewer/viewer.css" rel="stylesheet" type="text/css" >
 <link href="./ide/ide.css" rel="stylesheet" type="text/css">

@@ -5,20 +5,23 @@ glob-all = node_require('glob-all')
 
 {DocumentClient} = client = require('dat-p2p-crowd/src/net/client')
 {DirectorySync, FileSync, FileShare} = fssync = require('dat-p2p-crowd/src/addons/fs-sync')
-{SyncPad} = require('dat-p2p-crowd/src/ui/syncpad')
 
 
 
 class AuthorP2P extends DocumentClient
-  ->
-    @ <<<< new DocumentClient   # ES2015-LiveScript interoperability issue :/
+  (opts) ->
+    @ <<<< new DocumentClient(opts)   # ES2015-LiveScript interoperability issue :/
 
   get-pdf: (docId='d1') ->
     new CrowdFile @sync.path(docId, ['out', 'pdf']), @crowd
 
-  share: (docId='d1') ->>
-    root-dir = '/tmp/dirsync'
-      pdf-filename = @_find-local-pdf(..)
+  list-files: (docId='d1') ->
+    @sync.path(docId, ['src']).get!
+
+  share: (docId='d1', root-dir='/tmp/toxin') ->>
+    await this.init!
+
+    pdf-filename = @_find-local-pdf(root-dir)
 
     slots =
       pdf: @sync.path(docId, ['out', 'pdf'])
@@ -27,20 +30,24 @@ class AuthorP2P extends DocumentClient
       pdf: new FileSync(slots.pdf, pdf-filename)
       src: new DirectorySync(slots.src, root-dir)
 
+    @upload.src.populate '*.tex'
+
     await @upload.pdf.update @crowd
       ..watch debounce: 2000
 
   _find-local-pdf: (root-dir) ->
-    glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
-                  {cwd: root-dir})[0]
+    fn = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
+                       {cwd: root-dir})[0]
+    fn && path.join(root-dir, fn)
 
 
 
-class CrowdFile implements EventEmitter::
+class CrowdFile extends EventEmitter
   (@slot, @crowd) ->
+    super!
     @age = 0
-    @_handler = @slot.registerHandler @~receive
-    @receive @slot.get!
+    @_watch = new WatchSlot @slot
+      ..on 'change' ~> @receive it
 
   receive: (fileprops) ->>
     if fileprops?
@@ -54,28 +61,19 @@ class CrowdFile implements EventEmitter::
 
 
 
-class DocumentSlotTrack implements EventEmitter::
-  (@slot, immediate=true) -> @_track immediate
+class WatchSlot extends EventEmitter
+  (@slot, immediate=true) -> super!; @_track immediate
 
   _track: (immediate) ->
-    last-val = @slot.get!
-    @slot.docSlot ? @slot
-      ..registerHandler h = (new-doc) ~>
-        if (new-val = @slot.getFrom(new-doc)) != last-val
-          p = last-val; last-val := new-val
-          @emit 'change', new-val, p
-      @_registered = {doc-slot: .., handler: h}
-    if immediate && last-val?
-      @emit 'change', last-val
+    @slot.registerHandler h = ~> @emit 'change' it
+    @_registered = h
+    if immediate
+      process.nextTick ~> @emit 'change' @slot.get!
 
   untrack: ->
     if @_registered?
-      {doc-slot, handler} = @_registered
-      doc-slot.unregisterHandler handler
+      @slot.unregisterHandler @_registered
 
 
-
-global.console = window.console
-window <<< {client, fssync, SyncPad}
 
 export AuthorP2P

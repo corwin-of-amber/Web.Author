@@ -24,24 +24,26 @@ class ViewerCore extends EventEmitter
     @watcher = new FileWatcher
       ..on 'change' @~reload
 
-  open: (filename) ->>
-    if filename instanceof Blob
-      filename = URL.createObjectURL(filename)
+  open: (uri) ->>
+    if uri instanceof Blob
+      uri = URL.createObjectURL(uri)
+    else if uri.startsWith('/') || uri.startsWith('.')
+      uri = "file://#uri"
 
-    console.log 'open' filename
-    await pdfjsLib.getDocument(filename).promise
+    console.log 'open' uri
+    await pdfjsLib.getDocument(uri).promise
       @pdf?.destroy!
       @pdf = ..
-      ..filename = filename
-      if filename.startsWith('file://')
-        @watcher.single filename
+      ..uri = uri
+      if uri.startsWith('file://')
+        @watcher.single uri
       else
         @watcher.clear!
     @refresh!
     @
 
   reload: ->
-    if @pdf?filename then @open that
+    if @pdf?uri then @open that
 
   render-page: (page-num) ->
     canvas = $('<canvas>')

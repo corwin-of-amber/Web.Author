@@ -7,8 +7,8 @@ class IDEConfig
     localStorage[@key] = JSON.stringify(@config)
 
   restore-session: (ide) ->
-    if (pdf = @config?pdf?last-filename)? && ide.viewer
-      ide.viewer.open "file://#{pdf}"
+    if (pdf = @config?pdf?last-uri)? && ide.viewer
+      ide.viewer.open pdf
     if (sizes = @config?panes?sizes)? && ide.split
       ide.split.setSizes sizes
 

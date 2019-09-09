@@ -26,23 +26,24 @@ $ ->
   ide.make-resizable!
 
   ide.config = new IDEConfig
-    ..restore-session ide
+  #  ..restore-session ide
 
-  project.open '/tmp/toxin'
+  #if project.has-fs!
+  #  project.open '/tmp/toxin'
 
   editor.cm.focus!
 
-  p2p = new AuthorP2P
+  p2p = new AuthorP2P # servers: hub: 'ws://localhost:3300'
     ..getPdf!on 'change' ->
-      if !viewer.pdf?filename? then viewer.open it
+      if !project.current?path? then viewer.open it
+    project.vue.path = ..sync.path('d1', ['src'])
     window.addEventListener 'beforeunload' ..~close
 
   window <<< {ide, project, editor, viewer, p2p}
 
   window.addEventListener 'beforeunload' ->
+    Date::com$cognitect$transit$equals = \
+    Date::com$cognitect$transit$hashCode = null
     for own prop of window
       if typeof window[prop] == 'object' then window[prop] = null
     document.body.innerHTML = ""
-
-    Date::com$cognitect$transit$equals = \
-    Date::com$cognitect$transit$hashCode = null

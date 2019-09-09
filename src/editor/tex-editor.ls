@@ -2,6 +2,7 @@ node_require = global.require ? -> {}
 fs = node_require 'fs'
 require! { 
     lodash: _
+    'dat-p2p-crowd/src/ui/syncpad': {SyncPad}
     '../viewer/viewer.ls': {FileWatcher}
 }
 
@@ -24,8 +25,14 @@ class TeXEditor
     
     @file-positions = new Map
 
-  open: (filename, unless-identical=void) -> new Promise (resolve, reject) ~>
-    @_remember-positions!
+  open: (locator, unless-identical=void) ->
+    if _.isString(locator)      => @open-file locator, unless-identical
+    else if _.isObject(locator) => @open-syncpad locator
+    else
+      throw new Error "invalid document locator: '#{locator}'"
+
+  open-file: (filename, unless-identical=void) -> new Promise (resolve, reject) ~>
+    @_pre-load!
     err, txt <~ fs.readFile filename, 'utf-8'
     if err?
       console.error "open in editor:", err
@@ -41,6 +48,16 @@ class TeXEditor
           @_recall-positions!
         resolve @
       catch e => reject e
+
+  open-syncpad: (slot) ->
+    @_pre-load!
+    @pad = new SyncPad(@cm, slot)
+    @filename = slot.uri
+    @pad.ready.then ~> @watcher.clear! ; @_recall-positions!
+
+  _pre-load: ->
+    @_remember-positions!
+    if @pad then @pad.destroy! ; @pad = null
 
   reload: ->
     if @filename then @open that, @_last-file-contents
