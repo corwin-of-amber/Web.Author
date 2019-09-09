@@ -2,7 +2,8 @@
     "name": "toxin",
     "version": 2,
     "builds": [
-        { "src": "*.html", "use": "@now/static"},
+        { "src": "*.html",    "use": "@now/static"},
+        { "src": "img/*",     "use": "@now/static"},
         { "src": "dist/**/*", "use": "@now/static" }
     ]
 }
