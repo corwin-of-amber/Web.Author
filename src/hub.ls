@@ -7,11 +7,18 @@
 
 process = @_process
 
-{IDELayout} = require './ide/layout.ls'
-{IDEConfig} = require './ide/config.ls'
-{AuthorP2P} = require './net/p2p.ls'
+require! {
+  lodash: _
+  './ide/layout.ls': {IDELayout}
+  './ide/config.ls': {IDEConfig}
+  './net/p2p.ls':    {AuthorP2P}
+}
 
 global.console = window.console
+
+
+CLIENT_OPTS = void
+#CLIENT_OPTS = servers: hub: 'ws://localhost:3300'
 
 
 $ ->
@@ -33,10 +40,10 @@ $ ->
 
   editor.cm.focus!
 
-  p2p = new AuthorP2P # servers: hub: 'ws://localhost:3300'
-    ..getPdf!on 'change' ->
-      if !project.current?path? then viewer.open it
-    project.vue.path = ..sync.path('d1', ['src'])
+  p2p = new AuthorP2P(CLIENT_OPTS)
+    do ->> p2p.project = await p2p.open-project 'd1'
+      project.open ..
+      ..getPdf!on 'change' viewer~open
     window.addEventListener 'beforeunload' ..~close
 
   window <<< {ide, project, editor, viewer, p2p}

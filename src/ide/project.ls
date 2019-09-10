@@ -1,10 +1,13 @@
 node_require = global.require ? ->
 fs = node_require 'fs'
 glob-all = node_require 'glob-all'
-require! path
-require! events: {EventEmitter}
-require! 'vue/dist/vue': Vue
-require! './components/file-list'
+require! {
+  path
+  events: {EventEmitter}
+  lodash: _
+  'vue/dist/vue': Vue
+  './components/file-list'
+}
 
 
 
@@ -25,6 +28,12 @@ class ProjectView extends EventEmitter
       project = new TeXProject(project)
     @current = project
       @vue.path = ..path
+  
+  @content-plugins = {folder: []}
+
+  @detect-folder-source = (path) ->
+    @content-plugins.folder.map (-> it(path)) .find (-> it)
+      if !..? then throw new Error "invalid folder path '#{path}'"
   
 
 class TeXProject
@@ -49,11 +58,9 @@ Vue.component 'project-files', do
     </div>
   '''
   computed:
-    sourceType: ->
-      if typeof path == 'string' then 'source-folder.directory'
-      else 'source-folder.automerge'
+    sourceType: -> ProjectView.detect-folder-source(@path)
   mounted: ->
-    @$watch 'path' ~> @files = @$refs.source.files  # it is quite unfortunate that this cannot
+    @$watch 'path' ~> @files = @$refs.source?files  # it is quite unfortunate that this cannot
     , {+immediate}                                  # be done with a computed property
   methods:
     act: (ev) ->
@@ -75,43 +82,9 @@ Vue.component 'source-folder.directory', do
     get-path-of: (path-els) ->
       path.join @path, ...path-els
 
-
-Vue.component 'source-folder.automerge', do
-  props: ['path']
-  data: -> files: [], pathSlot: undefined
-  template: '<span/>'
-  mounted: ->
-    @$watch 'path' (slot) ~>
-      @unregister! ; if slot? then @register slot
-    , {+immediate}
-  methods:
-    get-path-of: (path-els) ->
-      l = @path.get!
-      subpath =
-        for el in path-els
-          if !l then break
-          index = l.findIndex (-> it.filename == el)
-            l = l[..]
-      l && @path.path(subpath ++ ['content'])
-        ..uri = @uri-of(path-els)
-
-    uri-of: (path-els) ->
-      doc-id = @path.docSlot.docId
-      path = @path._path ++ path-els
-      "dat://*/#{docId}/#{path.join('/')}"
-
-    register: (slot) ->
-      slot.registerHandler h = ~> @update it
-      h slot.get!
-      @_registered = {slot, h}
-    unregister: ->
-      if @_registered?
-        {slot, h} = @_registered
-        slot.unregisterHandler h
-    update: (file-entries=[]) ->
-      file-entries .= map -> {name: it.filename}
-      @files.splice 0, Infinity, ...file-entries
+ProjectView.content-plugins.folder.push ->
+  if !it || _.isString(it) then 'source-folder.directory'
 
 
 
-export ProjectView
+export ProjectView, TeXProject
