@@ -6,6 +6,8 @@
     "start": "nw .&"
   },
   "dependencies": {
+    "automerge": "^0.11.0",
+    "automerge-slots": "github:corwin-of-amber/automerge-slots",
     "child-process-promise": "^2.2.1",
     "codemirror": "^5.48.0",
     "find": "^0.2.9",
@@ -17,7 +19,7 @@
     "prelude-ls": "^1.1.2",
     "split.js": "^1.5.11",
     "stream-buffers": "^3.0.2",
-    "synctex-js": "github:corwin-of-amber/synctex-js",
+    "synctex-js": "^1.0.0",
     "tempy": "^0.2.1",
     "vue": "^2.6.10"
   },

@@ -44,6 +44,7 @@ $ ->
     do ->> p2p.project = await p2p.open-project 'd1'
       project.open ..
       ..getPdf!on 'change' viewer~open
+      editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
     window.addEventListener 'beforeunload' ..~close
 
   window <<< {ide, project, editor, viewer, p2p}

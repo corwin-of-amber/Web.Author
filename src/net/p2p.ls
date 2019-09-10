@@ -20,6 +20,7 @@ class AuthorP2P extends DocumentClient
   open-project: (docId) ->>
     await this.init!
     new CrowdProject @sync.path(docId), @crowd
+      @on 'shout' -> ..upstream?download-src!
 
 
 class CrowdProject
@@ -33,20 +34,33 @@ class CrowdProject
 
   get-pdf: -> new CrowdFile @slots.pdf, @crowd
 
-  list-files: -> @slots.src.get!
+  share: (tex-project='/tmp/toxin') ->
+    @sync tex-project
+    @upload!
 
-  share: (tex-project='/tmp/toxin') ->>
+  sync: (tex-project='/tmp/toxin') ->
     if _.isString(tex-project)
       tex-project = new TeXProject(tex-project)
 
-    @upload =
+    @upstream = new @@Upstream @crowd, do
       pdf: new FileSync(@slots.pdf, tex-project.get-main-pdf-path!)
       src: new DirectorySync(@slots.src, tex-project.path)
 
-    @upload.src.populate '*.tex'
+  class @Upstream
+    (@crowd, {@pdf, @src}) ->
 
-    await @upload.pdf.update @crowd
-      ..watch debounce: 2000
+    upload: ->
+      @upload-src! ; @upload-build!
+
+    upload-src: ->
+      @src.populate '*.tex'
+
+    upload-build: ->>
+      await @pdf.update @crowd
+        @watch = ..watch debounce: 2000
+    
+    download-src: ->
+      @src.save!
 
 
 

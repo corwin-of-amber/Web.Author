@@ -1,6 +1,7 @@
 node_require = global.require ? -> {}
 fs = node_require 'fs'
 require! { 
+    events: {EventEmitter}
     lodash: _
     'dat-p2p-crowd/src/ui/syncpad': {SyncPad}
     '../viewer/viewer.ls': {FileWatcher}
@@ -8,7 +9,7 @@ require! {
 
 
 
-class TeXEditor
+class TeXEditor extends EventEmitter
   (@containing-element) ->
     @cm = new CodeMirror @containing-element?0, do
       mode: 'stex'
@@ -63,12 +64,14 @@ class TeXEditor
     if @filename then @open that, @_last-file-contents
 
   save: ->
-    if @filename?
+    if @filename? && @@is-local-file @filename
       @watcher.clear!
       @cm.getValue!
         @_last-file-contents = ..
         fs.writeFile @filename, .., ~>
           @watcher.single @filename
+    else
+      @emit 'request-save'
 
   jump-to: (filename, {line, ch}={}) ->>
     if filename != @filename
@@ -94,6 +97,10 @@ class TeXEditor
   @detect-line-ends = (txt) ->
     eols = _.groupBy(txt.match(/\r\n?|\n/g), -> it)
     _.maxBy(Object.keys(eols), -> eols[it].length) ? '\n'
+
+  @is-local-file = (filename) ->
+    !filename.match(/^[^/]+:\//)
+
 
 
 export TeXEditor
