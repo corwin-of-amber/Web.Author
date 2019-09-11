@@ -41,6 +41,7 @@ $ ->
   editor.cm.focus!
 
   p2p = new AuthorP2P(CLIENT_OPTS)
+    project.attach ..
     do ->> p2p.project = await p2p.open-project 'd1'
       project.open ..
       ..getPdf!on 'change' viewer~open

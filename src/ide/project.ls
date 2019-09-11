@@ -7,15 +7,21 @@ require! {
   lodash: _
   'vue/dist/vue': Vue
   './components/file-list'
+  'dat-p2p-crowd/src/ui/ui.js': {App: CrowdApp}
 }
 
 
 
-class ProjectView extends EventEmitter
+class ProjectView extends CrowdApp implements EventEmitter::
   ->
     @vue = new Vue do
-      data: path: null
-      template: '<project-files :path="path" @select="select"/>'
+      data: path: null, clientState: void
+      template: '''
+        <div class="project-view">
+          <project-header/>
+          <project-files :path="path" @select="select"/>
+        </div>
+      '''
       methods:
         select: ~> @emit 'file:select', path: it
     
@@ -46,6 +52,14 @@ class TeXProject
     fn = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
                        {cwd: root-dir})[0]
     fn && path.join(root-dir, fn)
+
+
+Vue.component 'project-header', do
+  template: '''
+    <div class="project-header">
+      <p2p.button-join channel="doc2"/>
+    </div>
+  '''
 
 
 Vue.component 'project-files', do
