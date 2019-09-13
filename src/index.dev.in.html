@@ -15,8 +15,8 @@
 <%= split.js />
 
 <script data-mode="dev">
-    /* hack for pdfjs in nwjs */
-    var _process = process, _Response = Response; process = Response = undefined;
+    /* hack for pdfjs in nwjs https://github.com/mozilla/pdf.js/issues/9071 */
+    window.Response = undefined;
 </script>
 <%= pdfjs-dist />
 

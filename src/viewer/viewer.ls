@@ -48,9 +48,9 @@ class ViewerCore extends EventEmitter
   render-page: (page-num) ->
     canvas = $('<canvas>')
     @pdf.getPage(page-num).then (page) ~>
-      viewport = page.getViewport(1)
+      viewport = page.getViewport({scale: 1})
       scale = @zoom * @resolution
-      viewport = page.getViewport(scale)
+      viewport = page.getViewport({scale})
       ctx = canvas.0.getContext('2d')
       canvas.0
         ..width = viewport.width ; ..height = viewport.height
@@ -59,7 +59,7 @@ class ViewerCore extends EventEmitter
       page.render do
         canvasContext: ctx
         viewport: viewport
-      .then ~>
+      .promise.then ~>
         {page, canvas}
 
   goto-page: (page-num) ->

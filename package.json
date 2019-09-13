@@ -15,7 +15,7 @@
     "glob-all": "^3.1.0",
     "jquery": "^3.4.1",
     "lodash": "^4.17.15",
-    "pdfjs-dist": "^2.0.943",
+    "pdfjs-dist": "^2.1.266",
     "prelude-ls": "^1.1.2",
     "split.js": "^1.5.11",
     "stream-buffers": "^3.0.2",
