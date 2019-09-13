@@ -19,12 +19,12 @@ class AuthorP2P extends DocumentClient
 
   open-project: (docId) ->>
     await this.init!
-    new CrowdProject @sync.path(docId), @crowd
+    new CrowdProject @sync.path(docId), @
       @on 'shout' -> ..upstream?download-src!
 
 
 class CrowdProject
-  (slot, @crowd) -> 
+  (slot, @client) -> 
     @slots =
       root: slot
       src: slot.path(['src'])
@@ -32,17 +32,17 @@ class CrowdProject
 
   path:~ -> @slots.src
 
-  get-pdf: -> new CrowdFile @slots.pdf, @crowd
+  get-pdf: -> new CrowdFile @slots.pdf, @client
 
   share: (tex-project='/tmp/toxin') ->
     @sync tex-project
-    @upload!
+      ..upload!
 
   sync: (tex-project='/tmp/toxin') ->
     if _.isString(tex-project)
       tex-project = new TeXProject(tex-project)
 
-    @upstream = new @@Upstream @crowd, do
+    @upstream = new @@Upstream @client.crowd, do
       pdf: new FileSync(@slots.pdf, tex-project.get-main-pdf-path!)
       src: new DirectorySync(@slots.src, tex-project.path)
 
@@ -65,22 +65,36 @@ class CrowdProject
 
 
 class CrowdFile extends EventEmitter
-  (@slot, @crowd) ->
+  (@slot, @client) ->
     super!
     @age = 0
     @_watch = new WatchSlot @slot
-      ..on 'change' _.debounce(@~receive, 120)
+      ..on 'change' @~receive
 
   receive: (fileprops) ->>
     if fileprops?
       age = ++@age
       fileshare = FileShare.from(fileprops)
       console.warn fileshare
-      blob = await fileshare.receiveBlob(@crowd)
+      #console.log ([...p2p.docStats.entries()].map ([f,e]) -> "#{e.index+1}/#{f.length}").join " "
+      @emit 'receive' fileshare
+      try
+        await @wait-for-sync!
+      catch @@Canceled => return
+      blob = await fileshare.receiveBlob(@client.crowd)
       console.warn blob
       if age >= @age
         @emit 'change' (@blob = blob)
 
+  wait-for-sync: -> new Promise (resolve, reject) ~>
+    if @client.docGroup.isSynchronized! then resolve!
+    else
+      h1 = (-> cleanup! ; resolve!) ; h2 = (-> cleanup! ; reject new Canceled)
+      cleanup = ~>
+        @client.removeListener 'doc:sync' h1 ; @removeListener 'receive' h2
+      @client.once 'doc:sync' h1 ; @once 'receive' h2
+  
+  class @Canceled
 
 
 class WatchSlot extends EventEmitter
