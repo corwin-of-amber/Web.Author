@@ -141,6 +141,10 @@ ul.file-list div.entry .name {
     text-overflow: ellipsis;
 }
 
+span[contenteditable=true] {
+    cursor: text;
+}
+
 /* Problem list styles */
 
 ul.problem-list {

@@ -17,7 +17,7 @@ const Vue = require('vue/dist/vue'),
 
 
 Vue.component('file-list', {
-    props: ['files', 'level', 'path', 'selection'],
+    props: ['files', 'level', 'path', 'selection_'],
     data: function() { return {
         _level: this.level || 0,
         _path: typeof this.path === 'string' ? this.path.split('/') 
@@ -31,12 +31,15 @@ Vue.component('file-list', {
                 @click="onclick" @mouseup="onrightclick"
                 draggable="true" @dragstart="drag" @dragend="undrag" @drop="drop" 
                 @dragover="dragover" @dragenter="dragover" @dragleave="dragout">
-            <file-list.folder v-if="f.files" :entry="f" :path="$data._path" :level="$data._level + 1"
+            <file-list.folder v-if="f.files" ref="entries" :entry="f" :path="$data._path" :level="$data._level + 1"
                     :selection="$data._selection" @action="action"/>
-            <file-list.file v-else :entry="f"/>
+            <file-list.file v-else ref="entries" :entry="f"/>
         </li>
     </ul>
     `,
+    computed: {
+        selection() { return this.selection_ || this.$data._selection || []; }
+    },
     methods: {
         onclick(ev) {
             var target = $(ev.currentTarget),
@@ -107,8 +110,7 @@ Vue.component('file-list', {
             this.$data._selection = [path];
         },
         isSelected(path) {
-            var sel = this.selection || this.$data._selection;
-            return sel && sel.some(x => _.isEqual(x, path));
+            return this.selection.some(x => _.isEqual(x, path));
         },
 
         move(from, to, after) {
@@ -155,6 +157,12 @@ Vue.component('file-list', {
             return cwd;
         },
 
+        renameStart(rel_path) {
+            var subentry = this.$refs.entries.find(e => e.entry.name === rel_path[0]);
+            if (subentry)
+                subentry.renameStart(rel_path);
+        },
+
         clear() {
             this.files.splice(0);
         }
@@ -169,11 +177,15 @@ Vue.component('file-list.file', {
     props: ['entry'],
     template: `
     <div class="entry">
-        <span class="name">{{entry.name}}</span>
+        <span-editable ref="name" class="name">{{entry.name}}</span-editable>
         <file-list.tags :tags="entry.tags"/>
     </div>
-    `
+    `,
+    methods: {
+        renameStart() { this.$refs.name.edit(); }
+    }
 });
+
 
 /**
  * `<file-list.folder>`
@@ -192,7 +204,7 @@ Vue.component('file-list.folder', {
             <span class="name">{{entry.name}}</span>
         </div>
         <file-list :files="entry.files" :path="$data._path" :level="level"
-                   :selection="subselection(selection, entry.name)"
+                   :selection_="subselection(selection, entry.name)"
                    v-show="!$data._collapsed"
                    @action="$emit('action', $event)">
         </file-list>
@@ -238,3 +250,52 @@ Vue.component('file-list.tags', {
         }
     }
 });
+
+
+Vue.component('span-editable', {
+    data: () => ({editing: false}),
+    template: `<span :contenteditable="editing" @click="click" @keydown="key" @blur="blur"><slot/></span>`,
+    methods: {
+        edit() {
+            this._content = $(this.$el.childNodes).clone();
+            this.editing = true;
+            window.requestAnimationFrame(() => {
+                selectElement(this.$el); this.$el.focus();
+            });
+        },
+        accept() {
+            var text = $(this.$el).text();
+            if (text == '') this.abort();
+            else {
+                this.$emit('change', text);
+                this.editing = false;
+                this._content = null;
+            }
+        },
+        abort() {
+            this.editing = false;
+            $(this.$el).html(this._content);
+        },
+        click(ev) {
+            if (this.editing) ev.stopPropagation();
+        },
+        key(ev) {
+            if (this.editing) {
+                if (ev.key === 'Enter')        { this.accept(); ev.preventDefault(); }
+                else if (ev.key === 'Escape')  { this.abort();  ev.preventDefault(); }
+            }
+        },
+        blur(ev) {
+            if (this.editing) { this.accept(); }
+        }
+    }
+});
+
+function selectElement(el) {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+

@@ -68,7 +68,7 @@ Vue.component 'project-files', do
   data: -> files: []
   template: '''
     <div class="project-files" @contextmenu.prevent="$refs.contextMenu.open">
-      <file-list :files="files" @action="act"/>
+      <file-list ref="list" :files="files" @action="act"/>
       <component :is="sourceType" ref="source" :path="path"></component>
       <project-context-menu ref="contextMenu" @action="onmenuaction"/>
     </div>
@@ -85,8 +85,12 @@ Vue.component 'project-files', do
     onmenuaction: (ev) ->
       switch ev.name
       | 'new-file' => @create!
+      | 'rename'   => @rename!
     create: ->
       @$refs.source.create 'new-file1.tex'
+    rename: ->
+      if (sel = @$refs.list.selection[0])?
+        @$refs.list.rename-start sel
 
 
 Vue.component 'project-context-menu', do
