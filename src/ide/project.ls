@@ -6,6 +6,7 @@ require! {
   events: {EventEmitter}
   lodash: _
   'vue/dist/vue': Vue
+  'vue-context': {VueContext}
   './components/file-list'
   'dat-p2p-crowd/src/ui/ui.js': {App: CrowdApp}
 }
@@ -19,7 +20,7 @@ class ProjectView extends CrowdApp implements EventEmitter::
       template: '''
         <div class="project-view">
           <project-header/>
-          <project-files :path="path" @select="select"/>
+          <project-files ref="files" :path="path" @select="select"/>
         </div>
       '''
       methods:
@@ -66,9 +67,10 @@ Vue.component 'project-files', do
   props: ['path'],
   data: -> files: []
   template: '''
-    <div>
+    <div class="project-files" @contextmenu.prevent="$refs.contextMenu.open">
       <file-list :files="files" @action="act"/>
       <component :is="sourceType" ref="source" :path="path"></component>
+      <project-context-menu ref="contextMenu" @action="onmenuaction"/>
     </div>
   '''
   computed:
@@ -80,6 +82,25 @@ Vue.component 'project-files', do
     act: (ev) ->
       if ev.type == 'select'
         @$emit 'select', @$refs.source.get-path-of ev.path
+    onmenuaction: (ev) ->
+      switch ev.name
+      | 'new-file' => @create!
+    create: ->
+      @$refs.source.create 'new-file1.tex'
+
+
+Vue.component 'project-context-menu', do
+  template: '''
+    <vue-context ref="m">
+      <li><a name="new-file" @click="action">New File</a></li>
+      <li><a name="rename" @click="action">Rename</a></li>
+      <li><a name="delete">Delete</a></li>
+    </vue-context>
+  '''
+  components: {VueContext}
+  methods:
+    open: -> @$refs.m.open it
+    action: -> @$emit 'action' {it.currentTarget.name}
 
 
 Vue.component 'source-folder.directory', do
@@ -95,6 +116,8 @@ Vue.component 'source-folder.directory', do
   methods:
     get-path-of: (path-els) ->
       path.join @path, ...path-els
+    create: (filename) ->
+      @files.push name: filename
 
 ProjectView.content-plugins.folder.push ->
   if !it || _.isString(it) then 'source-folder.directory'

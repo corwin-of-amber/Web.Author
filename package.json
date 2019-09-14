@@ -21,7 +21,8 @@
     "stream-buffers": "^3.0.2",
     "synctex-js": "^1.0.0",
     "tempy": "^0.2.1",
-    "vue": "^2.6.10"
+    "vue": "^2.6.10",
+    "vue-context": "^4.0.3"
   },
   "devDependencies": {
     "browserify-livescript": "^0.2.4"

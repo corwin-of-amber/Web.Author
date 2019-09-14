@@ -28,7 +28,7 @@ Vue.component('file-list', {
     <ul :class="['file-list', 'level-'+$data._level]">
         <li v-for="f in files" :data-name="f.name" 
                 :class="{folder: f.files, file: !f.files, selected: isSelected([f.name])}"
-                @click="onclick"
+                @click="onclick" @mouseup="onrightclick"
                 draggable="true" @dragstart="drag" @dragend="undrag" @drop="drop" 
                 @dragover="dragover" @dragenter="dragover" @dragleave="dragout">
             <file-list.folder v-if="f.files" :entry="f" :path="$data._path" :level="$data._level + 1"
@@ -45,6 +45,10 @@ Vue.component('file-list', {
                 kind = target.hasClass('folder') ? 'folder' : 'file';
             this.action({type: 'select', path, kind});
             ev.stopPropagation();            
+        },
+        onrightclick(ev) {
+            if (ev.which === 3 || ev.button === 2)   /* Right click... :\ */
+                this.onclick(ev);
         },
         drag(ev) {
             var target = $(ev.currentTarget),

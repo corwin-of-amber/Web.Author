@@ -11,5 +11,5 @@ cp node_modules/split.js/dist/split.js dist/
 
 cp node_modules/pdfjs-dist/build/*.min.js dist/
 
-# Sources
-cp src/browser.bundle.js `find src -name *.css` dist/
+# Production bundle
+browserify -t browserify-livescript src/hub.ls -o dist/browser.bundle.js
