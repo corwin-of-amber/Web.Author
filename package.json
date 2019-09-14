@@ -6,7 +6,7 @@
     "start": "nw .&"
   },
   "dependencies": {
-    "automerge": "^0.11.0",
+    "automerge": "^0.12.1",
     "automerge-slots": "github:corwin-of-amber/automerge-slots",
     "child-process-promise": "^2.2.1",
     "codemirror": "^5.48.0",
