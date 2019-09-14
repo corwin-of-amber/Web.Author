@@ -6,6 +6,7 @@ src/index.dev.html
 node_modules
 bower_components
 /data/scratch
+/data/snapshots
 .*.swp
 *.bundle.js
 /dist

@@ -76,18 +76,20 @@ class CrowdFile extends EventEmitter
       age = ++@age
       fileshare = FileShare.from(fileprops)
       console.warn fileshare
-      #console.log ([...p2p.docStats.entries()].map ([f,e]) -> "#{e.index+1}/#{f.length}").join " "
       @emit 'receive' fileshare
       try
         await @wait-for-sync!
-      catch @@Canceled => return
-      blob = await fileshare.receiveBlob(@client.crowd)
+      catch => if e instanceof @@Canceled then return else throw e
+      try
+        blob = await fileshare.receiveBlob(@client.crowd)
+      catch
+        console.warn "file cannot be received (#e)"; return
       console.warn blob
       if age >= @age
         @emit 'change' (@blob = blob)
 
   wait-for-sync: -> new Promise (resolve, reject) ~>
-    if @client.docGroup.isSynchronized! then resolve!
+    if @client.isSynchronized! then resolve!
     else
       h1 = (-> cleanup! ; resolve!) ; h2 = (-> cleanup! ; reject new Canceled)
       cleanup = ~>
