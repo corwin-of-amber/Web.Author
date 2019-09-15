@@ -8,7 +8,8 @@ require! {
   'vue/dist/vue': Vue
   'vue-context': {VueContext}
   './components/file-list'
-  'dat-p2p-crowd/src/ui/ui.js': {App: CrowdApp}
+  'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
+  '../typeset/latexmk.ls': {LatexmkBuild}
 }
 
 
@@ -48,6 +49,17 @@ class TeXProject
 
   get-main-pdf-path: ->
     @_find-pdf @path
+
+  get-main-tex-file: ->
+    fn = glob-all.sync(global.Array.from(['*.tex', '**/*.tex']),
+                       {cwd: @path})
+    fn.find ~>
+      try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*{/)
+      catch => false
+
+  build: ->
+    new LatexmkBuild @get-main-tex-file!, @path
+    .make!
 
   _find-pdf: (root-dir) ->
     fn = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
