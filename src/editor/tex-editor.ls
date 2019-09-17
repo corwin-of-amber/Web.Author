@@ -1,10 +1,11 @@
-node_require = global.require ? -> {}
-fs = node_require 'fs'
-require! { 
+node_require = global.require ? (->)
+    fs = .. 'fs'
+require! {
+    assert
     events: {EventEmitter}
     lodash: _
     'dat-p2p-crowd/src/ui/syncpad': {SyncPad}
-    '../viewer/viewer.ls': {FileWatcher}
+    './edit-items.ls': {VisitedFiles, FileEdit, SyncPadEdit}
 }
 
 
@@ -21,59 +22,37 @@ class TeXEditor extends EventEmitter
     @cm.addKeyMap do
       "#{Ctrl}-S": @~save
 
-    @watcher = new FileWatcher  /* defined in viewer.ls :/ */
-      ..on 'change' @~reload
-    
-    @file-positions = new Map
+    @visited-files = new VisitedFiles
 
-  open: (locator, unless-identical=void) ->
-    if _.isString(locator)      => @open-file locator, unless-identical
+  open: (locator) ->
+    if _.isString(locator)      => @open-file locator
     else if _.isObject(locator) => @open-syncpad locator
     else
       throw new Error "invalid document locator: '#{locator}'"
 
-  open-file: (filename, unless-identical=void) -> new Promise (resolve, reject) ~>
+  open-file: (filename) ->
     @_pre-load!
-    err, txt <~ fs.readFile filename, 'utf-8'
-    if err?
-      console.error "open in editor:", err
-      reject err
-    else
-      try
-        if txt != unless-identical
-          @cm.setOption 'lineSeparator' @@detect-line-ends(txt)
-          @cm.setValue txt
-          @_last-file-contents = txt
-          @filename = filename
-            @watcher.single ..
-          @_recall-positions!
-        resolve @
-      catch e => reject e
+    @filename = fs.realpathSync filename
+    @visited-files.enter @cm, @filename, -> new FileEdit(it)
 
   open-syncpad: (slot) ->
     @_pre-load!
-    @pad = new SyncPad(@cm, slot)
     @filename = slot.uri
-    @pad.ready.then ~> @watcher.clear! ; @_recall-positions!
+    @visited-files.enter @cm, @filename, -> new SyncPadEdit(slot)
 
-  _pre-load: ->
-    @_remember-positions!
-    if @pad then @pad.destroy! ; @pad = null
+  _pre-load: !->
+    if @filename? then @visited-files.leave @cm, @filename
 
   reload: ->
-    if @filename then @open that, @_last-file-contents
+    if @filename then @open that
 
   save: ->
-    if @filename? && @@is-local-file @filename
-      @watcher.clear!
-      @cm.getValue!
-        @_last-file-contents = ..
-        fs.writeFile @filename, .., ~>
-          @watcher.single @filename
-    else
-      @emit 'request-save'
+    @visited-files.save @cm, @filename
 
   jump-to: (filename, {line, ch}={}) ->>
+    try
+      filename := fs.realpathSync filename
+    catch
     if filename != @filename
       await @open filename
     if line?
@@ -81,22 +60,7 @@ class TeXEditor extends EventEmitter
       @cm.scrollIntoView null, 150
     requestAnimationFrame ~> @cm.focus!
 
-  _remember-positions: ->
-    if @filename
-      @file-positions.set @filename, do
-        selections: @cm.listSelections!
-        scroll: @cm.getScrollInfo!
-
-  _recall-positions: ->
-    if @filename && (rec = @file-positions.get(@filename))?
-      @cm.setSelections rec.selections
-      @cm.scrollTo rec.scroll.left, rec.scroll.top
-
   @is-mac = navigator.appVersion is /Mac/
-
-  @detect-line-ends = (txt) ->
-    eols = _.groupBy(txt.match(/\r\n?|\n/g), -> it)
-    _.maxBy(Object.keys(eols), -> eols[it].length) ? '\n'
 
   @is-local-file = (filename) ->
     !filename.match(/^[^/]+:\//)
