@@ -3,6 +3,7 @@ fs = node_require 'fs'
 require! { 
     events: {EventEmitter}
     lodash: _
+    '../infra/fs-watch.ls': {FileWatcher}
     'synctex-js': {parser: synctex-parser}
 }
 
@@ -262,28 +263,6 @@ class SyncTeX_MixIn
       catch
 
 
-class FileWatcher extends EventEmitter
-  ->
-    @watches = []
-    if (typeof window !== 'undefined')
-      window.addEventListener('unload', @~clear)
-    
-    @debounce-handler = _.debounce @~handler, 500
-
-  add: (filename) !->
-    filename .= replace(/^file:\/\//, '')
-    @watches.push fs.watch(filename, {persistent: false}, @~debounce-handler)
-
-  clear: !->
-    for @watches => ..close!
-    @watches = []
-
-  single: (filename) !-> @clear! ; @add filename
-
-  handler: (ev, filename) -> @emit 'change' {filename}
-
-
-
 
 class Viewer extends ViewerCore
 
@@ -305,4 +284,4 @@ Viewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::
 
 
 
-export Viewer, FileWatcher
+export Viewer

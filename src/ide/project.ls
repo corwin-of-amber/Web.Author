@@ -57,9 +57,11 @@ class TeXProject
       try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*{/)
       catch => false
 
-  build: ->
+  builder: ->
     new LatexmkBuild @get-main-tex-file!, @path
-    .make!
+
+  build: ->
+    @builder!make!
 
   _find-pdf: (root-dir) ->
     fn = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
