@@ -20,12 +20,13 @@ class ProjectView extends CrowdApp implements EventEmitter::
       data: path: null, clientState: void
       template: '''
         <div class="project-view">
-          <project-header/>
+          <project-header ref="header"/>
           <project-files ref="files" :path="path" @select="select"/>
         </div>
       '''
       methods:
         select: ~> @emit 'file:select', path: it
+        open: ~> @open it
     
     .$mount!
 
@@ -70,11 +71,22 @@ class TeXProject
 
 
 Vue.component 'project-header', do
+  data: -> status: void, name: 'proj'
   template: '''
     <div class="project-header">
-      <p2p.button-join channel="doc2"/>
+      <p2p.source-status ref="status" channel="doc2"/>
+      <div class="bar" @click.prevent.stop="$refs.list.toggle">
+        <span>{{name}}</span>
+        <button name="badge" class="p2p" :class="status" @click.stop="toggle">❂</button>
+      </div>
+      <project-list-dropdown ref="list"/>
     </div>
   '''
+  mounted: ->
+    @$refs.status.$watch 'status', (@status) ~>
+    , {+immediate}
+  methods:
+    toggle: -> @$refs.status.toggle!
 
 
 Vue.component 'project-files', do
@@ -112,7 +124,7 @@ Vue.component 'project-context-menu', do
     <vue-context ref="m">
       <li><a name="new-file" @click="action">New File</a></li>
       <li><a name="rename" @click="action">Rename</a></li>
-      <li><a name="delete">Delete</a></li>
+      <li><a name="delete" @click="action">Delete</a></li>
     </vue-context>
   '''
   components: {VueContext}
@@ -120,6 +132,26 @@ Vue.component 'project-context-menu', do
     open: -> @$refs.m.open it
     action: -> @$emit 'action' {it.currentTarget.name}
 
+
+Vue.component 'project-list-dropdown', do
+  template: '''
+    <vue-context ref="l">
+      <li><a>shrinker [fs]</a></li>
+      <li><a>toxin [fs]</a></li>
+      <li><a>doc2 [p2p]</a></li>
+    </vue-context>
+  '''
+  components: {VueContext}
+  methods:
+    toggle: ->
+      if !@$refs.l.show
+        @$refs.l.open @position!
+      else @$refs.l.close!
+    position: ->
+      box = @$el.parentElement.getBoundingClientRect!
+      {clientX: box.left, clientY: box.bottom}
+
+    
 
 Vue.component 'source-folder.directory', do
   props: ['path']

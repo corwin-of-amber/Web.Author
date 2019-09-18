@@ -57,6 +57,38 @@ div.gutter.gutter-horizontal {
     flex-grow: 1;
 }
 
+.project-header div.bar {
+    display: flex;
+    flex-direction: row;
+    background: #f8f8f8;
+    color: #666;
+    font-family: sans-serif;
+    font-size: 14px;
+    padding: 2px 0 2px 5px;
+    border-bottom: 1px solid #f2f2f2;
+}
+
+.project-header div.bar > span {
+    flex-grow: 1;
+}
+
+.project-header button[name=badge] {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.project-header button.p2p.disconnected {
+    color: #a11
+}
+.project-header button.p2p.connecting,
+.project-header button.p2p.disconnecting {
+    color: rgb(255, 188, 2);
+}
+.project-header button.p2p.connected {
+    color: green;
+}
+
 ul[role=menu] {
     font-family: sans-serif;
     font-size: 10pt;
@@ -73,4 +105,8 @@ ul[role=menu] > li > a:hover {
     background: rgb(46, 103, 160);
     color: white;
     cursor: default;
+}
+
+button:focus, button:active {
+    outline: none;
 }
