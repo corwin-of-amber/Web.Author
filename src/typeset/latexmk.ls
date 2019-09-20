@@ -18,6 +18,7 @@ class LatexmkBuild
     @latexmk = 'latexmk'
     @latexmk-flags = <[ -pdf -f ]>
     @pdflatex-flags = <[ -interaction=nonstopmode -synctex=1 ]>
+    @envvars = {'max_print_line': '9999'}
 
     @_watch = new FileWatcher
       ..on 'change' @~remake
@@ -26,15 +27,17 @@ class LatexmkBuild
     console.log 'make', @base-dir, @main-tex-fn
     try
       rc = await \
-        child-process-promise.spawn @latexmk, \
-          [...@latexmk-flags, ...@pdflatex-flags, "-outdir='#{@out-dir}'", @main-tex-fn], \
-          shell: true, cwd: @base-dir, capture: <[ stdout stderr ]>
+        child-process-promise.spawn @latexmk, @_args!, \
+          shell: true, cwd: @base-dir, env: @_env!, capture: <[ stdout stderr ]>
       console.log 'build complete', rc
     catch
       rc = {e.code, e.stdout, e.stderr}
       console.warn 'build failed', rc
     rc
   
+  _args: -> @latexmk-flags ++ @pdflatex-flags ++ ["-outdir='#{@out-dir}'", @main-tex-fn]
+  _env:  -> ^^global.process.env <<< @envvars
+
   remake: ->> await @make! ; @watch!
 
   watch: ->>
