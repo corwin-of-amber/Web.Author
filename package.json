@@ -27,6 +27,11 @@
   "devDependencies": {
     "browserify-livescript": "^0.2.4"
   },
+  "browserify": {
+    "transform": [
+      "browserify-livescript"
+    ]
+  },
   "window": {
     "icon": "img/icon.png"
   }
