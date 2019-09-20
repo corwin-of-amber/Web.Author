@@ -4,7 +4,6 @@ require! {
     assert
     events: {EventEmitter}
     lodash: _
-    'dat-p2p-crowd/src/ui/syncpad': {SyncPad}
     './edit-items.ls': {VisitedFiles, FileEdit, SyncPadEdit}
 }
 
@@ -16,11 +15,17 @@ class TeXEditor extends EventEmitter
       mode: 'stex'
       lineWrapping: true
       lineNumbers: true
+      styleSelectedText: true
 
     Ctrl = if @@is-mac then "Cmd" else "Ctrl"
 
     @cm.addKeyMap do
       "#{Ctrl}-S": @~save
+      "#{Ctrl}-F": 'findPersistent'  # because non-persistent is just silly
+
+    @containing-element[0].addEventListener 'blur' (ev) ->
+      if ev.relatedTarget == null then ev.stopPropagation!
+    , {+capture}
 
     @visited-files = new VisitedFiles
 
@@ -48,6 +53,8 @@ class TeXEditor extends EventEmitter
 
   save: ->
     @visited-files.save @cm, @filename
+    if @@is-dat(@filename)
+      @emit 'request-save'
 
   jump-to: (filename, {line, ch}={}) ->>
     try
@@ -64,6 +71,9 @@ class TeXEditor extends EventEmitter
 
   @is-local-file = (filename) ->
     !filename.match(/^[^/]+:\//)
+
+  @is-dat = (filename) ->
+    filename.match(/^dat:\//)
 
 
 

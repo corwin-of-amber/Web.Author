@@ -110,3 +110,29 @@ ul[role=menu] > li > a:hover {
 button:focus, button:active {
     outline: none;
 }
+
+/* Editor Pane */
+
+#ide-pane-editor .CodeMirror-dialog {
+    background: #fbfbfbef;
+    padding: .5em 3em;
+    font-family: sans-serif;
+    font-size: 13px;
+    font-style: italic;
+}
+
+#ide-pane-editor .CodeMirror-search-field {
+    margin: 0 1em;
+    width: 20em !important;
+    max-width: 33%;
+    border: 1px solid #ccc;
+    padding: 3px;
+}
+
+#ide-pane-editor .cm-searching {
+    background: rgba(182, 182, 0, .2);
+}
+
+#ide-pane-editor .cm-searching.CodeMirror-selectedtext {
+    background: rgba(255, 240, 0, .8);
+}
