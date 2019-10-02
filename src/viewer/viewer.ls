@@ -119,6 +119,7 @@ class Zoom_MixIn
 class SyncTeX extends EventEmitter
 
   (@sync-data) ->
+    console.log 'synctex create'
     @overlay = $('<svg xmlns="http://www.w3.org/2000/svg">')
       ..addClass('synctex-overlay')
       ..on 'mousemove mousedown' @~mouse-handler
@@ -135,6 +136,7 @@ class SyncTeX extends EventEmitter
     @overlay.0.style.width = canvas.0.style.width
 
   remove: ->
+    console.log 'synctex remove'
     @overlay.remove! ; @
 
   walk: (block) ->*
@@ -228,8 +230,10 @@ class SyncTeX_MixIn
     console.log 'open synctex' filename
     @synctex-init!
     @synctex?.remove!
+    @synctex = null
 
     @synctex = await SyncTeX.from-file filename
+      @pages[@selected-page]?then @~_synctex-page
       ..on 'synctex-goto' ~> @emit 'synctex-goto' it
       @_synctex-watcher.single filename
 
@@ -239,8 +243,7 @@ class SyncTeX_MixIn
       @on 'displayed' (page) ~>
         if @synctex?
           @synctex.blur!
-          @synctex.cover page.canvas, @zoom * @resolution
-          @synctex.selected-page = @selected-page
+          @_synctex-page page
       @on 'resizing' (canvas) ~>
         @synctex?.snap canvas
       @_synctex-watcher = new FileWatcher
@@ -261,6 +264,10 @@ class SyncTeX_MixIn
         fn = pdf-filename.replace(/(\.pdf|)$/, suffix)
         if fs.statSync(fn).isFile! then return fn
       catch
+
+  _synctex-page: (page) ->
+    @synctex.cover page.canvas, @zoom * @resolution
+    @synctex.selected-page = @selected-page
 
 
 
