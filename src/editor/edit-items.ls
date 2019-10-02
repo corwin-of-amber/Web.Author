@@ -17,9 +17,9 @@ class VisitedFiles
     else gen(key)
       @info.set key, ..
 
-  enter: (cm, key, gen) -> (e = @get key, gen).enter cm ; e
-  leave: (cm, key) ->      @get key, (->) ?.leave cm
-  save:  (cm, key) ->      @get key, (-> assert false) .save cm
+  enter: (cm, key, gen) ->> await (e = @get key, gen).enter cm ; e
+  leave: (cm, key) ->       @get key, (->) ?.leave cm
+  save:  (cm, key) ->       @get key, (-> assert false) .save cm
 
 
 class EditItem
@@ -91,9 +91,9 @@ class FileEdit extends EditItem
 class SyncPadEdit extends EditItem
   (@slot) ->
 
-  enter: (cm) ->
+  enter: (cm) ->>
     @pad = new SyncPad(cm, @slot)
-      ..ready.then ~> super cm
+      await ..ready ; super cm
 
   leave: (cm) -> @pad.destroy! ; super cm
 

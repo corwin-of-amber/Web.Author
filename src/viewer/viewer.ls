@@ -136,7 +136,6 @@ class SyncTeX extends EventEmitter
     @overlay.0.style.width = canvas.0.style.width
 
   remove: ->
-    console.log 'synctex remove'
     @overlay.remove! ; @
 
   walk: (block) ->*
@@ -227,7 +226,6 @@ class SyncTeX extends EventEmitter
 class SyncTeX_MixIn
 
   synctex-open: (filename) ->>
-    console.log 'open synctex' filename
     @synctex-init!
     @synctex?.remove!
     @synctex = null
