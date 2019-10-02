@@ -136,3 +136,9 @@ button:focus, button:active {
 #ide-pane-editor .cm-searching.CodeMirror-selectedtext {
     background: rgba(255, 240, 0, .8);
 }
+
+#ide-pane-editor div.CodeMirror span.CodeMirror-matchingbracket {
+    color: mediumpurple;
+    box-shadow: inset 0px 0px 1px 0px black;
+    padding-bottom: 2px;  /* this is typeface-dependent... */
+}

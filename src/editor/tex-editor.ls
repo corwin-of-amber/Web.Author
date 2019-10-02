@@ -4,6 +4,13 @@ require! {
     assert
     events: {EventEmitter}
     lodash: _
+    codemirror: CodeMirror
+    'codemirror/mode/stex/stex'
+    'codemirror/addon/dialog/dialog'
+    'codemirror/addon/search/searchcursor'
+    'codemirror/addon/search/search'
+    'codemirror/addon/selection/mark-selection'
+    'codemirror/addon/edit/matchbrackets'
     './edit-items.ls': {VisitedFiles, FileEdit, SyncPadEdit}
 }
 
@@ -16,6 +23,7 @@ class TeXEditor extends EventEmitter
       lineWrapping: true
       lineNumbers: true
       styleSelectedText: true
+      matchBrackets: true
 
     Ctrl = if @@is-mac then "Cmd" else "Ctrl"
 

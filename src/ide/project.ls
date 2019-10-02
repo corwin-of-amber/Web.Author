@@ -55,7 +55,7 @@ class TeXProject
     fn = glob-all.sync(global.Array.from(['*.tex', '**/*.tex']),
                        {cwd: @path})
     fn.find ~>
-      try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*{/)
+      try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*[[{]/)
       catch => false
 
   builder: ->
