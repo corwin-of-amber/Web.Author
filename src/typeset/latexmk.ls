@@ -3,12 +3,20 @@ node_require = global.require ? (->)
   fs = .. 'fs'
 require! {
     path,
+    events: {EventEmitter}
     '../infra/fs-watch.ls': {FileWatcher}
+    '../infra/non-reentrant.ls': non-reentrant
 }
 
 
-class LatexmkBuild
+job = (f) -> ->
+  f.apply @, &
+    @emit 'job:start' ..
+
+
+class LatexmkBuild extends EventEmitter
   (@main-tex-fn, @base-dir) ->
+    super!
     @base-dir ?= path.dirname(@main-tex-fn)
     if @main-tex-fn.startsWith('/')
       @main-tex-fn = path.relative(@base-dir, @main-tex-fn)
@@ -23,8 +31,8 @@ class LatexmkBuild
     @_watch = new FileWatcher
       ..on 'change' @~remake
 
-  make: ->>
-    console.log 'make', @base-dir, @main-tex-fn
+  make: job non-reentrant ->>
+    console.log "%cmake #{@base-dir} #{@main-tex-fn}", 'color: green'
     try
       rc = await \
         child-process-promise.spawn @latexmk, @_args!, \
@@ -56,6 +64,7 @@ class LatexmkBuild
       for line in fs.readFileSync(fls-fn, 'utf-8').split(/[\n\r]+/)
         if (mo = /^INPUT ([^\/].*)/.exec(line))?  then input.add mo.1
         if (mo = /^OUTPUT ([^\/].*)/.exec(line))? then output.add mo.1
+      input = set-filter input, -> !it.endsWith('.bbl')  # hack
       set-remove-all input, output
 
 
@@ -63,6 +72,11 @@ class LatexmkBuild
 exists-file = (filename) ->
   try fs.statSync(filename).isFile!
   catch => false
+
+set-filter = (s, p) ->
+  ns = new Set
+  ``for (let x of s) if (p(x)) ns.add(x)``
+  ns
 
 set-remove-all = (a, b) ->
   ``for (let x of b) a.delete(x)``
