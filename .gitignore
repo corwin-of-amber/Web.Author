@@ -9,5 +9,6 @@ bower_components
 /data/snapshots
 .*.swp
 *.bundle.js
+*.app
 /dist
 /npm-link

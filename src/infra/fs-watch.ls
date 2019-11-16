@@ -25,7 +25,9 @@ class FileWatcher extends EventEmitter
   single: (filename) !-> @clear! ; @add filename
   multiple: (filenames) !-> @clear! ; for filenames => @add ..
 
-  handler: (ev, filename) -> @emit 'change' {filename}
+  handler: (ev, filename) ->
+    console.log "%cchanged: #{filename}" 'color: #ccf'
+    @emit 'change' {filename}
 
 
 

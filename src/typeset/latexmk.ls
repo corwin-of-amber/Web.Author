@@ -6,6 +6,7 @@ require! {
     events: {EventEmitter}
     '../infra/fs-watch.ls': {FileWatcher}
     '../infra/non-reentrant.ls': non-reentrant
+    '../infra/ongoing.ls': {global-tasks}
 }
 
 
@@ -27,6 +28,8 @@ class LatexmkBuild extends EventEmitter
     @latexmk-flags = <[ -pdf -f ]>
     @pdflatex-flags = <[ -interaction=nonstopmode -synctex=1 ]>
     @envvars = {'max_print_line': '9999'}
+
+    @on 'job:start' global-tasks~add
 
     @_watch = new FileWatcher
       ..on 'change' @~remake

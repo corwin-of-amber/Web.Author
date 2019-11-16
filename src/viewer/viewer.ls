@@ -3,8 +3,10 @@ fs = node_require 'fs'
 require! { 
     events: {EventEmitter}
     lodash: _
-    '../infra/fs-watch.ls': {FileWatcher}
-    'synctex-js': {parser: synctex-parser}
+    'synctex-js': {parser: synctex-parser},
+    '../infra/fs-watch.ls': {FileWatcher},
+    '../infra/non-reentrant.ls': non-reentrant,
+    '../infra/ongoing.ls': {global-tasks}
 }
 
 
@@ -23,7 +25,8 @@ class ViewerCore extends EventEmitter
     @resolution = 2
 
     @watcher = new FileWatcher
-      ..on 'change' @~reload
+      ..on 'change' non-reentrant ~>>
+        await global-tasks.wait! ; @reload!
 
   open: (uri) ->>
     if uri instanceof Blob
@@ -119,7 +122,6 @@ class Zoom_MixIn
 class SyncTeX extends EventEmitter
 
   (@sync-data) ->
-    console.log 'synctex create'
     @overlay = $('<svg xmlns="http://www.w3.org/2000/svg">')
       ..addClass('synctex-overlay')
       ..on 'mousemove mousedown' @~mouse-handler
@@ -248,7 +250,7 @@ class SyncTeX_MixIn
         ..on 'change' @~synctex-reload
 
   synctex-reload: ->
-    if @synctex.filename
+    if @synctex?filename
       @synctex-open that
       @refresh!
 
@@ -264,8 +266,9 @@ class SyncTeX_MixIn
       catch
 
   _synctex-page: (page) ->
-    @synctex.cover page.canvas, @zoom * @resolution
-    @synctex.selected-page = @selected-page
+    if @synctex?
+      @synctex.cover page.canvas, @zoom * @resolution
+      @synctex.selected-page = @selected-page
 
 
 
