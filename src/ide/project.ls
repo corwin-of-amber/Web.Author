@@ -21,7 +21,7 @@ class ProjectView extends CrowdApp implements EventEmitter::
       template: '''
         <div class="project-view">
           <project-header ref="header"/>
-          <project-files ref="files" :path="path" @select="select"/>
+          <project-files ref="files" :path="path" @file:select="select"/>
         </div>
       '''
       methods:
@@ -106,8 +106,9 @@ Vue.component 'project-files', do
     , {+immediate}                                  # be done with a computed property
   methods:
     act: (ev) ->
-      if ev.type == 'select'
-        @$emit 'select', @$refs.source.get-path-of ev.path
+      console.log ev
+      if ev.type == 'select' && ev.kind == 'file'
+        @$emit 'file:select', @$refs.source.get-path-of(ev.path)
     onmenuaction: (ev) ->
       switch ev.name
       | 'new-file' => @create!
@@ -159,9 +160,8 @@ Vue.component 'source-folder.directory', do
   template: '<span/>'
   mounted: ->
     @$watch 'path' ~>
-      it && fs.readdir it, (err, res) ~> if !err?
-        files = res.map -> name: it
-        @files.splice 0, Infinity, ...files
+      if it
+        @files.splice 0, Infinity, ...all-files-sync(it)
     , {+immediate}
   methods:
     get-path-of: (path-els) ->
@@ -172,6 +172,13 @@ Vue.component 'source-folder.directory', do
 ProjectView.content-plugins.folder.push ->
   if !it || _.isString(it) then 'source-folder.directory'
 
+
+all-files-sync = (dir) ->
+  fs.readdirSync(dir).map (file) ->
+    {name: file, path: path.join(dir, file)}
+      if fs.statSync(..path).isDirectory!
+        ..files = all-files-sync(..path)
+  
 
 
 export ProjectView, TeXProject

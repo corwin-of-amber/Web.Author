@@ -18,7 +18,6 @@ class AuthorP2P extends DocumentClient
     @ <<<< new DocumentClient(opts)   # ES2015-LiveScript interoperability issue :/
 
   open-project: (docId) ->>
-    await this.init!
     new CrowdProject @sync.path(docId), @
       @on 'shout' -> ..upstream?download-src!
 
