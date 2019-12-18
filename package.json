@@ -22,7 +22,7 @@
     "synctex-js": "^1.0.0",
     "tempy": "^0.2.1",
     "vue": "^2.6.10",
-    "vue-context": "^4.0.3"
+    "vue-context": "^4.1.1"
   },
   "devDependencies": {
     "browserify-livescript": "^0.2.4"
