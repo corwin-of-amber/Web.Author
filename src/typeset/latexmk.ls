@@ -23,11 +23,12 @@ class LatexmkBuild extends EventEmitter
       @main-tex-fn = path.relative(@base-dir, @main-tex-fn)
     
     @out-dir = 'out'
+    @src-dir = path.dirname(@main-tex-fn)
 
     @latexmk = 'latexmk'
     @latexmk-flags = <[ -pdf -f ]>
     @pdflatex-flags = <[ -interaction=nonstopmode -synctex=1 ]>
-    @envvars = {'max_print_line': '9999'}
+    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:", 'max_print_line': '9999'}
 
     @on 'job:start' global-tasks~add
 

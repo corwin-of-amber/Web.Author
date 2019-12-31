@@ -186,6 +186,14 @@ class SyncTeX extends EventEmitter
       yield c
       c = c.parent
 
+  _block-location: (block) ->
+    loc = block
+    for sub in block.elements ? []
+      if sub.fileNumber < loc.fileNumber || \
+        (sub.fileNumber == loc.fileNumber && sub.line < loc.line)
+        loc = sub
+    {loc.file, loc.line, loc.page, loc.fileNumber}
+
   focus: (block) ->
     @selected-block = block
     @highlight.attr x: block.left, y: block.bottom - block.height, \
@@ -202,7 +210,8 @@ class SyncTeX extends EventEmitter
       p = {x: ev.offsetX / ctm.a, y: ev.offsetY / ctm.d}
       if (ht = @hit-test-single(@sync-data.pages[page-num], p))?
         @focus ht
-        if ev.type === 'mousedown' then @emit 'synctex-goto' ht
+        if ev.type === 'mousedown'
+          @emit 'synctex-goto' @_block-location(ht), ht
       else
         @blur!
 
@@ -234,7 +243,7 @@ class SyncTeX_MixIn
 
     @synctex = await SyncTeX.from-file filename
       @pages[@selected-page]?then @~_synctex-page
-      ..on 'synctex-goto' ~> @emit 'synctex-goto' it
+      ..on 'synctex-goto' ~> @emit 'synctex-goto' ...&
       @_synctex-watcher.single filename
 
   synctex-init: ->

@@ -3,7 +3,8 @@
   "main": "src/index.dev.html",
   "chromium-args": "--disable-background-timer-throttling",
   "scripts": {
-    "start": "nw .&"
+    "start": "nw .&",
+    "build": "browserify src/hub.ls -o src/browser.bundle.js"
   },
   "dependencies": {
     "automerge": "^0.12.1",
