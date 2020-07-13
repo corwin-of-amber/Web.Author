@@ -8,13 +8,14 @@
 process = @_process
 
 require! {
+  jquery: $
   lodash: _
   './ide/layout.ls': {IDELayout}
   './ide/config.ls': {IDEConfig}
-  './net/p2p.ls':    {AuthorP2P}
+  #'./net/p2p.ls':    {AuthorP2P}
 }
 
-global.console = window.console
+#global.console = window.console
 
 
 CLIENT_OPTS = void
@@ -40,15 +41,16 @@ $ ->
 
   editor.cm.focus!
 
-  p2p = new AuthorP2P(CLIENT_OPTS)
-    project.attach ..
-    do ->> p2p.project = await p2p.open-project 'd1'
-      project.open ..
-      ..getPdf!on 'change' viewer~open
-      editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
-    window.addEventListener 'beforeunload' ..~close
+  if 0
+    p2p = new AuthorP2P(CLIENT_OPTS)
+      project.attach ..
+      do ->> p2p.project = await p2p.open-project 'd1'
+        project.open ..
+        ..getPdf!on 'change' viewer~open
+        editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
+      window.addEventListener 'beforeunload' ..~close
 
-  window <<< {ide, project, editor, viewer, p2p}
+  window <<< {ide, project, editor, viewer}
 
   window.addEventListener 'beforeunload' ->
     Date::com$cognitect$transit$equals = \

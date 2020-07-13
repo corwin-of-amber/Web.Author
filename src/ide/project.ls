@@ -8,13 +8,13 @@ require! {
   'vue/dist/vue': Vue
   'vue-context': {VueContext}
   './components/file-list'
-  'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
+  #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
   '../typeset/latexmk.ls': {LatexmkBuild}
 }
 
 
 
-class ProjectView extends CrowdApp implements EventEmitter::
+class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   ->
     @vue = new Vue do
       data: path: null, clientState: void
@@ -74,7 +74,7 @@ Vue.component 'project-header', do
   data: -> status: void, name: 'proj'
   template: '''
     <div class="project-header">
-      <p2p.source-status ref="status" channel="doc2"/>
+      <!-- <p2p.source-status ref="status" channel="doc2"/> -->
       <div class="bar" @click.prevent.stop="$refs.list.toggle">
         <span>{{name}}</span>
         <button name="badge" class="p2p" :class="status" @click.stop="toggle">❂</button>
@@ -83,8 +83,8 @@ Vue.component 'project-header', do
     </div>
   '''
   mounted: ->
-    @$refs.status.$watch 'status', (@status) ~>
-    , {+immediate}
+    #@$refs.status.$watch 'status', (@status) ~>
+    #, {+immediate}
   methods:
     toggle: -> @$refs.status.toggle!
 

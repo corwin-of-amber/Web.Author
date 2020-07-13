@@ -2,6 +2,7 @@ node_require = global.require ? -> {}
 fs = node_require 'fs'
 require! { 
     events: {EventEmitter}
+    jquery: $
     lodash: _
     'synctex-js': {parser: synctex-parser},
     '../infra/fs-watch.ls': {FileWatcher},
@@ -26,7 +27,7 @@ class ViewerCore extends EventEmitter
 
     @watcher = new FileWatcher
       ..on 'change' non-reentrant ~>>
-        await global-tasks.wait! ; @reload!
+        await global-tasks.wait! ; await @reload!
 
   open: (uri) ->>
     if uri instanceof Blob
@@ -244,6 +245,7 @@ class SyncTeX_MixIn
     @synctex = await SyncTeX.from-file filename
       @pages[@selected-page]?then @~_synctex-page
       ..on 'synctex-goto' ~> @emit 'synctex-goto' ...&
+      console.log 'watch' filename
       @_synctex-watcher.single filename
 
   synctex-init: ->
@@ -256,7 +258,7 @@ class SyncTeX_MixIn
       @on 'resizing' (canvas) ~>
         @synctex?.snap canvas
       @_synctex-watcher = new FileWatcher
-        ..on 'change' @~synctex-reload
+      #  ..on 'change' @~synctex-reload  # @todo this races Viewer's reload
 
   synctex-reload: ->
     if @synctex?filename

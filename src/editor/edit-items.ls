@@ -3,7 +3,7 @@ node_require = global.require ? (->)
 require! {
     assert
     lodash: _
-    'dat-p2p-crowd/src/ui/syncpad': {SyncPad}
+    codemirror: CodeMirror
     '../infra/fs-watch.ls': {FileWatcher}
 }
 
@@ -88,20 +88,10 @@ class FileEdit extends EditItem
       @watch! ; @enter cm
 
 
-class SyncPadEdit extends EditItem
-  (@slot) ->
-
-  enter: (cm) ->>
-    @pad = new SyncPad(cm, @slot)
-      await ..ready ; super cm
-
-  leave: (cm) -> @pad.destroy! ; super cm
-
-
 detect-line-ends = (txt) ->
   eols = _.groupBy(txt.match(/\r\n?|\n/g), -> it)
   _.maxBy(Object.keys(eols), -> eols[it].length) ? '\n'
 
 
 
-export VisitedFiles, EditItem, FileEdit, SyncPadEdit
+export VisitedFiles, EditItem, FileEdit

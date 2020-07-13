@@ -40,13 +40,17 @@ class LatexmkBuild extends EventEmitter
     try
       rc = await \
         child-process-promise.spawn @latexmk, @_args!, \
-          shell: true, cwd: @base-dir, env: @_env!, capture: <[ stdout stderr ]>
+          shell: true, cwd: @base-dir, env: @_env!, stdio: 'ignore' #, capture: <[ stderr ]>
       console.log 'build complete', rc
     catch
-      rc = {e.code, e.stdout, e.stderr}
-      console.warn 'build failed', rc
+      if !e.code? then throw e
+      console.warn 'build failed', e
     rc
   
+  clean: ->
+    bn = path.basename(@main-tex-fn)
+    fs.unlinkSync path.join(@base-dir, @out-dir, bn.replace(/[.]tex$/, '') + '.fdb_latexmk')
+
   _args: -> @latexmk-flags ++ @pdflatex-flags ++ ["-outdir='#{@out-dir}'", @main-tex-fn]
   _env:  -> ^^global.process.env <<< @envvars
 

@@ -7,8 +7,10 @@ require! {
   'vue/dist/vue': Vue
   'automerge-slots': {SlotBase}
   'dat-p2p-crowd/src/net/client': {DocumentClient}
+  'dat-p2p-crowd/src/ui/syncpad': {SyncPad}
   'dat-p2p-crowd/src/addons/fs-sync': {DirectorySync, FileSync, FileShare}
   '../ide/project.ls': {ProjectView, TeXProject}
+  '../editor/edit-items.ls': {EditItem}
 }
 
 
@@ -112,6 +114,16 @@ class WatchSlot extends EventEmitter
       @slot.unregisterHandler @_registered
 
 
+class SyncPadEdit extends EditItem
+  (@slot) ->
+
+  enter: (cm) ->>
+    @pad = new SyncPad(cm, @slot)
+      await ..ready ; super cm
+
+  leave: (cm) -> @pad.destroy! ; super cm
+
+
 Vue.component 'source-folder.automerge', do
   props: ['path']
   data: -> files: []
@@ -156,4 +168,4 @@ ProjectView.content-plugins.folder.push ->
 
 
 
-export AuthorP2P
+export AuthorP2P, SyncPadEdit

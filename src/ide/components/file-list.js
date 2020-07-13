@@ -11,8 +11,9 @@
  * `<folder-knob>` internally.
  */
 
-const Vue = require('vue/dist/vue'),
-      _ = require('lodash');
+import Vue from 'vue/dist/vue';
+import _ from 'lodash';
+import $ from 'jquery';
 
 
 
@@ -114,15 +115,17 @@ Vue.component('file-list', {
         },
 
         move(from, to, after) {
-            let src = this.lookup(from.slice(0,-1)), src_name = from[from.length - 1],
+            let src = this.lookup(from.slice(0,-1)), [src_name] = from.slice(-1),
                 dest = this.lookup(to);
             if (src && src.files && dest) {
                 var src_index = src.files.findIndex(e => e.name === src_name),
-                    dest_index = after ? dest.files.findIndex(e => e.name === after) : -1;
+                    dest_index = after ? dest.files.findIndex(e => e.name === after) + 1 : 0;
                 if (src_index > -1) {
                     var e = src.files[src_index];
+                    if (src.files === dest.files && src_index < dest_index)
+                        dest_index--;
                     src.files.splice(src_index, 1);
-                    dest.files.splice(dest_index + 1, 0, e);
+                    dest.files.splice(dest_index, 0, e);
                 }
             }
         },
