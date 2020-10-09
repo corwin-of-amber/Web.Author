@@ -1,42 +1,33 @@
-/**
- * A collapsible directory structure view (based on Vue).
- * 
- * The data is organized as a tree, where every element is of the form
- * {name: "...", files: [ ... ]}.
- * For leaf nodes (files), the `files` property will be undefined.
- * For internal nodes (folders), `files` will be a list of sub-trees with
- * the same format.
- * 
- * The main component is `<file-list>`, and it uses `<folder>` and
- * `<folder-knob>` internally.
- */
+<template>
+    <ul :class="['file-list', 'level-'+$data._level]" @drop="drop"
+            @dragover="dragover" @dragenter="dragover" @dragleave="dragout"
+            @contextmenu.stop="menu">
+        <li v-for="f in files" :data-name="f.name" :key="f.name"
+                :class="{folder: f.files, file: !f.files, selected: isSelected([f.name])}"
+                @click.stop="onclick" @mouseup.stop="onrightclick"
+                draggable="true" @dragstart="drag" @dragend="undrag" @drop="drop" 
+                @dragover="dragover" @dragenter="dragover" @dragleave="dragout"
+                @contextmenu.stop="menu">
+            <file-list.folder v-if="f.files" ref="entries" :entry="f" :path="_path" :level="$data._level + 1"
+                    :selection="$data._selection" @action="action"/>
+            <file-list.file v-else ref="entries" :entry="f" @action="action"/>
+        </li>
+    </ul>    
+</template>
 
-import Vue from 'vue/dist/vue';
+<script>
 import _ from 'lodash';
 import $ from 'jquery';
 
+import './file-list.css';
 
-
-Vue.component('file-list', {
+export default {
+    name: 'file-list',
     props: ['files', 'level', 'path', 'selection_'],
     data: function() { return {
         _level: this.level || 0,  // assume level does not change :/
         _selection: []
     }; },
-    template: `
-    <ul :class="['file-list', 'level-'+$data._level]" @drop="drop"
-            @dragover="dragover" @dragenter="dragover" @dragleave="dragout">
-        <li v-for="f in files" :data-name="f.name" 
-                :class="{folder: f.files, file: !f.files, selected: isSelected([f.name])}"
-                @click="onclick" @mouseup="onrightclick"
-                draggable="true" @dragstart="drag" @dragend="undrag" @drop="drop" 
-                @dragover="dragover" @dragenter="dragover" @dragleave="dragout">
-            <file-list.folder v-if="f.files" ref="entries" :entry="f" :path="_path" :level="$data._level + 1"
-                    :selection="$data._selection" @action="action"/>
-            <file-list.file v-else ref="entries" :entry="f"/>
-        </li>
-    </ul>
-    `,
     computed: {
         _path() { return typeof this.path === 'string' ? this.path.split('/') 
                                                        : this.path || []; },
@@ -49,7 +40,8 @@ Vue.component('file-list', {
                 path = [...this._path, item_name],
                 kind = target.hasClass('folder') ? 'folder' : 'file';
             this.action({type: 'select', path, kind});
-            ev.stopPropagation();            
+            if ($('.v-context').is(':visible'))
+                $(document.body).click();
         },
         onrightclick(ev) {
             if (ev.which === 3 || ev.button === 2)   /* Right click... :\ */
@@ -110,19 +102,35 @@ Vue.component('file-list', {
             $(ev.currentTarget).removeClass('draghov');
         },
 
+        menu(ev) {
+            var target = $(ev.currentTarget),
+                item_name = target.attr('data-name'), path, kind;
+            if (item_name) {
+                path = [...this._path, item_name],
+                kind = target.hasClass('folder') ? 'folder' : 'file';
+            }
+            else {
+                path = this._path; kind = 'folder';
+            }
+            this.action({type: 'menu', path, kind, $event: ev});
+        },
+
         action(ev) {
+            if (!ev.path) ev.path = this._path;
             if (this.$data._level === 0) {
                 switch (ev.type) {
                     case 'select': 
                         if (ev.kind === 'file') this.select(ev.path); break;
                     case 'move': this.move(ev.from, ev.to, ev.after); break;
-                    case 'create': this.create(ev.path, ev.type); break;
+                    case 'rename': this.rename(ev.path, ev.from, ev.to); break;
                 }
             }
             this.$emit('action', ev);
         },
 
-        select(path) {
+        select(path, expose = true) {
+            path = promotePath(path);
+            if (expose) this.expose(path);
             this.$data._selection = [path];
         },
         isSelected(path) {
@@ -146,22 +154,32 @@ Vue.component('file-list', {
         },
 
         lookup(rel_path) {
-            if (typeof rel_path === 'string') rel_path = rel_path.split('/');
+            path = promotePath(path);
 
             var cwd = {name: '/', files: this.files};
-            for (let pel of rel_path) {
+            for (let pel of path) {
                 if (!cwd || !cwd.files) return;
                 cwd = cwd.files.find(e => e.name === pel);
             }
             return cwd;
         },
+        lookupComponent(path) {
+            path = promotePath(path);
 
-        create(rel_path, kind='file') {
-            if (typeof rel_path === 'string')
-                rel_path = rel_path.split('/').filter(x => x);
+            var cur = this;
+            for (let pel of path) {
+                if (cur.$refs.l) cur = cur.$refs.l;
+                cur = (cur.$refs.entries || []).find(e => e.entry.name === pel);
+                if (!cur) return;
+            }
+            return cur;
+        },
+
+        create(path, kind='file') {
+            path = promotePath(path);
 
             var cwd = {name: '/', files: this.files};
-            for (let pel of rel_path) {
+            for (let pel of path) {
                 if (!cwd.files) cwd.files = [];
                 let e = cwd.files.find(e => e.name === pel);
                 if (!e) {
@@ -175,16 +193,49 @@ Vue.component('file-list', {
             return cwd;
         },
 
+        freshName(path, template='u#') { 
+            path = promotePath(path);
+            var e = this.lookup(path), name = template.replace('#', '');
+            if (e) {
+                var i = 0;
+                for (;;) {
+                    if (!e.files.find(f => f.name === name)) break;
+                    name = template.replace('#', `-${++i}`);
+                }
+            }
+            return [...path, name];
+        },
+
         renameStart(rel_path) {
-            var subentry = this.$refs.entries.find(e => e.entry.name === rel_path[0]);
-            if (subentry)
-                subentry.renameStart(rel_path);
+            var c = this.lookupComponent(rel_path);
+            if (c && c !== this) c.renameStart();
+        },
+        rename(rel_path, from, to) {
+            var e = this.lookup([...rel_path, from]);
+            e.name = to;
         },
 
         collapseAll() {
             for (let e of this.$refs.entries || []) {
                 if (e.$data.hasOwnProperty('_collapsed'))
                     e.$data._collapsed = true;
+            }
+        },
+        expandAll(max_depth = 10) {
+            if (max_depth <= 0) return;
+            for (let e of this.$refs.entries || []) {
+                if (e.$data.hasOwnProperty('_collapsed'))
+                    e.$data._collapsed = false;
+            }
+        },
+
+        expose(path) {
+            path = promotePath(path);
+
+            for (let idx = 1; idx < path.length; idx++) {
+                var e = this.lookupComponent(path.slice(0, idx));
+                if (e && e.$data.hasOwnProperty('_collapsed'))
+                    e.$data._collapsed = false;
             }
         },
 
@@ -206,138 +257,14 @@ Vue.component('file-list', {
             if (clearFirst) this.clear();
             for (let fn of files) this.create(fn);
         }
-    }
-});
-
-/**
- * `<file-list.file>`
- * Represents a file entry.
- */
-Vue.component('file-list.file', {
-    props: ['entry'],
-    template: `
-    <div class="entry">
-        <span-editable ref="name" class="name">{{entry.name}}</span-editable>
-        <file-list.tags :tags="entry.tags"/>
-    </div>
-    `,
-    methods: {
-        renameStart() { this.$refs.name.edit(); }
-    }
-});
-
-
-/**
- * `<file-list.folder>`
- * Represents a subfolder.
- */
-Vue.component('file-list.folder', {
-    props: ['entry', 'level', 'path', 'selection', 'collapsed'],
-    data: function() { return {
-        _collapsed: !!this.collapsed
-    }; },
-    template: `
-    <div :class="['level-'+level]">
-        <div class="entry">
-            <file-list.folder-knob v-model="$data._collapsed"/>
-            <span class="name">{{entry.name}}</span>
-        </div>
-        <file-list :files="entry.files" :path="_path" :level="level"
-                   :selection_="subselection(selection, entry.name)"
-                   v-show="!$data._collapsed"
-                   @action="$emit('action', $event)">
-        </file-list>
-    </div>
-    `,
-    computed: {
-        _path() { return [...(this.path || []), this.entry.name]; }
     },
-    methods: {
-        subselection(selection, folder_name) {
-            if (selection) {
-                return selection.filter(x => x[0] === folder_name)
-                                .map(x => x.slice(1));
-            }
-        }
+    components: {
+        'file-list.file': require('./file.vue').default,
+        'file-list.folder': require('./folder.vue').default
     }
-})
-
-/**
- * `<file-list.folder-knob>`
- * A small widget for expanding/collapsing a subfolder.
- */
-Vue.component('file-list.folder-knob', {
-    props: ['value'],
-    data: function() { return {checked: !!this.value}; },
-    template: `
-    <span class="folder-knob" :class="{checked: checked}"
-        @click="$emit('input', (checked = !checked))"></span>
-    `
-});
-
-/**
- * `<file-list.tags>`
- * A small bin containing file tags.
- */
-Vue.component('file-list.tags', {
-    props: ['tags'],
-    template: `
-    <div v-if="tags" class="tags">
-        <span v-for="t in tags" :class="t.class">{{displayText(t)}}</span>
-    </div>
-    `,
-    methods: {
-        displayText(t) {
-            return t.text === undefined ? t : t.text;
-        }
-    }
-});
-
-
-Vue.component('span-editable', {
-    data: () => ({editing: false}),
-    template: `<span :contenteditable="editing" @click="click" @keydown="key" @blur="blur"><slot/></span>`,
-    methods: {
-        edit() {
-            this._content = $(this.$el.childNodes).clone();
-            this.editing = true;
-            window.requestAnimationFrame(() => {
-                selectElement(this.$el); this.$el.focus();
-            });
-        },
-        accept() {
-            var text = $(this.$el).text();
-            if (text == '') this.abort();
-            else {
-                this.$emit('change', text);
-                this.editing = false;
-                this._content = null;
-            }
-        },
-        abort() {
-            this.editing = false;
-            $(this.$el).html(this._content);
-        },
-        click(ev) {
-            if (this.editing) ev.stopPropagation();
-        },
-        key(ev) {
-            if (this.editing) {
-                if (ev.key === 'Enter')        { this.accept(); ev.preventDefault(); }
-                else if (ev.key === 'Escape')  { this.abort();  ev.preventDefault(); }
-            }
-        },
-        blur(ev) {
-            if (this.editing) { this.accept(); }
-        }
-    }
-});
-
-function selectElement(el) {
-    var range = document.createRange();
-    range.selectNodeContents(el);
-    var sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
 }
 
+function promotePath(path) {
+    return typeof path === 'string' ? path.split('/').filter(x => x) : path;
+}
+</script>

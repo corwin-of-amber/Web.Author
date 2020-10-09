@@ -4,6 +4,8 @@ Split = require 'split.js'
 {Viewer} = require '../viewer/viewer.ls'
 {ProjectView} = require './project.ls'
 
+require './ide.css'
+
 
 
 class IDELayout

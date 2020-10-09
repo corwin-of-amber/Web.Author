@@ -11,6 +11,8 @@ require! {
     '../infra/ongoing.ls': {global-tasks}
 }
 
+require './viewer.css'
+
 # yeah...
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/build/pdf.worker.js'
 

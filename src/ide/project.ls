@@ -7,7 +7,7 @@ require! {
   lodash: _
   'vue/dist/vue': Vue
   'vue-context': {VueContext}
-  './components/file-list'
+  '../../packages/file-list/index.vue': {default: file-list}
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
   '../typeset/latexmk.ls': {LatexmkBuild}
 }
@@ -135,6 +135,7 @@ Vue.component 'project-files', do
     rename: ->
       if (sel = @$refs.list.selection[0])?
         @$refs.list.rename-start sel
+  components: {file-list}
 
 
 Vue.component 'project-context-menu', do
@@ -179,7 +180,7 @@ Vue.component 'source-folder.directory', do
   mounted: ->
     @$watch 'path' ~>
       if it
-        @files.splice 0, Infinity, ...all-files-sync(it)
+        @files.splice 0, Infinity, ...all-files-sync(it, FOLDER_IGNORE)
     , {+immediate}
   methods:
     get-path-of: (path-els) ->
@@ -187,12 +188,14 @@ Vue.component 'source-folder.directory', do
     create: (filename) ->
       @files.push name: filename
 
+const FOLDER_IGNORE = /^\.git$/
+
 ProjectView.content-plugins.folder.push ->
   if !it || _.isString(it) then 'source-folder.directory'
 
 
-all-files-sync = (dir) ->
-  fs.readdirSync(dir).map (file) ->
+all-files-sync = (dir, ignore=/^$/) ->
+  fs.readdirSync(dir).filter(-> !it.match(ignore)).map (file) ->
     {name: file, path: path.join(dir, file)}
       if fs.statSync(..path).isDirectory!
         ..files = all-files-sync(..path)
