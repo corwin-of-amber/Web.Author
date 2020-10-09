@@ -1,6 +1,7 @@
 {
   "name": "toxin",
-  "main": "build/kremlin/bundled.html",
+  "version": "0.1.0",
+  "main": "build/kremlin/index.kremlin.html",
   "chromium-args": "--disable-background-timer-throttling",
   "scripts": {
     "start": "nw .&",

@@ -4,11 +4,15 @@ require! {
     events: {EventEmitter}
     jquery: $
     lodash: _
-    'synctex-js': {parser: synctex-parser},
-    '../infra/fs-watch.ls': {FileWatcher},
-    '../infra/non-reentrant.ls': non-reentrant,
+    'synctex-js': {parser: synctex-parser}
+    'pdfjs-dist': pdfjsLib
+    '../infra/fs-watch.ls': {FileWatcher}
+    '../infra/non-reentrant.ls': non-reentrant
     '../infra/ongoing.ls': {global-tasks}
 }
+
+# yeah...
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/build/pdf.worker.js'
 
 
 
@@ -225,10 +229,10 @@ class SyncTeX extends EventEmitter
   @read-file = (filename) -> new Promise (resolve, reject) ->
     if filename.endsWith('.gz')
       # apply gunzip (use stream to save memory)
-      require! zlib; require! 'stream-buffers'
+      require! zlib; stream-buffers = node_require('stream-buffers')
       fs.createReadStream(filename)  .on 'error' -> reject it
       .pipe(zlib.createGunzip())     .on 'error' -> reject it
-      .pipe(new streamBuffers.WritableStreamBuffer)
+      .pipe(new stream-buffers.WritableStreamBuffer)
       .on 'finish' -> resolve @getContentsAsString('utf-8')
     else
       fs.readFile filename, 'utf-8', resolve
@@ -273,6 +277,7 @@ class SyncTeX_MixIn
     for suffix in ['.synctex.gz', '.synctex']
       try
         fn = pdf-filename.replace(/(\.pdf|)$/, suffix)
+        console.log fn
         if fs.statSync(fn).isFile! then return fn
       catch
 

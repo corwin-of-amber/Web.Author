@@ -1,4 +1,5 @@
 $ = require 'jquery'
+Split = require 'split.js'
 {TeXEditor} = require '../editor/tex-editor.ls'
 {Viewer} = require '../viewer/viewer.ls'
 {ProjectView} = require './project.ls'

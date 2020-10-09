@@ -6,6 +6,10 @@ class IDEConfig
   save: ->
     localStorage[@key] = JSON.stringify(@config)
 
+  store: (ide) ->
+    @capture-session ide
+    @save!
+
   capture-session: (ide) ->
     @config.window = size: {width: window.outerWidth, height: outerHeight}
     @config.panes =

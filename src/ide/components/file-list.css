@@ -1,50 +1,3 @@
-/* Panel layout */
-
-#ide-container {
-    display: flex;
-    height: 100%;
-}
-#outline-pane {
-    width: 15%;
-    flex-grow: 0;
-    flex-shrink: 0;
-}
-#cnc-pane {
-    width: 20%;
-    flex-grow: 0;
-    flex-shrink: 0;
-}
-#code-pane {
-    flex-grow: 1;
-    width: 200px; /* will serve as min width */
-}
-#project-panel {
-    margin-bottom: 1em;   
-}
-#log-panel {
-    flex-grow: 1;
-}
-.vertical-pane {
-    display: flex;
-    flex-direction: column;
-}
-.vertical-pane.left {
-    padding-right: 5px;
-}
-.vertical-pane.right {
-    padding-left: 5px;
-}
-
-.vertical-pane.draghov {
-    background: #e4e4ef;
-}
-
-/* Toolbar styles */
-
-#project-panel button:disabled {
-    color: gray;
-}
-
 /* File list styles */
 
 ul.file-list {
@@ -143,30 +96,4 @@ ul.file-list div.entry .name {
 
 span[contenteditable=true] {
     cursor: text;
-}
-
-/* Problem list styles */
-
-ul.problem-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    font-family: sans-serif;
-    font-size: 10pt;
-}
-
-ul.problem-list ul.problem-group {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-ul.problem-list ul.problem-group > li {
-    padding-left: 16px;
-    background: url(../ui-images/log-error.png);
-    background-repeat: no-repeat;
-    background-size: 12px;
-    background-position-y: 2px;
-    background-position-x: 1px;
-    min-height: 14px;
 }

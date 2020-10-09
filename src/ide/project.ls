@@ -17,10 +17,10 @@ require! {
 class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   ->
     @vue = new Vue do
-      data: path: null, clientState: void
+      data: path: null, clientState: void, projects: @@recent-projects!
       template: '''
         <div class="project-view">
-          <project-header ref="header"/>
+          <project-header ref="header" :projects="projects" @open="open"/>
           <project-files ref="files" :path="path" @file:select="select"/>
         </div>
       '''
@@ -33,11 +33,21 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   has-fs: -> !!fs
 
   open: (project) ->
-    if typeof project == 'string'
-      project = new TeXProject(project)
+    if project !instanceof TeXProject
+      if project.uri then project = project.uri
+      if typeof project == 'string'
+        project .= replace(/^~/, process.env['HOME'])
+        project = new TeXProject(project)
+      else
+        throw new Error("invalid project specifier '#{project}'");
     @current = project
       @vue.path = ..path
+      @emit 'open', project: ..
   
+  @recent-projects = -> x =
+    * {name: 'sqzComp', uri: '~/var/workspace/papers/2020/sqzComp/FOLDER_1_WRITEUP'}
+    * {name: 'suslik', uri: '~/var/workspace/papers/2020/suslik/cyclic/current'}
+
   @content-plugins = {folder: []}
 
   @detect-folder-source = (path) ->
@@ -65,12 +75,17 @@ class TeXProject
     @builder!make!
 
   _find-pdf: (root-dir) ->
-    fn = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
-                       {cwd: root-dir})[0]
+    fns = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
+                        {cwd: root-dir})
+    main-tex = @get-main-tex-file!
+    pdf-matches = -> path.basename(main-tex).startsWith(path.basename(it).replace(/pdf$/, ''))
+    if main-tex? && (fn = fns.find(pdf-matches)) then ;
+    else fn = fns[0]
     fn && path.join(root-dir, fn)
 
 
 Vue.component 'project-header', do
+  props: ['projects']
   data: -> status: void, name: 'proj'
   template: '''
     <div class="project-header">
@@ -79,7 +94,7 @@ Vue.component 'project-header', do
         <span>{{name}}</span>
         <button name="badge" class="p2p" :class="status" @click.stop="toggle">❂</button>
       </div>
-      <project-list-dropdown ref="list"/>
+      <project-list-dropdown ref="list" :items="projects || []" @open="$emit('open', $event)"/>
     </div>
   '''
   mounted: ->
@@ -102,8 +117,10 @@ Vue.component 'project-files', do
   computed:
     sourceType: -> ProjectView.detect-folder-source(@path)
   mounted: ->
-    @$watch 'path' ~> @files = @$refs.source?files  # it is quite unfortunate that this cannot
-    , {+immediate}                                  # be done with a computed property
+    @$watch 'path' ~>                     # it is quite unfortunate that this cannot
+      @files = @$refs.source?files ? []   # be done with a computed property
+      @$refs.list.collapseAll!
+    , {+immediate}              
   methods:
     act: (ev) ->
       console.log ev
@@ -135,11 +152,10 @@ Vue.component 'project-context-menu', do
 
 
 Vue.component 'project-list-dropdown', do
+  props: ['items']
   template: '''
     <vue-context ref="l">
-      <li><a>shrinker [fs]</a></li>
-      <li><a>toxin [fs]</a></li>
-      <li><a>doc2 [p2p]</a></li>
+      <li v-for="item in items"><a @click="open(item)">{{item.name}}</a></li>
     </vue-context>
   '''
   components: {VueContext}
@@ -151,6 +167,8 @@ Vue.component 'project-list-dropdown', do
     position: ->
       box = @$el.parentElement.getBoundingClientRect!
       {clientX: box.left, clientY: box.bottom}
+    open: (item) ->
+      this.$emit 'open' item
 
     
 
