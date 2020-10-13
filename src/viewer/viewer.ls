@@ -193,13 +193,21 @@ class SyncTeX extends EventEmitter
       yield c
       c = c.parent
 
-  _block-location: (block) ->
-    loc = block
-    for sub in block.elements ? []
-      if sub.fileNumber < loc.fileNumber || \
-        (sub.fileNumber == loc.fileNumber && sub.line < loc.line)
-        loc = sub
+  _block-location: (block, p) ->
+    if p? && block.elements?length
+      loc = _.minBy(block.elements.filter (.type == 'k'), 
+                    (e) -> Math.abs(e.left - p.x))
+    loc ?= block
     {loc.file, loc.line, loc.page, loc.fileNumber}
+
+  _block-dump: (block, with-elements=true) ->  # for debugging
+    b = block
+    console.log "#{b.file.name}:#{b.line}  #{b.type}  #{Math.round(b.left)},#{Math.round(b.bottom)} #{Math.round(b.width)}×#{Math.round(b.height)} "
+    lloc = ""
+    for e in b.elements
+      loc = "#{e.file.name}:#{e.line}"
+      if loc == lloc then loc = " " * loc.length else lloc = loc
+      console.log "     #{loc}  #{e.type}  #{Math.round(e.left)},#{Math.round(e.bottom)} #{Math.round(e.width)}×#{Math.round(e.height)} " e
 
   focus: (block) ->
     @selected-block = block
@@ -218,7 +226,9 @@ class SyncTeX extends EventEmitter
       if (ht = @hit-test-single(@sync-data.pages[page-num], p))?
         @focus ht
         if ev.type === 'mousedown'
-          @emit 'synctex-goto' @_block-location(ht), ht
+          #console.log '-' * 60, p
+          #for [...@hit-test(@sync-data.pages[page-num], p)] => @_block-dump ..
+          @emit 'synctex-goto' @_block-location(ht, p), ht
       else
         @blur!
 

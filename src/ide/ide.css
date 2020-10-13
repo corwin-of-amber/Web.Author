@@ -72,11 +72,15 @@ div.gutter.gutter-horizontal {
     flex-grow: 1;
 }
 
-.project-header button[name=build],
-.project-header button[name=badge] {
+.project-header button.badge {
     background: none;
     border: none;
     cursor: pointer;
+}
+
+.project-header button.hammer {
+    font-size: 130%;
+    line-height: 1px;
 }
 
 .project-header button.hammer.ok {
@@ -123,6 +127,19 @@ button:focus, button:active {
 }
 
 /* Editor Pane */
+
+#ide-pane-editor .CodeMirror-cursor {  /* fancy cursor*/
+    min-width: 2px;
+    background: linear-gradient(90deg, #666, transparent);
+    border-left-color: #999;
+}
+
+#ide-pane-editor .CodeMirror-activeline {
+    outline: 1px solid #888;
+}
+#ide-pane-editor .CodeMirror-activeline-background {
+    background: #fff8;
+}
 
 #ide-pane-editor .CodeMirror-dialog {
     background: #fbfbfbef;

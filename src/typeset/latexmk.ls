@@ -28,7 +28,8 @@ class LatexmkBuild extends EventEmitter
     @latexmk = 'latexmk'
     @latexmk-flags = <[ -pdf -f ]>
     @pdflatex-flags = <[ -interaction=nonstopmode -synctex=1 ]>
-    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:", 'BIBINPUTS': "#{@src-dir}/:", \
+    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:",  \
+                'BIBINPUTS': "#{path.join(@base-dir, @src-dir)}/:", \
                 'max_print_line': '9999'}
 
     @on 'job:start' global-tasks~add

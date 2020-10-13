@@ -11,6 +11,7 @@ require! {
     'codemirror/addon/search/search'
     'codemirror/addon/selection/mark-selection'
     'codemirror/addon/edit/matchbrackets'
+    'codemirror/addon/selection/active-line'
     './edit-items.ls': {VisitedFiles, FileEdit, SyncPadEdit}
 }
 
@@ -24,6 +25,7 @@ class TeXEditor extends EventEmitter
       lineNumbers: true
       styleSelectedText: true
       matchBrackets: true
+      styleActiveLine: true
 
     Ctrl = if @@is-mac then "Cmd" else "Ctrl"
 
@@ -47,13 +49,13 @@ class TeXEditor extends EventEmitter
     @_pre-load!
     @filename = fs.realpathSync filename
     @visited-files.enter @cm, @filename, -> new FileEdit(it)
-    @emit 'open', {type: 'file', uri: filename}
+    .then ~> @emit 'open', {type: 'file', uri: filename}
 
   open-syncpad: (slot) ->
     @_pre-load!
     @filename = slot.uri
     @visited-files.enter @cm, @filename, -> new SyncPadEdit(slot)
-    @emit 'open', {type: 'syncpad', slot.uri, slot}
+    .then ~> @emit 'open', {type: 'syncpad', slot.uri, slot}
 
   _pre-load: !->
     if @filename? then @visited-files.leave @cm, @filename

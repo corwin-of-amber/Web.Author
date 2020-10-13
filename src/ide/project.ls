@@ -117,8 +117,8 @@ Vue.component 'project-header', do
       <!-- <p2p.source-status ref="status" channel="doc2"/> -->
       <div class="bar" @click.prevent.stop="$refs.list.toggle">
         <span>{{name}}</span>
-        <button name="build" class="hammer" :class="buildStatus" @click.stop="$emit('build')">⚒</button>
-        <!-- <button name="badge" class="p2p" :class="p2pStatus" @click.stop="toggle">❂</button> -->
+        <button name="build" class="badge hammer" :class="buildStatus" @click.stop="$emit('build')">⚒</button>
+        <!-- <button class="badge p2p" :class="p2pStatus" @click.stop="toggle">❂</button> -->
       </div>
       <project-list-dropdown ref="list" :items="projects || []" @open="$emit('open', $event)"/>
     </div>
