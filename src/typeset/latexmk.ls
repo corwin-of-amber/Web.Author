@@ -28,7 +28,8 @@ class LatexmkBuild extends EventEmitter
     @latexmk = 'latexmk'
     @latexmk-flags = <[ -pdf -f ]>
     @pdflatex-flags = <[ -interaction=nonstopmode -synctex=1 ]>
-    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:", 'max_print_line': '9999'}
+    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:", 'BIBINPUTS': "#{@src-dir}/:", \
+                'max_print_line': '9999'}
 
     @on 'job:start' global-tasks~add
 
@@ -37,14 +38,17 @@ class LatexmkBuild extends EventEmitter
 
   make: job non-reentrant ->>
     console.log "%cmake #{@base-dir} #{@main-tex-fn}", 'color: green'
+    @emit 'started'
     try
       rc = await \
         child-process-promise.spawn @latexmk, @_args!, \
           shell: true, cwd: @base-dir, env: @_env!, stdio: 'ignore' #, capture: <[ stderr ]>
       console.log 'build complete', rc
+      @emit 'finished', {outcome: 'ok'}
     catch
       if !e.code? then throw e
       console.warn 'build failed', e
+      @emit 'finished', {outcome: 'error', error: e}
     rc
   
   clean: ->

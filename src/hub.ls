@@ -1,21 +1,13 @@
-
-#nw.Window.open "", {id: "rich1", focus: false}, ->
-#  it.window.location = "/src/rich.html?data/sketch-manual/baseLanguage.html"
-
-#nw.Window.open "", {id: "rich2", focus: false}, ->
-#  it.window.location = "/src/rich.html?data/scratch/document.tex"
-
-process = @_process
+#process = @_process
 
 require! {
   jquery: $
   lodash: _
-  './ide/layout.ls': {IDELayout}
-  './ide/config.ls': {IDEConfig}
+  './ide/index.ls': {IDE}
   #'./net/p2p.ls':    {AuthorP2P}
 }
 
-#global.console = window.console
+global.console = window.console   # for debugging
 
 
 CLIENT_OPTS = void
@@ -23,34 +15,21 @@ CLIENT_OPTS = void
 
 
 $ ->
-  ide = new IDELayout
+  ide = new IDE
 
-  $('body').append ide.el
-
-  project = ide.create-project!
-  editor = ide.create-editor!
-  viewer = ide.create-viewer!
-
-  ide.make-resizable!
-
-  ide.config = new IDEConfig
-  #  ..restore-session ide
-
-  #if project.has-fs!
-  #  project.open '/tmp/toxin'
-
-  editor.cm.focus!
+  $('body').append ide.layout.el
+  ide.start!
 
   if 0
     p2p = new AuthorP2P(CLIENT_OPTS)
-      project.attach ..
+      ide.project.attach ..
       do ->> p2p.project = await p2p.open-project 'd1'
-        project.open ..
+        ide.project.open ..
         ..getPdf!on 'change' viewer~open
-        editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
+        ide.editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
       window.addEventListener 'beforeunload' ..~close
 
-  window <<< {ide, project, editor, viewer}
+  window <<< {ide, ide.project, ide.viewer}
 
   window.addEventListener 'beforeunload' ->
     Date::com$cognitect$transit$equals = \

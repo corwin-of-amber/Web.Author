@@ -47,11 +47,13 @@ class TeXEditor extends EventEmitter
     @_pre-load!
     @filename = fs.realpathSync filename
     @visited-files.enter @cm, @filename, -> new FileEdit(it)
+    @emit 'open', {type: 'file', uri: filename}
 
   open-syncpad: (slot) ->
     @_pre-load!
     @filename = slot.uri
     @visited-files.enter @cm, @filename, -> new SyncPadEdit(slot)
+    @emit 'open', {type: 'syncpad', slot.uri, slot}
 
   _pre-load: !->
     if @filename? then @visited-files.leave @cm, @filename

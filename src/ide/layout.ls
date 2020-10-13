@@ -19,7 +19,7 @@ class IDELayout
       @el.append ..
 
   make-resizable: ->
-    @split = Split $('.ide-pane'), do
+    @split = Split @el.find('.ide-pane'), do
       sizes: @_sizes!
       elementStyle: (dimension, size, gutterSize) ->
         'flex-basis': "calc(#{size}% - #{gutterSize}px)"

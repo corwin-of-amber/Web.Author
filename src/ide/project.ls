@@ -16,37 +16,56 @@ require! {
 
 class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   ->
+    @_recent = []
+
     @vue = new Vue do
-      data: path: null, clientState: void, projects: @@recent-projects!
+      data: path: null, clientState: void, projects: @_recent, build-status: void
       template: '''
         <div class="project-view">
-          <project-header ref="header" :projects="projects" @open="open"/>
+          <project-header ref="header" name="project" :build-status="buildStatus"
+            :projects="projects" @open="open" @build="build"/>
           <project-files ref="files" :path="path" @file:select="select"/>
         </div>
       '''
       methods:
         select: ~> @emit 'file:select', path: it
         open: ~> @open it
+        build: ~> @build!
     
     .$mount!
 
   has-fs: -> !!fs
 
   open: (project) ->
+    @unbuild!
     if project !instanceof TeXProject
-      if project.uri then project = project.uri
-      if typeof project == 'string'
-        project .= replace(/^~/, process.env['HOME'])
-        project = new TeXProject(project)
-      else
-        throw new Error("invalid project specifier '#{project}'");
+      project = TeXProject.from-uri (project.uri ? project)
     @current = project
       @vue.path = ..path
+      if ..uri then @add-recent that
       @emit 'open', project: ..
   
-  @recent-projects = -> x =
-    * {name: 'sqzComp', uri: '~/var/workspace/papers/2020/sqzComp/FOLDER_1_WRITEUP'}
-    * {name: 'suslik', uri: '~/var/workspace/papers/2020/suslik/cyclic/current'}
+  refresh: -> @vue.$refs.files.refresh!
+
+  build: ->>
+    if !@_builder?
+      @_builder = @current.builder()
+        ..on 'started' ~> @vue.build-status = 'in-progress'
+        ..on 'finished' ~> @vue.build-status = it.outcome
+    @_builder.make!
+
+  unbuild: ->
+    if @_builder? then @_builder = void
+
+  recent:~
+    -> @_recent
+    (v) -> @_recent = @vue.projects = v
+
+  add-recent: (uri, name) ->
+    if ! @lookup-recent uri
+      @recent.splice 0, 0, {name: name ? path.basename(uri), uri}
+
+  lookup-recent: (uri) -> @recent.find(-> it.uri == uri)
 
   @content-plugins = {folder: []}
 
@@ -62,7 +81,7 @@ class TeXProject
     @_find-pdf @path
 
   get-main-tex-file: ->
-    fn = glob-all.sync(global.Array.from(['*.tex', '**/*.tex']),
+    fn = glob-all.sync(global.Array.from(['*.tex', '**/*.tex'] ++ @@IGNORE),
                        {cwd: @path})
     fn.find ~>
       try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*[[{]/)
@@ -71,11 +90,8 @@ class TeXProject
   builder: ->
     new LatexmkBuild @get-main-tex-file!, @path
 
-  build: ->
-    @builder!make!
-
   _find-pdf: (root-dir) ->
-    fns = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf']),
+    fns = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf' ++ @@IGNORE]),
                         {cwd: root-dir})
     main-tex = @get-main-tex-file!
     pdf-matches = -> path.basename(main-tex).startsWith(path.basename(it).replace(/pdf$/, ''))
@@ -83,22 +99,32 @@ class TeXProject
     else fn = fns[0]
     fn && path.join(root-dir, fn)
 
+  @from-uri = (uri) ->
+    if typeof uri == 'string'
+      path = uri.replace(/^file:\/\//, '').replace(/^~/, process.env['HOME'])
+      new TeXProject(path) <<< {uri}
+    else
+      throw new Error("invalid project specifier '#{project}'");
+
+  @IGNORE = ['!_*/**', '!.*/**']  # for glob-all
+
 
 Vue.component 'project-header', do
-  props: ['projects']
-  data: -> status: void, name: 'proj'
+  props: ['name', 'build-status', 'projects']
+  data: -> p2p-status: void
   template: '''
     <div class="project-header">
       <!-- <p2p.source-status ref="status" channel="doc2"/> -->
       <div class="bar" @click.prevent.stop="$refs.list.toggle">
         <span>{{name}}</span>
-        <button name="badge" class="p2p" :class="status" @click.stop="toggle">❂</button>
+        <button name="build" class="hammer" :class="buildStatus" @click.stop="$emit('build')">⚒</button>
+        <!-- <button name="badge" class="p2p" :class="p2pStatus" @click.stop="toggle">❂</button> -->
       </div>
       <project-list-dropdown ref="list" :items="projects || []" @open="$emit('open', $event)"/>
     </div>
   '''
   mounted: ->
-    #@$refs.status.$watch 'status', (@status) ~>
+    #@$refs.status.$watch 'status', (@p2p-status) ~>
     #, {+immediate}
   methods:
     toggle: -> @$refs.status.toggle!
@@ -122,8 +148,8 @@ Vue.component 'project-files', do
       @$refs.list.collapseAll!
     , {+immediate}              
   methods:
+    refresh: -> @$refs.source?refresh!
     act: (ev) ->
-      console.log ev
       if ev.type == 'select' && ev.kind == 'file'
         @$emit 'file:select', @$refs.source.get-path-of(ev.path)
     onmenuaction: (ev) ->
@@ -178,11 +204,11 @@ Vue.component 'source-folder.directory', do
   data: -> files: []
   template: '<span/>'
   mounted: ->
-    @$watch 'path' ~>
-      if it
-        @files.splice 0, Infinity, ...all-files-sync(it, FOLDER_IGNORE)
-    , {+immediate}
+    @$watch 'path' @~refresh, {+immediate}
   methods:
+    refresh: ->
+      if @path
+        @files.splice 0, Infinity, ...all-files-sync(@path, FOLDER_IGNORE)
     get-path-of: (path-els) ->
       path.join @path, ...path-els
     create: (filename) ->

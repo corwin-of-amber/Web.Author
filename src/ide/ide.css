@@ -72,10 +72,21 @@ div.gutter.gutter-horizontal {
     flex-grow: 1;
 }
 
+.project-header button[name=build],
 .project-header button[name=badge] {
     background: none;
     border: none;
     cursor: pointer;
+}
+
+.project-header button.hammer.ok {
+    color: forestgreen;
+}
+.project-header button.hammer.error {
+    color: #a11;
+}
+.project-header button.hammer.in-progress {
+    color: #ffbc02;
 }
 
 .project-header button.p2p.disconnected {
@@ -83,7 +94,7 @@ div.gutter.gutter-horizontal {
 }
 .project-header button.p2p.connecting,
 .project-header button.p2p.disconnecting {
-    color: rgb(255, 188, 2);
+    color: #ffbc02;
 }
 .project-header button.p2p.connected {
     color: green;
