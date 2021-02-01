@@ -1,0 +1,48 @@
+/* Editor Pane */
+
+#ide-pane-editor .CodeMirror-lines {
+    padding-bottom: 75vh !important;
+}
+
+#ide-pane-editor .CodeMirror-cursor {  /* fancy cursor*/
+    min-width: 2px;
+    background: linear-gradient(90deg, #666, transparent);
+    border-left-color: #999;
+}
+
+#ide-pane-editor .CodeMirror-activeline {
+    outline: 1px solid #888;
+}
+#ide-pane-editor .CodeMirror-activeline-background {
+    background: #fff8;
+}
+
+#ide-pane-editor .CodeMirror-dialog {
+    background: #fbfbfbef;
+    padding: .5em 3em;
+    font-family: sans-serif;
+    font-size: 13px;
+    font-style: italic;
+}
+
+#ide-pane-editor .CodeMirror-search-field {
+    margin: 0 1em;
+    width: 20em !important;
+    max-width: 33%;
+    border: 1px solid #ccc;
+    padding: 3px;
+}
+
+#ide-pane-editor .cm-searching {
+    background: rgba(182, 182, 0, .2);
+}
+
+#ide-pane-editor .cm-searching.CodeMirror-selectedtext {
+    background: rgba(255, 240, 0, .8);
+}
+
+#ide-pane-editor div.CodeMirror span.CodeMirror-matchingbracket {
+    color: mediumpurple;
+    box-shadow: inset 0px 0px 1px 0px black;
+    padding-bottom: 2px;  /* this is typeface-dependent... */
+}

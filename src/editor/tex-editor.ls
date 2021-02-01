@@ -13,7 +13,10 @@ require! {
     'codemirror/addon/edit/matchbrackets'
     'codemirror/addon/selection/active-line'
     './edit-items.ls': {VisitedFiles, FileEdit, SyncPadEdit}
+    '../ide/problems.ls': { safe }
 }
+
+require './editor.css'
 
 
 
@@ -68,7 +71,7 @@ class TeXEditor extends EventEmitter
     if @@is-dat(@filename)
       @emit 'request-save'
 
-  jump-to: (filename, {line, ch}={}) ->>
+  jump-to: (filename, {line, ch}={}, focus=true) ->>
     try
       filename := fs.realpathSync filename
     catch
@@ -77,7 +80,12 @@ class TeXEditor extends EventEmitter
     if line?
       @cm.setCursor {line: line - 1, ch: ch ? 0}
       @cm.scrollIntoView null, 150
-    requestAnimationFrame ~> @cm.focus!
+    if focus then requestAnimationFrame ~> @cm.focus!
+
+  state:~
+    -> return {filename: @filename, cursor: @cm.getCursor!}
+    (v) ->
+      safe ~> v.filename && @jump-to v.filename, v.cursor, false
 
   @is-mac = navigator.appVersion is /Mac/
 

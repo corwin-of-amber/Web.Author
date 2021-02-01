@@ -1,10 +1,10 @@
 node_require = global.require ? ->
 fs = node_require 'fs'
-glob-all = node_require 'glob-all'
 require! {
   path
   events: {EventEmitter}
   lodash: _
+  'glob-all': glob-all
   'vue/dist/vue': Vue
   'vue-context': {VueContext}
   '../../packages/file-list/index.vue': {default: file-list}
@@ -81,7 +81,7 @@ class TeXProject
     @_find-pdf @path
 
   get-main-tex-file: ->
-    fn = glob-all.sync(global.Array.from(['*.tex', '**/*.tex'] ++ @@IGNORE),
+    fn = glob-all.sync(Array.from(['*.tex', '**/*.tex'] ++ @@IGNORE),
                        {cwd: @path})
     fn.find ~>
       try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*[[{]/)
@@ -91,7 +91,7 @@ class TeXProject
     new LatexmkBuild @get-main-tex-file!, @path
 
   _find-pdf: (root-dir) ->
-    fns = glob-all.sync(global.Array.from(['out/*.pdf', '*.pdf' ++ @@IGNORE]),
+    fns = glob-all.sync(Array.from(['out/*.pdf', '*.pdf' ++ @@IGNORE]),
                         {cwd: root-dir})
     main-tex = @get-main-tex-file!
     pdf-matches = -> path.basename(main-tex).startsWith(path.basename(it).replace(/pdf$/, ''))

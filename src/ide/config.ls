@@ -20,8 +20,8 @@ class IDEConfig
     @config.panes =
       sizes: ide.layout.split?get-sizes!
       project: {path: ide.project?current?path, recent: ide.project?recent}
-      editor: {filename: ide.editor?filename}
-      viewer: {uri: ide.viewer?pdf?uri}
+      editor: ide.editor?state
+      viewer: ide.viewer?state
     @save!
 
   restore-session: (ide) ->
@@ -33,10 +33,10 @@ class IDEConfig
       ide.project.recent = precent
     if (ppath = @config?panes?project?path)? && ide.project
       safe -> ide.project.open ppath
-    if (fpath = @config?panes?editor?filename)? && ide.editor
-      safe -> ide.editor.open fpath
-    if (pdf = @config?panes?viewer?uri)? && ide.viewer
-      safe -> ide.viewer.open pdf
+    if (econf = @config?panes?editor)? && ide.editor
+      ide.editor.state = econf
+    if (vconf = @config?panes?viewer)? && ide.viewer
+      ide.viewer.state = vconf
 
 
 

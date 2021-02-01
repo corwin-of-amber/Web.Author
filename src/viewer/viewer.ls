@@ -9,6 +9,7 @@ require! {
     '../infra/fs-watch.ls': {FileWatcher}
     '../infra/non-reentrant.ls': non-reentrant
     '../infra/ongoing.ls': {global-tasks}
+    '../ide/problems.ls': { safe }
 }
 
 require './viewer.css'
@@ -35,13 +36,12 @@ class ViewerCore extends EventEmitter
       ..on 'change' non-reentrant ~>>
         await global-tasks.wait! ; await @reload!
 
-  open: (uri) ->>
+  open: (uri, page ? @selected-page ? 1) ->>
     if uri instanceof Blob
       uri = URL.createObjectURL(uri)
     else if uri.startsWith('/') || uri.startsWith('.')
       uri = "file://#uri"
 
-    console.log 'open' uri
     await pdfjsLib.getDocument(uri).promise
       @pdf?.destroy!
       @pdf = ..
@@ -50,6 +50,7 @@ class ViewerCore extends EventEmitter
         @watcher.single uri
       else
         @watcher.clear!
+    @selected-page = Math.min(page, @pdf.num-pages)
     @refresh!
     @
 
@@ -240,8 +241,8 @@ class SyncTeX extends EventEmitter
 
   @read-file = (filename) -> new Promise (resolve, reject) ->
     if filename.endsWith('.gz')
-      # apply gunzip (use stream to save memory)
-      require! zlib; stream-buffers = node_require('stream-buffers')
+      # apply gunzip (use intermediate stream to save memory)
+      zlib = node_require('zlib'); stream-buffers = node_require('stream-buffers')
       fs.createReadStream(filename)  .on 'error' -> reject it
       .pipe(zlib.createGunzip())     .on 'error' -> reject it
       .pipe(new stream-buffers.WritableStreamBuffer)
@@ -302,19 +303,23 @@ class SyncTeX_MixIn
 
 class Viewer extends ViewerCore
 
-  open: (pdf, synctex) ->
-    super pdf .then ~>
+  open: (pdf, synctex, page=1) ->
+    super pdf, page .then ~>
       synctex = synctex ? @synctex-locate(pdf)
       if synctex? then @synctex-open synctex
       @ui-init! || @refresh!
 
   ui-init: ->
     if !@_ui-init
-      @goto-page 1
       @nav-bind-ui!
       @zoom-bind-ui!
       @_ui-init = true      
       
+  state:~
+    -> {uri: @pdf?uri, @selected-page}
+    (v) -> safe ~>>
+      @open v.uri, , v.selected-page
+
 
 Viewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::
 
