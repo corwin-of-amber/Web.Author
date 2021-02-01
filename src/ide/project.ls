@@ -6,11 +6,11 @@ require! {
   lodash: _
   'glob-all': glob-all
   'vue/dist/vue': Vue
-  'vue-context': {VueContext}
-  '../../packages/file-list/index.vue': {default: file-list}
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
   '../typeset/latexmk.ls': {LatexmkBuild}
 }
+
+project-view-component = require('./components/project-view.vue').default
 
 
 
@@ -18,20 +18,11 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   ->
     @_recent = []
 
-    @vue = new Vue do
-      data: path: null, clientState: void, projects: @_recent, build-status: void
-      template: '''
-        <div class="project-view">
-          <project-header ref="header" name="project" :build-status="buildStatus"
-            :projects="projects" @open="open" @build="build"/>
-          <project-files ref="files" :path="path" @file:select="select"/>
-        </div>
-      '''
+    @vue = new Vue project-view-component <<<
       methods:
         select: ~> @emit 'file:select', path: it
         open: ~> @open it
         build: ~> @build!
-    
     .$mount!
 
   has-fs: -> !!fs
@@ -109,100 +100,11 @@ class TeXProject
   @IGNORE = ['!_*/**', '!.*/**']  # for glob-all
 
 
-Vue.component 'project-header', do
-  props: ['name', 'build-status', 'projects']
-  data: -> p2p-status: void
-  template: '''
-    <div class="project-header">
-      <!-- <p2p.source-status ref="status" channel="doc2"/> -->
-      <div class="bar" @click.prevent.stop="$refs.list.toggle">
-        <span>{{name}}</span>
-        <button name="build" class="badge hammer" :class="buildStatus" @click.stop="$emit('build')">⚒</button>
-        <!-- <button class="badge p2p" :class="p2pStatus" @click.stop="toggle">❂</button> -->
-      </div>
-      <project-list-dropdown ref="list" :items="projects || []" @open="$emit('open', $event)"/>
-    </div>
-  '''
-  mounted: ->
-    #@$refs.status.$watch 'status', (@p2p-status) ~>
-    #, {+immediate}
-  methods:
-    toggle: -> @$refs.status.toggle!
-
-
-Vue.component 'project-files', do
-  props: ['path'],
-  data: -> files: []
-  template: '''
-    <div class="project-files" @contextmenu.prevent="$refs.contextMenu.open">
-      <file-list ref="list" :files="files" @action="act"/>
-      <component :is="sourceType" ref="source" :path="path"></component>
-      <project-context-menu ref="contextMenu" @action="onmenuaction"/>
-    </div>
-  '''
-  computed:
-    sourceType: -> ProjectView.detect-folder-source(@path)
-  mounted: ->
-    @$watch 'path' ~>                     # it is quite unfortunate that this cannot
-      @files = @$refs.source?files ? []   # be done with a computed property
-      @$refs.list.collapseAll!
-    , {+immediate}              
-  methods:
-    refresh: -> @$refs.source?refresh!
-    act: (ev) ->
-      if ev.type == 'select' && ev.kind == 'file'
-        @$emit 'file:select', @$refs.source.get-path-of(ev.path)
-    onmenuaction: (ev) ->
-      switch ev.name
-      | 'new-file' => @create!
-      | 'rename'   => @rename!
-    create: ->
-      @$refs.source.create 'new-file1.tex'
-    rename: ->
-      if (sel = @$refs.list.selection[0])?
-        @$refs.list.rename-start sel
-  components: {file-list}
-
-
-Vue.component 'project-context-menu', do
-  template: '''
-    <vue-context ref="m">
-      <li><a name="new-file" @click="action">New File</a></li>
-      <li><a name="rename" @click="action">Rename</a></li>
-      <li><a name="delete" @click="action">Delete</a></li>
-    </vue-context>
-  '''
-  components: {VueContext}
-  methods:
-    open: -> @$refs.m.open it
-    action: -> @$emit 'action' {it.currentTarget.name}
-
-
-Vue.component 'project-list-dropdown', do
-  props: ['items']
-  template: '''
-    <vue-context ref="l">
-      <li v-for="item in items"><a @click="open(item)">{{item.name}}</a></li>
-    </vue-context>
-  '''
-  components: {VueContext}
-  methods:
-    toggle: ->
-      if !@$refs.l.show
-        @$refs.l.open @position!
-      else @$refs.l.close!
-    position: ->
-      box = @$el.parentElement.getBoundingClientRect!
-      {clientX: box.left, clientY: box.bottom}
-    open: (item) ->
-      this.$emit 'open' item
-
-    
 
 Vue.component 'source-folder.directory', do
   props: ['path']
   data: -> files: []
-  template: '<span/>'
+  render: -> document.createElement('span')   # dummy element
   mounted: ->
     @$watch 'path' @~refresh, {+immediate}
   methods:

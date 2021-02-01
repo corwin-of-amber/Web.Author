@@ -56,7 +56,7 @@ export default {
             ev.stopPropagation();
         },
         undrag(ev) {
-            $(event.currentTarget).removeClass('dragged');
+            $(ev.currentTarget).removeClass('dragged');
         },
         drop(ev) {
             $(ev.currentTarget).removeClass('draghov');
@@ -153,7 +153,7 @@ export default {
             }
         },
 
-        lookup(rel_path) {
+        lookup(path) {
             path = promotePath(path);
 
             var cwd = {name: '/', files: this.files};
@@ -206,12 +206,12 @@ export default {
             return [...path, name];
         },
 
-        renameStart(rel_path) {
-            var c = this.lookupComponent(rel_path);
+        renameStart(path) {
+            var c = this.lookupComponent(path);
             if (c && c !== this) c.renameStart();
         },
-        rename(rel_path, from, to) {
-            var e = this.lookup([...rel_path, from]);
+        rename(path, from, to) {
+            var e = this.lookup([...path, from]);
             e.name = to;
         },
 
