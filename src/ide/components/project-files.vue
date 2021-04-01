@@ -26,8 +26,17 @@ export default {
     methods: {
         refresh() { this.$refs.source?.refresh(); },
         act(ev) {
-            if (ev.type == 'select' && ev.kind == 'file')
-                this.$emit('file:select', this.$refs.source.getPathOf(ev.path));
+            console.log(ev);
+            switch (ev.type) {
+            case 'select':
+                if (ev.kind == 'file')
+                    this.$emit('file:select', this.$refs.source.getPathOf(ev.path));
+                break;
+            case 'menu':
+                this.$refs.contextMenu.open(ev.$event);
+                ev.$event.preventDefault();
+                break;
+            }
         },
         onmenuaction(ev) {
             switch (ev.name) {

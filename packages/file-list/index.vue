@@ -4,7 +4,7 @@
             @contextmenu.stop="menu">
         <li v-for="f in files" :data-name="f.name" :key="f.name"
                 :class="{folder: f.files, file: !f.files, selected: isSelected([f.name])}"
-                @click.stop="onclick" @mouseup.stop="onrightclick"
+                @click.stop="onclick" @mouseup.stop="{}"
                 draggable="true" @dragstart="drag" @dragend="undrag" @drop="drop" 
                 @dragover="dragover" @dragenter="dragover" @dragleave="dragout"
                 @contextmenu.stop="menu">
@@ -42,10 +42,6 @@ export default {
             this.action({type: 'select', path, kind});
             if ($('.v-context').is(':visible'))
                 $(document.body).click();
-        },
-        onrightclick(ev) {
-            if (ev.which === 3 || ev.button === 2)   /* Right click... :\ */
-                this.onclick(ev);
         },
         drag(ev) {
             var target = $(ev.currentTarget),
@@ -103,6 +99,7 @@ export default {
         },
 
         menu(ev) {
+            this.onclick(ev);
             var target = $(ev.currentTarget),
                 item_name = target.attr('data-name'), path, kind;
             if (item_name) {

@@ -7,12 +7,12 @@ require! {
 
 
 class FileWatcher extends EventEmitter
-  ->
+  (debounce-ms=500) ->
     @watches = []
     if (typeof window !== 'undefined')
       window.addEventListener('unload', @~clear)
     
-    @debounce-handler = _.debounce @~handler, 500
+    @debounce-handler = _.debounce @~handler, debounce-ms
 
   add: (filename) !->
     filename .= replace(/^file:\/\//, '')

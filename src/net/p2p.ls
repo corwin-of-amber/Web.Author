@@ -4,7 +4,7 @@ require! {
   path
   events: {EventEmitter}
   lodash: _
-  'vue/dist/vue': Vue
+  'vue': Vue
   'automerge-slots': {SlotBase}
   'dat-p2p-crowd/src/net/client': {DocumentClient}
   'dat-p2p-crowd/src/ui/syncpad': {SyncPad}

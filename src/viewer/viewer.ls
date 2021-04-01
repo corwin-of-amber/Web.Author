@@ -15,7 +15,7 @@ require! {
 require './viewer.css'
 
 # yeah...
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/node_modules/pdfjs-dist/build/pdf.worker.js'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.js'
 
 
 
@@ -303,7 +303,7 @@ class SyncTeX_MixIn
 
 class Viewer extends ViewerCore
 
-  open: (pdf, synctex, page=1) ->
+  open: (pdf, synctex, page) ->
     super pdf, page .then ~>
       synctex = synctex ? @synctex-locate(pdf)
       if synctex? then @synctex-open synctex

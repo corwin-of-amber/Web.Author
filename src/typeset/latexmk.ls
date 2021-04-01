@@ -34,8 +34,8 @@ class LatexmkBuild extends EventEmitter
 
     @on 'job:start' global-tasks~add
 
-    @_watch = new FileWatcher
-      ..on 'change' @~remake
+    @_watch = new FileWatcher(2000)
+      ..on 'change' @~make-watch
 
   make: job non-reentrant ->>
     console.log "%cmake #{@base-dir} #{@main-tex-fn}", 'color: green'
@@ -59,13 +59,16 @@ class LatexmkBuild extends EventEmitter
   _args: -> @latexmk-flags ++ @pdflatex-flags ++ ["-outdir='#{@out-dir}'", @main-tex-fn]
   _env:  -> ^^global.process.env <<< @envvars
 
-  remake: ->> await @make! ; @watch!
+  remake: ->> @clean! ; await @make!
 
   watch: ->>
     fns = @get-input-filenames!
     if !fns?
       await @make! ; fns = @get-input-filenames! ? []
+    console.log(fns, ``[...fns]``)
     @_watch.multiple (``[...fns]``).map(~> path.join(@base-dir, it))
+
+  make-watch: ->> await @make! ; @watch!
 
   /**
    * Reads the names of the input files from the .fls file produced by latexmk

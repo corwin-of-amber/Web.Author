@@ -5,7 +5,7 @@ require! {
   events: {EventEmitter}
   lodash: _
   'glob-all': glob-all
-  'vue/dist/vue': Vue
+  'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
   '../typeset/latexmk.ls': {LatexmkBuild}
 }
@@ -43,7 +43,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
       @_builder = @current.builder()
         ..on 'started' ~> @vue.build-status = 'in-progress'
         ..on 'finished' ~> @vue.build-status = it.outcome
-    @_builder.make!
+    @_builder.make-watch!
 
   unbuild: ->
     if @_builder? then @_builder = void
