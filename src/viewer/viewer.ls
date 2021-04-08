@@ -262,8 +262,7 @@ class SyncTeX_MixIn
     @synctex = await SyncTeX.from-file filename
       @pages[@selected-page]?then @~_synctex-page
       ..on 'synctex-goto' ~> @emit 'synctex-goto' ...&
-      console.log 'watch' filename
-      @_synctex-watcher.single filename
+      #@_synctex-watcher.single filename
 
   synctex-init: ->
     if !@_synctex-init
@@ -290,7 +289,6 @@ class SyncTeX_MixIn
     for suffix in ['.synctex.gz', '.synctex']
       try
         fn = pdf-filename.replace(/(\.pdf|)$/, suffix)
-        console.log fn
         if fs.statSync(fn).isFile! then return fn
       catch
 

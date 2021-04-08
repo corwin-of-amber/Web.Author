@@ -34,7 +34,7 @@ class LatexmkBuild extends EventEmitter
 
     @on 'job:start' global-tasks~add
 
-    @_watch = new FileWatcher(2000)
+    @_watch = new FileWatcher
       ..on 'change' @~make-watch
 
   make: job non-reentrant ->>
@@ -65,7 +65,6 @@ class LatexmkBuild extends EventEmitter
     fns = @get-input-filenames!
     if !fns?
       await @make! ; fns = @get-input-filenames! ? []
-    console.log(fns, ``[...fns]``)
     @_watch.multiple (``[...fns]``).map(~> path.join(@base-dir, it))
 
   make-watch: ->> await @make! ; @watch!

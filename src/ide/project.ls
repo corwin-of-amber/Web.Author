@@ -7,6 +7,7 @@ require! {
   'glob-all': glob-all
   'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
+  '../infra/fs-watch.ls': {FileWatcher}
   '../typeset/latexmk.ls': {LatexmkBuild}
 }
 
@@ -67,6 +68,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
 class TeXProject
   (@path) ->
+    FileWatcher.dir.single @path
 
   get-main-pdf-path: ->
     @_find-pdf @path
