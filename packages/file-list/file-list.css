@@ -1,4 +1,9 @@
-/* File list styles */
+/*
+ * File list styles
+ */
+
+@charset "utf-8";
+ /* wish that worked */
 
 ul.file-list {
     list-style: none;
@@ -74,11 +79,11 @@ span.folder-knob::after {
 }
 
 span.folder-knob:not(.checked)::after {   
-    content: "▾"
+    content: "\25BE"; /* "▾" */
 }
 
 span.folder-knob.checked::after {   
-    content: "▹";
+    content: "\25B9"; /* "▹" */
     color: #333;
 }
 

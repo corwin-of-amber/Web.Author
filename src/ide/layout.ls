@@ -36,8 +36,7 @@ class IDELayout
 
   create-project: ->
     @project = new ProjectView
-      ..on 'file:select' ~> if @editor
-        @editor.jump-to it.path
+      ..on 'file:select' ~> @file-select it
       @create-pane('ide-pane-project', 15).append ..vue.$el
 
   create-editor: ->
@@ -47,6 +46,12 @@ class IDELayout
     @viewer = new Viewer(, @create-pane('ide-pane-viewer'))
       ..on 'synctex-goto' ~> if @editor
         @editor.jump-to it.file.path, line: it.line
+
+  file-select: (item) ->
+    if item.path is /\.pdf$/
+      @viewer?open item.path
+    else
+      @editor?open item.path
 
 
 

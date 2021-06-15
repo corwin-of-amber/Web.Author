@@ -32,20 +32,27 @@ export default {
                 if (ev.kind == 'file')
                     this.$emit('file:select', this.$refs.source.getPathOf(ev.path));
                 break;
+            case 'rename':
+                this.$refs.source.move([...ev.path, ev.from].join('/'),
+                                       [...ev.path, ev.to].join('/'));
+                break;
             case 'menu':
-                this.$refs.contextMenu.open(ev.$event);
+                this.$refs.contextMenu.open(ev.$event, ev);
                 ev.$event.preventDefault();
                 break;
             }
         },
         onmenuaction(ev) {
             switch (ev.name) {
-            case 'new-file': this.create(); break;
-            case 'rename':   this.rename(); break;
+            case 'new-file': this.create(ev); break;
+            case 'rename':   this.rename(ev); break;
+            case 'refresh':  this.$emit('action', {type: 'refresh'}); break;
             }
         },
-        create() {
-            this.$refs.source.create('new-file1.tex');
+        create(ev) {
+            console.log(ev);
+            var fv = this.$refs.list, source = this.$refs.source;
+            source.create(fv.freshName(ev.for?.path || [], 'new-file#.tex'));
         },
         rename() {
             var sel = this.$refs.list.selection[0];

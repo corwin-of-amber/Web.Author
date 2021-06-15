@@ -1,6 +1,11 @@
 <template>
     <vue-context ref="l">
-        <li v-for="item in items" :key="item.name"><a @click="open(item)">{{item.name}}</a></li>
+        <li v-for="item in items" :key="item.name">
+            <a @click="action('open', {item})">{{item.name}}</a>
+        </li>
+        <hr/>
+        <li><a @click="action('refresh')">Refresh</a></li>
+        <li><a @click="action('open...')">Open...</a></li>
     </vue-context>  
 </template>
 
@@ -19,8 +24,8 @@ export default {
             var box = this.$el.parentElement.getBoundingClientRect();
             return {clientX: box.left, clientY: box.bottom};
         },
-        open(item) {
-            this.$emit('open', item);
+        action(type, attr) {
+            this.$emit('action', {type, ...attr});
         }
     },
     components: {VueContext}

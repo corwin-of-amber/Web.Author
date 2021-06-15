@@ -36,7 +36,7 @@ class ViewerCore extends EventEmitter
       ..on 'change' non-reentrant ~>>
         await global-tasks.wait! ; await @reload!
 
-  open: (uri, page ? @selected-page ? 1) ->>
+  open: (uri, page ? 1) ->>
     if uri instanceof Blob
       uri = URL.createObjectURL(uri)
     else if uri.startsWith('/') || uri.startsWith('.')
@@ -55,7 +55,7 @@ class ViewerCore extends EventEmitter
     @
 
   reload: ->
-    if @pdf?uri then @open that
+    if @pdf?uri then @open that, @selected-page
 
   render-page: (page-num) ->
     canvas = $('<canvas>')
@@ -301,9 +301,9 @@ class SyncTeX_MixIn
 
 class Viewer extends ViewerCore
 
-  open: (pdf, synctex, page) ->
+  open: (pdf, page) ->
     super pdf, page .then ~>
-      synctex = synctex ? @synctex-locate(pdf)
+      synctex = @synctex-locate(pdf)
       if synctex? then @synctex-open synctex
       @ui-init! || @refresh!
 
@@ -316,7 +316,7 @@ class Viewer extends ViewerCore
   state:~
     -> {uri: @pdf?uri, @selected-page}
     (v) -> safe ~>>
-      @open v.uri, , v.selected-page
+      @open v.uri, v.selected-page
 
 
 Viewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::

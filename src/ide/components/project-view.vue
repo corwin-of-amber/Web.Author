@@ -1,8 +1,9 @@
 <template>
     <div class="project-view">
         <project-header ref="header" name="project" :build-status="buildStatus"
-        :projects="projects" @open="open" @build="build"/>
-        <project-files ref="files" :path="path" @file:select="select"/>
+            :projects="projects" @action="action" @build="build"/>
+        <project-files ref="files" :path="path"
+            @action="action" @file:select="select"/>
     </div>  
 </template>
 

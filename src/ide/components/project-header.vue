@@ -6,7 +6,7 @@
             <button name="build" class="badge hammer" :class="buildStatus" @click.stop="$emit('build')">⚒</button>
             <!-- <button class="badge p2p" :class="p2pStatus" @click.stop="toggle">❂</button> -->
         </div>
-        <project-list-dropdown ref="list" :items="projects || []" @open="$emit('open', $event)"/>
+        <project-list-dropdown ref="list" :items="projects || []" @action="$emit('action', $event)"/>
     </div>  
 </template>
 

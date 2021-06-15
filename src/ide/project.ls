@@ -8,6 +8,7 @@ require! {
   'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
   '../infra/fs-watch.ls': {FileWatcher}
+  '../infra/file-browse.ls': {FileDialog}
   '../typeset/latexmk.ls': {LatexmkBuild}
 }
 
@@ -22,21 +23,35 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     @vue = new Vue project-view-component <<<
       methods:
         select: ~> @emit 'file:select', path: it
-        open: ~> @open it
+        action: ~> @action it
         build: ~> @build!
     .$mount!
+
+    @file-dialog = new FileDialog(/*select-directory*/true)
+
+  action: ({type, item}) ->
+    switch type
+    | 'open' => @open item
+    | 'open...' => @open-dialog!
+    | 'refresh' => @refresh!
 
   has-fs: -> !!fs
 
   open: (project) ->
     @unbuild!
+    last-file = project.last-file
     if project !instanceof TeXProject
       project = TeXProject.from-uri (project.uri ? project)
     @current = project
       @vue.path = ..path
       if ..uri then @add-recent that
       @emit 'open', project: ..
+      if last-file? then @emit 'file:select', path: last-file.uri
   
+  open-dialog: ->>
+    dir = await @file-dialog.open!
+    @open dir
+
   refresh: -> @vue.$refs.files.refresh!
 
   build: ->>
@@ -114,9 +129,17 @@ Vue.component 'source-folder.directory', do
       if @path
         @files.splice 0, Infinity, ...all-files-sync(@path, FOLDER_IGNORE)
     get-path-of: (path-els) ->
+      if typeof path-els == 'string' then path-els = [path-els]
       path.join @path, ...path-els
     create: (filename) ->
-      @files.push name: filename
+      p = @get-path-of(filename)
+      fs.writeFileSync p, ''
+      list-create-file @files, filename
+    move: (from-fn, to-fn) ->
+      fs.renameSync @get-path-of(from-fn), @get-path-of(to-fn)
+      @files.find (.name == to-fn)
+        console.log ..
+
 
 const FOLDER_IGNORE = /^\.git$/
 
@@ -124,12 +147,29 @@ ProjectView.content-plugins.folder.push ->
   if !it || _.isString(it) then 'source-folder.directory'
 
 
-all-files-sync = (dir, ignore=/^$/) ->
+all-files-sync = (dir, ignore=/^$/, relpath=[]) ->
   fs.readdirSync(dir).filter(-> !it.match(ignore)).map (file) ->
-    {name: file, path: path.join(dir, file)}
+    {name: file, path: path.join(dir, file), relpath: [...relpath, file]}
       if fs.statSync(..path).isDirectory!
-        ..files = all-files-sync(..path)
+        ..files = all-files-sync(..path, ignore, ..relpath)
   
+list-create-file = (files, path, kind="file") ->
+  if typeof path == 'string' then path = path.split('/')
+
+  cwd = {name: '/', files}
+  for pel in path
+    if !cwd.files? then cwd.files = []
+    e = cwd.files.find (e) -> e.name == pel
+    if !e?
+      e = {name: pel, files: undefined, tags: undefined}
+      cwd.files.push e
+    cwd = e
+
+  if kind == 'folder' && !cwd.files
+    cwd.files = []
+
+  return cwd;
+
 
 
 export ProjectView, TeXProject
