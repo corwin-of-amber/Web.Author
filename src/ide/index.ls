@@ -11,7 +11,7 @@ class IDE
   start: ->
     @project = @layout.create-project!
     @editor = @layout.create-editor!
-    @viewer = @layout.create-viewer!
+    @viewer = @layout.create-viewer-html!  # @todo
     @layout.make-resizable!
 
     @editor.cm.focus!
@@ -24,6 +24,8 @@ class IDE
       recent := @project.lookup-recent it.project.uri
     @editor.on 'open' ~>
       recent?last-file = {it.type, it.uri}
+    @viewer.on 'synctex-goto' ~> if @editor
+      @editor.jump-to it.file.path, line: it.line
 
   store: -> @config.store @
   restore: -> @config.restore-session @

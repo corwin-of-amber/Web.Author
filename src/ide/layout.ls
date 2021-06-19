@@ -1,8 +1,11 @@
-$ = require 'jquery'
-Split = require 'split.js'
-{TeXEditor} = require '../editor/tex-editor.ls'
-{Viewer} = require '../viewer/viewer.ls'
-{ProjectView} = require './project.ls'
+require! {
+  jquery: $
+  'split.js': Split
+  '../editor/tex-editor.ls': { TeXEditor }
+  '../viewer/viewer.ls': { Viewer }
+  '../viewer/html-viewer': { HTMLViewer }
+  './project.ls': { ProjectView }
+}
 
 require './ide.css'
 
@@ -42,10 +45,11 @@ class IDELayout
   create-editor: ->
     @editor = new TeXEditor(@create-pane('ide-pane-editor'))
   
-  create-viewer: ->
+  create-viewer-html: ->
+    @viewer = new HTMLViewer(, @create-pane('ide-pane-viewer'))
+
+  create-viewer-pdf: ->
     @viewer = new Viewer(, @create-pane('ide-pane-viewer'))
-      ..on 'synctex-goto' ~> if @editor
-        @editor.jump-to it.file.path, line: it.line
 
   file-select: (item) ->
     if item.path is /\.pdf$/

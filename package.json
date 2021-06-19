@@ -21,6 +21,7 @@
     "glob-all": "^3.1.0",
     "jquery": "^3.4.1",
     "line-stream": "^1.0.0",
+    "lit": "^2.0.0-rc.2",
     "lodash": "^4.17.15",
     "node-fetch": "^2.6.1",
     "pdfjs-dist": "^2.1.266",
@@ -34,6 +35,7 @@
     "xz": "^2.0.2"
   },
   "devDependencies": {
+    "@types/jquery": "^3.5.5",
     "browserify-livescript": "^0.2.4"
   },
   "browserify": {

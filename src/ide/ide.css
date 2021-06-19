@@ -2,6 +2,16 @@ html, body {
     overscroll-behavior: none;
 }
 
+body {
+    margin: 0;
+    padding: 5px;
+    height: 100vh;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 /* IDE Layout */
 
 div.ide-layout {
