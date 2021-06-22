@@ -43,7 +43,10 @@ $ ->
       window.addEventListener 'beforeunload' ..~close
 
   if 1
-    db = new MySQLProject(JSON.parse fs.readFileSync('data/floc2022/connect-info.json', 'utf-8'))
+    db = new MySQLProject(JSON.parse(fs.readFileSync('data/floc2022/connect-info.json', 'utf-8')),
+          [{table: 'wp_xsm8ru_posts', nameField: 'post_name', \
+            titleField: 'post_title', contentField: 'post_content', \
+            whereCond: 'post_type = "page"'}])
     window <<< {db}
 
   window <<< {ide, ide.project, ide.viewer}
