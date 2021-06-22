@@ -23,6 +23,7 @@
     "line-stream": "^1.0.0",
     "lit": "^2.0.0-rc.2",
     "lodash": "^4.17.15",
+    "mysql": "^2.18.1",
     "node-fetch": "^2.6.1",
     "pdfjs-dist": "^2.1.266",
     "prelude-ls": "^1.1.2",
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@types/jquery": "^3.5.5",
+    "@types/mysql": "^2.15.18",
     "browserify-livescript": "^0.2.4"
   },
   "browserify": {

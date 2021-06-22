@@ -27,8 +27,7 @@ $ ->
 
   fs = require('fs')
   fs.readFileSync('data/floc2022/template-page.html', 'utf-8')
-    siteContent = wp-convert-shortcodes fs.readFileSync('data/floc2022/about.wp', 'utf-8')
-    #"""<efcb-section-heading text="About FLoC" title_icon=" fa-info-circle" subtitle=" " text_font_color=" " id="ui-id-4-148728293010585"></efcb-section-heading>"""
+    siteContent = wp-convert-shortcodes fs.readFileSync('data/floc2022/calendar.wp', 'utf-8')
     ide.viewer.render new HTMLDocument(..replace('{{site__content}}', """
       <script src="/build/wp/preamble.js"></script>      
       #{siteContent}"""))
@@ -43,8 +42,8 @@ $ ->
         ide.editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
       window.addEventListener 'beforeunload' ..~close
 
-  if 0
-    db = new MySQLProject({host: 'localhost', user: 'floc2022org', password: 'K9cJE2sw', database: 'floc2022_org'})
+  if 1
+    db = new MySQLProject(JSON.parse fs.readFileSync('data/floc2022/connect-info.json', 'utf-8'))
     window <<< {db}
 
   window <<< {ide, ide.project, ide.viewer}
