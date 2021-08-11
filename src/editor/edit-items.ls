@@ -52,7 +52,8 @@ class FileEdit extends EditItem
 
   load: (cm) ->>
     txt = await @_read!
-    @doc = new CodeMirror.Doc(txt, cm.getOption('mode'), , \
+    content-type = detect-content-type(@filename) || cm.getOption('mode')
+    @doc = new CodeMirror.Doc(txt, content-type, , \
                               detect-line-ends(txt))
     @rev.generation = @doc.changeGeneration!
     @rev.timestamp = @_timestamp!
@@ -92,6 +93,11 @@ detect-line-ends = (txt) ->
   eols = _.groupBy(txt.match(/\r\n?|\n/g), -> it)
   _.maxBy(Object.keys(eols), -> eols[it].length) ? '\n'
 
+
+detect-content-type = (filename) ->
+  if filename.match(/[.](html|wp)$/) then 'text/html'
+  else if filename.match(/[.](tex|sty)$/) then 'stex'
+  else undefined
 
 
 export VisitedFiles, EditItem, FileEdit

@@ -6,6 +6,7 @@ require! {
     lodash: _
     codemirror: CodeMirror
     'codemirror/mode/stex/stex'
+    'codemirror/mode/htmlmixed/htmlmixed'
     'codemirror/addon/dialog/dialog'
     'codemirror/addon/search/searchcursor'
     'codemirror/addon/search/search'

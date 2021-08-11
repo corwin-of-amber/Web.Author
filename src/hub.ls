@@ -4,6 +4,8 @@ require! {
   jquery: $
   lodash: _
   './viewer/html-viewer': { HTMLDocument }
+  './viewer/wordpress/render.ls': { WordPressTheme }
+  './viewer/wordpress/project.ls': { WordPressProject }
   './ide/index.ls': { IDE }
   './net/mysql': { MySQLProject }
   #'./net/p2p.ls':    {AuthorP2P}
@@ -22,17 +24,6 @@ $ ->
   $('body').append ide.layout.el
   ide.start!
 
-  wp-convert-shortcodes = ->
-    it.replace(/\[/g, '<').replace(/\]/g, '>')  # @todo
-
-  fs = require('fs')
-  fs.readFileSync('data/floc2022/template-page.html', 'utf-8')
-    siteContent = wp-convert-shortcodes fs.readFileSync('data/floc2022/calendar.wp', 'utf-8')
-    ide.viewer.render new HTMLDocument(..replace('{{site__content}}', """
-      <script src="/build/wp/preamble.js"></script>      
-      #{siteContent}"""))
-
-
   if 0
     p2p = new AuthorP2P(CLIENT_OPTS)
       ide.project.attach ..
@@ -43,13 +34,15 @@ $ ->
       window.addEventListener 'beforeunload' ..~close
 
   if 1
-    db = new MySQLProject(JSON.parse(fs.readFileSync('data/floc2022/connect-info.json', 'utf-8')),
-          [{table: 'wp_xsm8ru_posts', nameField: 'post_name', \
-            titleField: 'post_title', contentField: 'post_content', \
-            whereCond: 'post_type = "page"'}])
-    window <<< {db}
+    fs = require('fs')
+    wp = new WordPressProject('/Users/corwin/var/tmp/floc2022-author', {wp_posts: 'wp_xsm8ru_posts'},
+                              JSON.parse(fs.readFileSync('data/floc2022/connect-info.json', 'utf-8')))
 
-  window <<< {ide, ide.project, ide.viewer}
+      ..theme = new WordPressTheme('data/floc2022/template-page.html')
+
+    ide.viewer.render wp.theme.render('/Users/corwin/var/tmp/floc2022-author/workshops.wp')
+
+  window <<< {ide, ide.project, ide.viewer, wp}
 
   window.addEventListener 'beforeunload' ->
     Date::com$cognitect$transit$equals = \

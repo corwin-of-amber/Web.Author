@@ -1,3 +1,6 @@
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
 import type mysql from 'mysql';
 const mysqlm = (0||require)('mysql') as typeof mysql;
 
@@ -5,10 +8,12 @@ const mysqlm = (0||require)('mysql') as typeof mysql;
 class MySQLProject {
     db: mysql.Connection
     schema: SchemaRef
+    localWorkDir: string
 
-    constructor(mysqlConfig: mysql.ConnectionConfig, schema: SchemaRef) {
+    constructor(mysqlConfig: mysql.ConnectionConfig, schema: SchemaRef, localWorkDir?: string) {
         this.db = mysqlm.createConnection(mysqlConfig);
         this.schema = schema;
+        this.localWorkDir = localWorkDir
     }
 
     async connect() {
@@ -56,6 +61,22 @@ class MySQLProject {
             `UPDATE ${t.table} SET ${t.contentField} = ? WHERE ${t.whereCond} AND ${t.nameField} = ?`,
             [content, name]);
     }
+
+    async pull(name: string) {
+        var content = await this.read(name);
+        fs.writeFileSync(this._localFilename(name), content);
+    }
+
+    push(name: string) {
+        var content = fs.readFileSync(this._localFilename(name), 'utf-8');
+        this.write(name, content);
+    }
+
+    _localFilename(name: string) {
+        assert(this.localWorkDir);
+        var type = this.schema[0].type; /** @todo */
+        return path.join(this.localWorkDir, type ? `${name}.${type}` : name);
+    }
 }
 
 import SchemaRef = MySQLProject.SchemaRef;
@@ -69,6 +90,7 @@ namespace MySQLProject {
         titleField: string
         contentField: string
         whereCond?: string
+        type?: string
     };
 
     export type SchemaRef = TableRef[];
