@@ -69,7 +69,7 @@ class MySQLProject {
 
     push(name: string) {
         var content = fs.readFileSync(this._localFilename(name), 'utf-8');
-        this.write(name, content);
+        return this.write(name, content);
     }
 
     _localFilename(name: string) {

@@ -37,10 +37,10 @@ $ ->
     fs = require('fs')
     wp = new WordPressProject('/Users/corwin/var/tmp/floc2022-author', {wp_posts: 'wp_xsm8ru_posts'},
                               JSON.parse(fs.readFileSync('data/floc2022/connect-info.json', 'utf-8')))
-
       ..theme = new WordPressTheme('data/floc2022/template-page.html')
+      ..on 'rendered' ({content}) -> ide.viewer.render content
 
-    ide.viewer.render wp.theme.render('/Users/corwin/var/tmp/floc2022-author/workshops.wp')
+    wp.build('workshops.wp')
 
   window <<< {ide, ide.project, ide.viewer, wp}
 
