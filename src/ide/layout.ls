@@ -2,8 +2,6 @@ require! {
   jquery: $
   'split.js': Split
   '../editor/tex-editor.ls': { TeXEditor }
-  '../viewer/viewer.ls': { Viewer }
-  '../viewer/html-viewer': { HTMLViewer }
   './project.ls': { ProjectView }
 }
 
@@ -14,6 +12,7 @@ require './ide.css'
 class IDELayout
   ->
     @el = $('<div>').addClass('ide-layout')
+    @panes = {}
   
   create-pane: (id, size) ->
     $('<div>').addClass('ide-pane').attr('tabindex', '0')
@@ -38,24 +37,16 @@ class IDELayout
     defd.map -> it || w
 
   create-project: ->
-    @project = new ProjectView
-      ..on 'file:select' ~> @file-select it
-      @create-pane('ide-pane-project', 15).append ..vue.$el
+    @panes.project = @create-pane('ide-pane-project', 15)
+    new ProjectView
+      @panes.project.append ..vue.$el
 
   create-editor: ->
-    @editor = new TeXEditor(@create-pane('ide-pane-editor'))
+    @panes.editor = @create-pane('ide-pane-editor')
+    new TeXEditor(@panes.editor)
   
-  create-viewer-html: ->
-    @viewer = new HTMLViewer(, @create-pane('ide-pane-viewer'))
-
-  create-viewer-pdf: ->
-    @viewer = new Viewer(, @create-pane('ide-pane-viewer'))
-
-  file-select: (item) ->
-    if item.path is /\.pdf$/
-      @viewer?open item.path
-    else
-      @editor?open item.path
+  create-viewer: !->
+    @panes.viewer = @create-pane('ide-pane-viewer')
 
 
 

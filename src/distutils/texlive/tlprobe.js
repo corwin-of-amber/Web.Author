@@ -16,7 +16,7 @@ async function main() {
     var opts = commander
         .parse();
 
-    var lookFor = new RegExp(`/(${opts.args.join('|')})\\.sty`),
+    var lookFor = new RegExp(`/(${opts.args.join('|')})(\\.sty)?`),
         matcher = //(...a) => matchLinesInIndex(INDEX_URI, ...a);
                   (...a) => matchFilesInRepo('/tmp/tldb.json', ...a);
 

@@ -19,7 +19,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pd
 
 
 
-class ViewerCore extends EventEmitter
+class PDFViewerCore extends EventEmitter
 
   (@pdf, @containing-element ? $('body')) ->
     super!
@@ -299,7 +299,7 @@ class SyncTeX_MixIn
 
 
 
-class Viewer extends ViewerCore
+class PDFViewer extends PDFViewerCore
 
   open: (pdf, page) ->
     super pdf, page .then ~>
@@ -319,8 +319,8 @@ class Viewer extends ViewerCore
       @open v.uri, v.selected-page
 
 
-Viewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::
+PDFViewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::
 
 
 
-export Viewer
+export PDFViewer

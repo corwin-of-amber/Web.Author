@@ -1,8 +1,7 @@
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
-import type mysql from 'mysql';
-const mysqlm = (0||require)('mysql') as typeof mysql;
+import mysql from 'mysql';  /* @kremlin.external */
 
 
 class MySQLProject {
@@ -11,7 +10,7 @@ class MySQLProject {
     localWorkDir: string
 
     constructor(mysqlConfig: mysql.ConnectionConfig, schema: SchemaRef, localWorkDir?: string) {
-        this.db = mysqlm.createConnection(mysqlConfig);
+        this.db = mysql.createConnection(mysqlConfig);
         this.schema = schema;
         this.localWorkDir = localWorkDir
     }
