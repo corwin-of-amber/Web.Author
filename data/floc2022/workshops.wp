@@ -1,0 +1,63 @@
+[efcb-section-heading text="Call for Workshops" title_icon="group" subtitle="We are pleased to host a variety of workshops this year! You can be there too!" text_font_color=" " id="ui-id-3-1485707078161174"][/efcb-section-heading][efcb-section-picture url="https://floc2022.org/wp-content/uploads/2021/06/Maths-workshop.jpeg" alt="" id="ui-id-4-1485707788649182"][/efcb-section-picture][efcb-section-strapline text="First Call for Workshops — FLoC 2022" text_font_color=" " id="ui-id-5-1518800816853196"][/efcb-section-strapline][efcb-section-html line_spacing=" " text_font_color=" " id="ui-id-7-149156969794962"][content]<p><strong>The Eighth Federated Logic Conference (FLoC 2022) will host the following ten conferences and affiliated workshops.</strong></p>
+<p>LICS (37th Annual ACM/IEEE Symposium on Logic in Computer Science)&nbsp;<br /><a href="http://lics.rwth-aachen.de/">http://lics.rwth-aachen.de/</a><br />Workshop chair: Frederic Blanqui <a href="mailto:Frederic.Blanqui@inria.fr">Frederic.Blanqui@inria.fr</a></p>
+<p>FSCD (7th International Conference on Formal Structures for Computation and Deduction)&nbsp;<br /><a href="http://fscd-conference.org/">http://fscd-conference.org/</a><br />Workshop chair: Nachum Dershowitz <a href="mailto:nachumd@tau.ac.il">nachumd@tau.ac.il</a></p>
+<p>ITP (13th International Conference on Interactive Theorem Proving)&nbsp;<br /><a href="https://itp-conference.github.io/">https://itp-conference.github.io/</a><br />Workshop chair: Cyril Cohen <a href="mailto:cyril.cohen@inria.fr">cyril.cohen@inria.fr</a></p>
+<p>IJCAR (International Joint Conference on Automated Reasoning)<br /><a href="http://www.ijcar.org">http://www.ijcar.org</a><br />Workshop chair: Simon Robillard <a href="mailto:simon.robillard@imt-atlantique.fr">simon.robillard@imt-atlantique.fr</a></p>
+<p>CSF (35th IEEE Computer Security Foundations Symposium)&nbsp;<br /><a href="http://www.ieee-security.org/CSFWweb/">http://www.ieee-security.org/CSFWweb/</a><br />Workshop chair: Musard Balliu <a href="mailto:musard@kth.se">musard@kth.se</a></p>
+<p>CAV (34th International Conference on Computer Aided Verification)<br /><a href="http://i-cav.org/">http://i-cav.org/</a><br />Workshop chair: Grigory Fedyukovich&nbsp;<a href="mailto:grigory@cs.fsu.edu">grigory@cs.fsu.edu</a></p>
+<p>KR (19th International Conference on Principles of Knowledge Representation and Reasoning)<br /><a href="http://www.kr.org/">http://www.kr.org/</a><br />Workshop chair: Stefan Borgwardt <a href="mailto:stefan.borgwardt@tu-dresden.de">stefan.borgwardt@tu-dresden.de</a></p>
+<p>ICLP (38th International Conference on Logic Programming)&nbsp;<br /><a href="https://www.cs.nmsu.edu/ALP/conferences/">https://www.cs.nmsu.edu/ALP/conferences/</a><br />Workshop chair: Daniela Inclezan <a href="mailto:inclezd@miamioh.edu">inclezd@miamioh.edu</a></p>
+<p>SAT (25th International Conference on Theory and Applications of Satisfiability Testing)&nbsp;<br /><a href="http://www.satisfiability.org">http://www.satisfiability.org</a><br />Workshop chair: Alexander Nadel <a href="mailto:alexander.nadel@intel.com">alexander.nadel@intel.com</a></p>
+<p>CP (25th International Conference on Principles and Practice of Constraint Programming)&nbsp;<br /><a href="http://a4cp.org/events/cp-conference-series">http://a4cp.org/events/cp-conference-series</a><br />Workshop chair: TBD</p>
+<h2>SUBMISSION OF WORKSHOP PROPOSALS</h2>
+<p>Researchers and practitioners are invited to submit proposals for workshops on topics in the field of computer science, related to logic in the broad sense.</p>
+<p>Each workshop proposal must indicate one affiliated conference of FLoC 2022.</p>
+<p>It is strongly suggested that prospective workshop organizers contact the relevant conference workshop chair before submitting a proposal.</p>
+<p>Each proposal should consist of the following two parts.</p>
+<ol>
+<li>A short scientific justification of the proposed topic, its significance, and the particular benefits of the workshop to the community, as well as a list of previous or related workshops (if relevant).</li>
+<li>
+<p style="margin-bottom: .5em;">An organisational part including:</p>
+<ul>
+<li>contact information for the workshop organizers;</li>
+<li>proposed affiliated conference;</li>
+<li>estimate of the number of workshop participants (please note that small workshops, i.e., of less than ~13 participants, will likely be cancelled or merged);</li>
+<li>proposed format and agenda (e.g. paper presentations, tutorials, demo sessions, etc.);</li>
+<li>potential invited speakers;</li>
+<li>procedures for selecting papers and participants;</li>
+<li>plans for dissemination, if any (e.g. a journal special issue);</li>
+<li>duration (which may vary from one day to two days);</li>
+<li>preferred period (pre or post FLoC);</li>
+<li>virtual/hybrid backup plans (including platform preference).</li>
+</ul>
+</li>
+</ol>
+<p>The FLoC Organizing Committee will determine the final list of accepted workshops based on the recommendations from the Workshop Chairs of the hosting conferences and availability of space and facilities.</p>
+<p><strong>Proposals should be submitted through EasyChair:</strong></p>
+<p style="text-align: center;"><a href="https://easychair.org/conferences/?conf=floc2022workshops">https://easychair.org/conferences/?conf=floc2022workshops</a></p>
+<h3>IMPORTANT DATES</h3>
+<table class="dates">
+<tbody>
+<tr>
+<th>Submission of workshop proposals deadline:</th>
+<td>September 27, 2021</td>
+<td class="notice"><span style="color: #ff0000;">(</span><em><span style="color: #ff0000;">Notice: deadline extended</span></em><span style="color: #ff0000;">)</span></td>
+</tr>
+<tr>
+<th>Notification:</th>
+<td>November 1, 2021</td>
+</tr>
+<tr>
+<th>Pre-FLoC workshops:</th>
+<td>Sunday &amp; Monday, July 31&ndash;August 1, 2022</td>
+<td class="notice"><span style="color: #ff0000;">(</span><em><span style="color: #ff0000;">Notice: corrected dates</span></em><span style="color: #ff0000;">)</span></td>
+</tr>
+<tr>
+<th>Post-FLoC workshops:</th>
+<td>Thursday &amp; Friday, August 11&ndash;12, 2022</td>
+</tr>
+</tbody>
+</table>
+<h3>CONTACT INFORMATION</h3>
+<p>Questions regarding proposals should be sent to the workshop chairs of the proposed affiliated conference. General questions should be sent to:</p>
+<p>Shaull Almagor <a href="mailto:shaull@technion.ac.il">shaull@technion.ac.il</a><br />Guillermo A. Perez <a href="mailto:GuillermoAlberto.Perez@uantwerpen.be">GuillermoAlberto.Perez@uantwerpen.be</a></p>[/content][/efcb-section-html]
