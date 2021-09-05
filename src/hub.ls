@@ -9,6 +9,7 @@ require! {
   './ide/index.ls': { IDE }
   './net/mysql': { MySQLProject }
   #'./net/p2p.ls':    {AuthorP2P}
+  './typeset/wasi-pdflatex': { PDFLatexBuild: W }
 }
 
 global.console = window.console   # for debugging
@@ -42,7 +43,7 @@ $ ->
 
     wp.build('workshops.wp')
 
-  window <<< {ide, ide.project, ide.viewer, wp}
+  window <<< {ide, ide.project, ide.viewer, wp, W}
 
   # this is for development: break some dangling references when reloading the page
   window.addEventListener 'beforeunload' ->
