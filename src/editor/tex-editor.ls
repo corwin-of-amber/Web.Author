@@ -44,15 +44,16 @@ class TeXEditor extends EventEmitter
     @visited-files = new VisitedFiles
 
   open: (locator) ->
-    if _.isString(locator)      => @open-file locator
-    else if _.isObject(locator) => @open-syncpad locator
+    if locator.volume           => @open-file locator.volume, locator.filename
+    #else if _.isObject(locator) => @open-syncpad locator
     else
       throw new Error "invalid document locator: '#{locator}'"
 
-  open-file: (filename) ->
+  open-file: (volume, filename) ->
     @_pre-load!
-    @filename = fs.realpathSync filename
-    @visited-files.enter @cm, @filename, -> new FileEdit(it)
+    @volume = volume
+    @filename = volume.realpathSync filename
+    @visited-files.enter @cm, @filename, -> new FileEdit(volume, filename)
     .then ~> @emit 'open', {type: 'file', uri: filename}
 
   open-syncpad: (slot) ->
@@ -65,7 +66,7 @@ class TeXEditor extends EventEmitter
     if @filename? then @visited-files.leave @cm, @filename
 
   reload: ->
-    if @filename then @open that
+    if @filename then @open-file @volume, that
 
   save: ->
     @visited-files.save @cm, @filename
@@ -74,7 +75,7 @@ class TeXEditor extends EventEmitter
 
   jump-to: (filename, {line, ch}={}, focus=true) ->>
     try
-      filename := fs.realpathSync filename
+      filename := @volume.realpathSync filename
     catch
     if filename != @filename
       await @open filename

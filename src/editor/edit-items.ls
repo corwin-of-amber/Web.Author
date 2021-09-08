@@ -1,5 +1,3 @@
-node_require = global.require ? (->)
-    fs = .. 'fs'
 require! {
     assert
     lodash: _
@@ -36,7 +34,7 @@ class EditItem
 
 
 class FileEdit extends EditItem
-  (@filename) -> super! ; @rev = {}
+  (@volume, @filename) -> super! ; @rev = {}
   
   enter: (cm) ->>
     if !@doc? || @changed-on-disk! then await @load cm
@@ -58,15 +56,13 @@ class FileEdit extends EditItem
     @rev.generation = @doc.changeGeneration!
     @rev.timestamp = @_timestamp!
 
-  _read: -> new Promise (resolve, reject) ~>
-    err, txt <~ fs.readFile @filename, 'utf-8'
-    if err? then reject err else resolve txt
+  _read: ->>  # @todo async?
+    @volume.readFileSync(@filename, 'utf-8')
 
-  _write: -> new Promise (resolve, reject) ~>
-    err, txt <~ fs.writeFile @filename, @doc.getValue!
-    if err? then reject err else resolve txt
+  _write: ->>  # @todo async?
+    @volume.writeFileSync @filename, @doc.getValue!
 
-  _timestamp: -> fs.statSync(@filename).mtimeMs
+  _timestamp: -> @volume.statSync(@filename).mtimeMs
 
   watch: (cm) ->
     try @rev.timestamp = @_timestamp!

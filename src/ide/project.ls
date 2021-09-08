@@ -7,9 +7,10 @@ require! {
   'glob-all': glob-all
   'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
-  '../infra/fs-watch.ls': {FileWatcher}
-  '../infra/file-browse.ls': {FileDialog}
-  '../typeset/latexmk.ls': {LatexmkBuild}
+  '../infra/volume': { SubdirectoryVolume }
+  '../infra/fs-watch.ls': { FileWatcher }
+  '../infra/file-browse.ls': { FileDialog }
+  '../typeset/latexmk.ls': { LatexmkBuild }
 }
 
 project-view-component = require('./components/project-view.vue').default
@@ -28,6 +29,9 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     .$mount!
 
     @file-dialog = new FileDialog(/*select-directory*/true)
+
+  volume:~
+    -> @vue.$refs.files.$refs.source.volume
 
   action: ({type, item}) ->
     switch type
@@ -126,19 +130,9 @@ Vue.component 'source-folder.directory', do
     @$watch 'path' @~refresh, {+immediate}
   methods:
     refresh: ->
+      @volume = new SubdirectoryVolume(fs, @path, path)
       if @path
-        @files.splice 0, Infinity, ...all-files-sync(@path, FOLDER_IGNORE)
-    get-path-of: (path-els) ->
-      if typeof path-els == 'string' then path-els = [path-els]
-      path.join @path, ...path-els
-    create: (filename) ->
-      p = @get-path-of(filename)
-      fs.writeFileSync p, ''
-      list-create-file @files, filename
-    move: (from-fn, to-fn) ->
-      fs.renameSync @get-path-of(from-fn), @get-path-of(to-fn)
-      @files.find (.name == to-fn)
-        console.log ..
+        @files.splice 0, Infinity, ...dir-tree-sync(@volume, '', FOLDER_IGNORE)
 
 
 const FOLDER_IGNORE = /^\.git$/
@@ -147,11 +141,11 @@ ProjectView.content-plugins.folder.push ->
   if !it || _.isString(it) then 'source-folder.directory'
 
 
-all-files-sync = (dir, ignore=/^$/, relpath=[]) ->
-  fs.readdirSync(dir).filter(-> !it.match(ignore)).map (file) ->
+dir-tree-sync = (vol, dir, ignore=/^$/, relpath=[]) ->
+  vol.readdirSync(dir).filter(-> !it.match(ignore)).map (file) ->
     {name: file, path: path.join(dir, file), relpath: [...relpath, file]}
-      if fs.statSync(..path).isDirectory!
-        ..files = all-files-sync(..path, ignore, ..relpath)
+      if vol.statSync(..path).isDirectory!
+        ..files = dir-tree-sync(vol, ..path, ignore, ..relpath)
   
 list-create-file = (files, path, kind="file") ->
   if typeof path == 'string' then path = path.split('/')

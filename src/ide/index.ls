@@ -44,7 +44,7 @@ class IDE
     if item.path is /\.pdf$/
       @viewer?open item.path
     else
-      @editor?open item.path
+      @editor?open {@project.volume, filename: item.path}
 
 
 export IDE
