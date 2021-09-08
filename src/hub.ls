@@ -1,8 +1,11 @@
 #process = @_process
+if typeof Buffer == 'undefined'
+  window.Buffer = require('buffer').Buffer
 
 require! {
   jquery: $
   lodash: _
+  './infra/volume-factory': { VolumeFactory, FsVolumeScheme }
   './viewer/html-viewer': { HTMLDocument }
   './viewer/wordpress/render.ls': { WordPressTheme }
   './viewer/wordpress/project.ls': { WordPressProject }
@@ -17,6 +20,8 @@ global.console = window.console   # for debugging
 
 CLIENT_OPTS = void
 #CLIENT_OPTS = servers: hub: 'ws://localhost:3300'
+
+VolumeFactory.instance.schemes.set 'file', new FsVolumeScheme
 
 
 $ ->

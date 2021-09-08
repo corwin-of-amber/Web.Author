@@ -7,7 +7,7 @@ require! {
   'glob-all': glob-all
   'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
-  '../infra/volume': { SubdirectoryVolume }
+  '../infra/volume-factory': { VolumeFactory }
   '../infra/fs-watch.ls': { FileWatcher }
   '../infra/file-browse.ls': { FileDialog }
   '../typeset/latexmk.ls': { LatexmkBuild }
@@ -47,8 +47,8 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     if project !instanceof TeXProject
       project = TeXProject.from-uri (project.uri ? project)
     @current = project
-      @vue.path = ..path
-      if ..uri then @add-recent that
+      @vue.loc = ..loc
+      if ..uri then @add-recent that  # @todo use locator instead
       @emit 'open', project: ..
       if last-file? then @emit 'file:select', path: last-file.uri
   
@@ -86,7 +86,8 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   
 
 class TeXProject
-  (@path) ->
+  (@loc) ->
+    @path = loc.path
     FileWatcher.dir.single @path
 
   get-main-pdf-path: ->
@@ -114,7 +115,7 @@ class TeXProject
   @from-uri = (uri) ->
     if typeof uri == 'string'
       path = uri.replace(/^file:\/\//, '').replace(/^~/, process.env['HOME'])
-      new TeXProject(path) <<< {uri}
+      new TeXProject({scheme: 'file', path}) <<< {uri}
     else
       throw new Error("invalid project specifier '#{project}'");
 
@@ -123,15 +124,15 @@ class TeXProject
 
 
 Vue.component 'source-folder.directory', do
-  props: ['path']
+  props: ['loc']
   data: -> files: []
   render: -> document.createElement('span')   # dummy element
   mounted: ->
-    @$watch 'path' @~refresh, {+immediate}
+    @$watch 'loc' @~refresh, {+immediate}
   methods:
     refresh: ->
-      @volume = new SubdirectoryVolume(fs, @path, path)
-      if @path
+      if @loc
+        @volume = VolumeFactory.instance.get(@loc)
         @files.splice 0, Infinity, ...dir-tree-sync(@volume, '', FOLDER_IGNORE)
 
 

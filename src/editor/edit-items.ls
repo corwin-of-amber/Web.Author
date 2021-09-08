@@ -34,7 +34,7 @@ class EditItem
 
 
 class FileEdit extends EditItem
-  (@volume, @filename) -> super! ; @rev = {}
+  (@loc) -> super! ; @rev = {}
   
   enter: (cm) ->>
     if !@doc? || @changed-on-disk! then await @load cm
@@ -50,25 +50,25 @@ class FileEdit extends EditItem
 
   load: (cm) ->>
     txt = await @_read!
-    content-type = detect-content-type(@filename) || cm.getOption('mode')
+    content-type = detect-content-type(@loc.filename) || cm.getOption('mode')
     @doc = new CodeMirror.Doc(txt, content-type, , \
                               detect-line-ends(txt))
     @rev.generation = @doc.changeGeneration!
     @rev.timestamp = @_timestamp!
 
   _read: ->>  # @todo async?
-    @volume.readFileSync(@filename, 'utf-8')
+    @loc.volume.readFileSync(@loc.filename, 'utf-8')
 
   _write: ->>  # @todo async?
-    @volume.writeFileSync @filename, @doc.getValue!
+    @loc.volume.writeFileSync @loc.filename, @doc.getValue!
 
-  _timestamp: -> @volume.statSync(@filename).mtimeMs
+  _timestamp: -> @loc.volume.statSync(@loc.filename).mtimeMs
 
   watch: (cm) ->
     try @rev.timestamp = @_timestamp!
     catch => return
     @watcher ?= new FileWatcher! .on 'change' (~> @_reload cm)
-      ..single @filename
+      ..single @loc.filename
 
   unwatch: ->
     @watcher?clear! ; @watcher = null
@@ -79,7 +79,7 @@ class FileEdit extends EditItem
 
   _reload: (cm) ->>
     if @changed-on-disk!
-      console.log 'reload', @filename
+      console.log 'reload', @loc.filename
       @checkpoint cm
       await @load cm
       @watch! ; @enter cm

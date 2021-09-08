@@ -13,7 +13,8 @@ require! {
     'codemirror/addon/selection/mark-selection'
     'codemirror/addon/edit/matchbrackets'
     'codemirror/addon/selection/active-line'
-    './edit-items.ls': {VisitedFiles, FileEdit, SyncPadEdit}
+    '../infra/volume-factory': { VolumeFactory }
+    './edit-items.ls': { VisitedFiles, FileEdit, SyncPadEdit }
     '../ide/problems.ls': { safe }
 }
 
@@ -44,50 +45,52 @@ class TeXEditor extends EventEmitter
     @visited-files = new VisitedFiles
 
   open: (locator) ->
-    if locator.volume           => @open-file locator.volume, locator.filename
+    @loc = locator
+    if locator.volume           => @open-file locator
     #else if _.isObject(locator) => @open-syncpad locator
     else
       throw new Error "invalid document locator: '#{locator}'"
 
-  open-file: (volume, filename) ->
+  open-file: (locator) ->
     @_pre-load!
-    @volume = volume
-    @filename = volume.realpathSync filename
-    @visited-files.enter @cm, @filename, -> new FileEdit(volume, filename)
-    .then ~> @emit 'open', {type: 'file', uri: filename}
+    @visited-files.enter @cm, locator.filename, -> new FileEdit(locator)
+    .then ~> @emit 'open', {type: 'file', locator, uri: locator.filename}
 
   open-syncpad: (slot) ->
     @_pre-load!
-    @filename = slot.uri
-    @visited-files.enter @cm, @filename, -> new SyncPadEdit(slot)
+    @visited-files.enter @cm, slot.uri, -> new SyncPadEdit(slot)
     .then ~> @emit 'open', {type: 'syncpad', slot.uri, slot}
 
   _pre-load: !->
-    if @filename? then @visited-files.leave @cm, @filename
+    if @loc? then @visited-files.leave @cm, @loc.filename
 
   reload: ->
-    if @filename then @open-file @volume, that
+    if @loc? then @open-file @loc
 
   save: ->
-    @visited-files.save @cm, @filename
-    if @@is-dat(@filename)
+    @visited-files.save @cm, @loc.filename
+    if @@is-dat(@loc.filename)
       @emit 'request-save'
 
-  jump-to: (filename, {line, ch}={}, focus=true) ->>
-    try
-      filename := @volume.realpathSync filename
-    catch
-    if filename != @filename
-      await @open filename
+  jump-to: (loc, {line, ch}={}, focus=true) ->>
+    #try
+    #  filename := @volume.realpathSync filename
+    #catch
+    if !@loc || !(loc.volume == @loc.volume && loc.filename == @loc.filename)
+      await @open loc
     if line?
       @cm.setCursor {line: line - 1, ch: ch ? 0}
       @cm.scrollIntoView null, 150
     if focus then requestAnimationFrame ~> @cm.focus!
 
   state:~
-    -> return {filename: @filename, cursor: @cm.getCursor!}
-    (v) ->
-      safe ~> v.filename && @jump-to v.filename, v.cursor, false
+    -> 
+      volume = VolumeFactory.instance.describe(@loc.volume)
+      return {loc: {volume, @loc.filename}, cursor: @cm.getCursor!}
+    (v) -> safe ~>
+      if v.loc
+        loc = {volume: VolumeFactory.instance.get(v.loc.volume), v.loc.filename}
+        @jump-to loc, v.cursor, false
 
   @is-mac = navigator.appVersion is /Mac/
 
