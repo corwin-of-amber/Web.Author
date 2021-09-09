@@ -1,14 +1,15 @@
 node_require = global.require ? -> {}
 fs = node_require 'fs'
 require! { 
-    events: {EventEmitter}
+    events: { EventEmitter }
     jquery: $
     lodash: _
-    'synctex-js': {parser: synctex-parser}
+    'synctex-js': { parser: synctex-parser }
     'pdfjs-dist': pdfjsLib
-    '../infra/fs-watch.ls': {FileWatcher}
+    '../infra/volume': { Volume }
+    '../infra/fs-watch.ls': { FileWatcher }
     '../infra/non-reentrant.ls': non-reentrant
-    '../infra/ongoing.ls': {global-tasks}
+    '../infra/ongoing.ls': { global-tasks }
     '../ide/problems.ls': { safe }
 }
 
@@ -36,23 +37,27 @@ class PDFViewerCore extends EventEmitter
       ..on 'change' non-reentrant ~>>
         await global-tasks.wait! ; await @reload!
 
-  open: (uri, page ? 1) ->>
-    if uri instanceof Blob
-      uri = URL.createObjectURL(uri)
-    else if uri.startsWith('/') || uri.startsWith('.')
-      uri = "file://#uri"
+  open: (locator, page ? 1) ->>
+    if locator instanceof Blob
+      uri = URL.createObjectURL(locator)
+      @loc = {volume: null, filename: uri}   # @todo
+    else
+      @loc = locator
+
+    uri = @_to-uri(@loc)
 
     await pdfjsLib.getDocument(uri).promise
       @pdf?.destroy!
       @pdf = ..
       ..uri = uri
-      if uri.startsWith('file://')
-        @watcher.single uri
-      else
-        @watcher.clear!
+      @watcher.single @loc.filename
     @selected-page = Math.min(page, @pdf.num-pages)
     @refresh!
     @
+
+  _to-uri: (loc) ->
+    loc = Volume.externSync(loc)
+    if loc.volume == fs then "file://#{loc.filename}" else loc.filename
 
   reload: ->
     if @pdf?uri then @open that, @selected-page
@@ -314,9 +319,9 @@ class PDFViewer extends PDFViewerCore
       @_ui-init = true      
       
   state:~
-    -> {uri: @pdf?uri, @selected-page}
-    (v) -> safe ~>>
-      @open v.uri, v.selected-page
+    -> {@loc, @selected-page}
+    (v) ->
+      safe ~>> v.loc && @open v.loc, v.selected-page
 
 
 PDFViewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::

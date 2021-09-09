@@ -1,20 +1,23 @@
 /**
  * Minimal `fs` synchronous interface.
+ * (this is an abstract class in order to be able to use `isinstance`)
  */
-interface Volume {
+abstract class Volume {
     path: Volume.IPath
 
-    realpathSync(fp: string): string
-    readdirSync(dir: string): string[]
-    statSync(fp: string): Volume.Stat
+    abstract realpathSync(fp: string): string
+    abstract readdirSync(dir: string): string[]
+    abstract statSync(fp: string): Volume.Stat
 
-    readFileSync(filename: string): Uint8Array
-    readFileSync(filename: string, encoding: Volume.Encoding): string
-    writeFileSync(filename: string, content: Uint8Array | string,
-                  options?: Volume.WriteOptions): void
+    abstract readFileSync(filename: string): Uint8Array
+    abstract readFileSync(filename: string, encoding: Volume.Encoding): string
+    abstract writeFileSync(filename: string, content: Uint8Array | string,
+                           options?: Volume.WriteOptions): void
 
-    unlinkSync(filename: string): void
-    renameSync(oldFilename: string, newFilename: string): void
+    abstract unlinkSync(filename: string): void
+    abstract renameSync(oldFilename: string, newFilename: string): void
+
+    externSync?(filename: string): {volume: Volume, filename: string}
 }
 
 namespace Volume {
@@ -28,6 +31,10 @@ namespace Volume {
     }
 
     export type WriteOptions = {encoding: Encoding};
+
+    export function externSync(loc: {volume: Volume, filename: string}) {
+        return loc.volume?.externSync(loc.filename) ?? loc;
+    }
 }
 
 
@@ -35,11 +42,12 @@ namespace Volume {
  * A volume obtained by referring to a subtree within a parent volume.
  * (not secure in any way, does not sanitize `..` elements in paths)
  */
-class SubdirectoryVolume implements Volume {
+class SubdirectoryVolume extends Volume {
     root: {volume: Volume, dir: string}
     path: Volume.IPath
 
     constructor(volume: Volume, rootdir: string, path?: Volume.IPath) {
+        super();
         this.root = {volume, dir: rootdir};
         this.path = path ?? volume.path;
     }
@@ -67,6 +75,11 @@ class SubdirectoryVolume implements Volume {
     unlinkSync(filename: string) { this._.unlinkSync(this._abs(filename)); }
     renameSync(oldFilename: string, newFilename: string) {
         this.renameSync(this._abs(oldFilename), this._abs(newFilename));
+    }
+
+    externSync(filename: string) {
+        filename = this._abs(filename);
+        return this._.externSync?.(filename) ?? {volume: this._, filename};
     }
 }
 

@@ -11,6 +11,7 @@ require! {
   '../infra/fs-watch.ls': { FileWatcher }
   '../infra/file-browse.ls': { FileDialog }
   '../typeset/latexmk.ls': { LatexmkBuild }
+  './problems.ls': { safe }
 }
 
 project-view-component = require('./components/project-view.vue').default
@@ -23,7 +24,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
     @vue = new Vue project-view-component <<<
       methods:
-        select: ~> @emit 'file:select', path: it
+        select: ~> @emit 'file:select', loc: {@volume, filename: it}
         action: ~> @action it
         build: ~> @build!
     .$mount!
@@ -50,7 +51,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
       @vue.loc = ..loc
       if ..uri then @add-recent that  # @todo use locator instead
       @emit 'open', project: ..
-      if last-file? then @emit 'file:select', path: last-file.uri
+      if last-file? then @emit 'file:select', loc: last-file.loc
   
   open-dialog: ->>
     dir = await @file-dialog.open!
@@ -77,6 +78,12 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
       @recent.splice 0, 0, {name: name ? path.basename(uri), uri}
 
   lookup-recent: (uri) -> @recent.find(-> it.uri == uri)
+
+  state:~
+    -> {path: @current?path, @recent}
+    (v) ->
+      if v.recent? then @recent = v.recent
+      if v.path? then safe ~> @open v.path
 
   @content-plugins = {folder: []}
 

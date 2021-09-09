@@ -33,7 +33,7 @@ class IDE
     @project.on 'file:select' ~>
       @file-select it
     @editor.on 'open' ~>
-      recent?last-file = {it.type, it.uri}
+      recent?last-file = {it.type, it.loc}
     @viewer.on 'synctex-goto' ~> if @editor
       @editor.jump-to it.file.path, line: it.line
 
@@ -41,10 +41,10 @@ class IDE
   restore: -> @config.restore-session @
 
   file-select: (item) ->
-    if item.path is /\.pdf$/
-      @viewer?open item.path
+    if item.loc.filename is /\.pdf$/
+      @viewer?open item.loc
     else
-      @editor?open {@project.volume, filename: item.path}
+      @editor?open item.loc
 
 
 export IDE

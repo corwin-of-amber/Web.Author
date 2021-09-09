@@ -13,7 +13,6 @@ require! {
     'codemirror/addon/selection/mark-selection'
     'codemirror/addon/edit/matchbrackets'
     'codemirror/addon/selection/active-line'
-    '../infra/volume-factory': { VolumeFactory }
     './edit-items.ls': { VisitedFiles, FileEdit, SyncPadEdit }
     '../ide/problems.ls': { safe }
 }
@@ -54,7 +53,7 @@ class TeXEditor extends EventEmitter
   open-file: (locator) ->
     @_pre-load!
     @visited-files.enter @cm, locator.filename, -> new FileEdit(locator)
-    .then ~> @emit 'open', {type: 'file', locator, uri: locator.filename}
+    .then ~> @emit 'open', {type: 'file', loc: locator, uri: locator.filename}
 
   open-syncpad: (slot) ->
     @_pre-load!
@@ -79,18 +78,14 @@ class TeXEditor extends EventEmitter
     if !@loc || !(loc.volume == @loc.volume && loc.filename == @loc.filename)
       await @open loc
     if line?
-      @cm.setCursor {line: line - 1, ch: ch ? 0}
+      @cm.setCursor {line: line - 1, ch: ch ? 0}  # @todo that -1 is bogus
       @cm.scrollIntoView null, 150
     if focus then requestAnimationFrame ~> @cm.focus!
 
   state:~
-    -> 
-      volume = VolumeFactory.instance.describe(@loc.volume)
-      return {loc: {volume, @loc.filename}, cursor: @cm.getCursor!}
-    (v) -> safe ~>
-      if v.loc
-        loc = {volume: VolumeFactory.instance.get(v.loc.volume), v.loc.filename}
-        @jump-to loc, v.cursor, false
+    -> {@loc, cursor: @cm.getCursor!}
+    (v) ->
+      safe ~> v.loc && @jump-to v.loc, v.cursor, false
 
   @is-mac = navigator.appVersion is /Mac/
 
