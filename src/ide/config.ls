@@ -46,10 +46,13 @@ class IDEConfig
  * and makes referring to file locations transparent.
  */
 serialize = (o) ->
-  transform o, -> if it instanceof Volume then VolumeFactory.instance.describe(it)
+  transform o, -> 
+    if it instanceof Volume then
+      {$type: 'Volume'} <<< VolumeFactory.instance.describe(it)
 
 deserialize = (o) ->
-  transform o, -> if it?scheme then VolumeFactory.instance.get(it)
+  transform o, -> 
+    if it?$type == 'Volume' then VolumeFactory.instance.get(it)
 
 transform = (o, f) ->
   if (fo = f(o))? then fo

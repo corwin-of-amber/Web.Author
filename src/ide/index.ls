@@ -29,7 +29,7 @@ class IDE
   bind-events: ->
     recent = void
     @project.on 'open' ~>
-      recent := @project.lookup-recent it.project.uri
+      recent := @project.lookup-recent it.project.loc
     @project.on 'file:select' ~>
       @file-select it
     @editor.on 'open' ~>

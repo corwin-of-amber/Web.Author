@@ -47,11 +47,10 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   open: (project) ->
     @unbuild!
     last-file = project.last-file
-    if project !instanceof TeXProject
-      project = TeXProject.from-uri (project.uri ? project)
+    project = TeXProject.promote(project)
     @current = project
       @vue.loc = ..loc
-      if ..uri then @add-recent that  # @todo use locator instead
+      @add-recent ..loc
       @emit 'open', project: ..
       if last-file? then @emit 'file:select', loc: last-file.loc
   
@@ -75,17 +74,17 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     -> @_recent
     (v) -> @_recent = @vue.projects = v
 
-  add-recent: (uri, name) ->
-    if ! @lookup-recent uri
-      @recent.splice 0, 0, {name: name ? path.basename(uri), uri}
+  add-recent: (loc, name) ->
+    if ! @lookup-recent loc
+      @recent.splice 0, 0, {name: name ? path.basename(loc.path), loc}
 
-  lookup-recent: (uri) -> @recent.find(-> it.uri == uri)
+  lookup-recent: (loc) -> @recent.find(-> it.loc === loc)
 
   state:~
-    -> {path: @current?path, @recent}
+    -> {loc: @current?loc, @recent}
     (v) ->
       if v.recent? then @recent = v.recent
-      if v.path? then safe ~> @open v.path
+      if v.loc? then safe ~> @open v.loc
 
   @content-plugins = {folder: []}
 
@@ -120,12 +119,17 @@ class TeXProject
     else fn = fns[0]
     fn && path.join(root-dir, fn)
 
-  @from-uri = (uri) ->
-    if typeof uri == 'string'
-      path = uri.replace(/^file:\/\//, '').replace(/^~/, process.env['HOME'])
-      new TeXProject({scheme: 'file', path}) <<< {uri}
-    else if uri.scheme?
-      new TeXProject(uri)
+  @promote = (loc) ->
+    if loc instanceof TeXProject then return loc
+
+    loc = loc.loc ? loc   # huh
+
+    if typeof loc == 'string'
+      path = loc.replace(/^file:\/\//, '').replace(/^~/, process.env['HOME'])
+      loc = {scheme: 'file', path}
+
+    if loc.scheme?
+      new TeXProject(loc)
     else
       throw new Error("invalid project specifier '#{uri}'");
 
@@ -144,7 +148,7 @@ Vue.component 'source-folder.directory', do
       if @loc
         @volume = VolumeFactory.instance.get(@loc)
         if @volume instanceof SubdirectoryVolume && @volume.root.volume == fs
-          FileWatcher.dir.single @volume.root.path   # @oops this is a global setting :/
+          FileWatcher.dir.single @volume.root.dir   # @oops this is a global setting :/
         @files.splice 0, Infinity, ...dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE})
 
 
