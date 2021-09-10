@@ -1,5 +1,4 @@
 node_require = global.require ? -> {}
-glob-all = node_require('glob-all')
 require! {
   path
   events: {EventEmitter}
@@ -163,8 +162,9 @@ Vue.component 'source-folder.automerge', do
         @files.splice 0, Infinity, ... ..
 
 
-ProjectView.content-plugins.folder.push ->
-  if it instanceof SlotBase then 'source-folder.automerge'
+ProjectView.content-plugins.folder.push (loc) ->
+  # @todo check `loc.scheme` instead; currently this is always false
+  if loc instanceof SlotBase then 'source-folder.automerge'
 
 
 

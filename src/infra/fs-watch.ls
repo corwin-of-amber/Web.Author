@@ -1,7 +1,7 @@
 node_require = global.require ? (->)
-  fs = .. 'fs'
   path = .. 'path'
 require! {
+    fs
     events: {EventEmitter}
     lodash: _
 }
@@ -15,18 +15,20 @@ class DirectoryWatcher extends EventEmitter
     if (typeof window !== 'undefined')
       window.addEventListener('unload', @~clear)
 
-  add: (dir) !->
+  add: (dir, opts={}) !->
+    _fs = opts.fs ? fs
+    if !_fs?watch then return  # filesystem does not support watching
     dir .= replace(/^file:\/\//, '')
     @dirs.push dir
     bind = ~> @handler dir, ...&
-    @watches.push fs.watch(dir, {recursive: true, persistent: false}, bind)
+    @watches.push _fs.watch(dir, {recursive: true, persistent: false}, bind)
 
   clear: !->
     for @watches => ..close!
     @watches = []
     @dirs = []
 
-  single: (dir) !-> @clear! ; @add dir
+  single: (dir, opts) !-> @clear! ; @add dir, opts
 
   handler: (dir, ev, filename) ->
     setTimeout ~> 

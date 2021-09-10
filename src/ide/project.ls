@@ -7,8 +7,10 @@ require! {
   'glob-all': glob-all
   'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
+  '../infra/volume': { SubdirectoryVolume }
   '../infra/volume-factory': { VolumeFactory }
   '../infra/fs-watch.ls': { FileWatcher }
+  '../infra/fs-traverse.ls': { dir-tree-sync, MultiMatch }
   '../infra/file-browse.ls': { FileDialog }
   '../typeset/latexmk.ls': { LatexmkBuild }
   './problems.ls': { safe }
@@ -87,23 +89,22 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
   @content-plugins = {folder: []}
 
-  @detect-folder-source = (path) ->
-    @content-plugins.folder.map (-> it(path)) .find (-> it)
+  @detect-folder-source = (loc) ->
+    @content-plugins.folder.map(-> it(loc)).find(-> it)
       if !..? then throw new Error "invalid folder path '#{path}'"
   
 
 class TeXProject
   (@loc) ->
-    @path = loc.path
-    FileWatcher.dir.single @path
+    @path = @loc.path
 
   get-main-pdf-path: ->
-    @_find-pdf @path
+    @_find-pdf @path  # @todo use loc
 
   get-main-tex-file: ->
     fn = glob-all.sync(Array.from(['*.tex', '**/*.tex'] ++ @@IGNORE),
-                       {cwd: @path})
-    fn.find ~>
+                       {cwd: @path})  # @todo use loc and fs-traverse
+    fn.find ~> # @todo use loc
       try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*[[{]/)
       catch => false
 
@@ -123,8 +124,10 @@ class TeXProject
     if typeof uri == 'string'
       path = uri.replace(/^file:\/\//, '').replace(/^~/, process.env['HOME'])
       new TeXProject({scheme: 'file', path}) <<< {uri}
+    else if uri.scheme?
+      new TeXProject(uri)
     else
-      throw new Error("invalid project specifier '#{project}'");
+      throw new Error("invalid project specifier '#{uri}'");
 
   @IGNORE = ['!_*/**', '!.*/**']  # for glob-all
 
@@ -140,37 +143,15 @@ Vue.component 'source-folder.directory', do
     refresh: ->
       if @loc
         @volume = VolumeFactory.instance.get(@loc)
-        @files.splice 0, Infinity, ...dir-tree-sync(@volume, '', FOLDER_IGNORE)
+        if @volume instanceof SubdirectoryVolume && @volume.root.volume == fs
+          FileWatcher.dir.single @volume.root.path   # @oops this is a global setting :/
+        @files.splice 0, Infinity, ...dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE})
 
 
-const FOLDER_IGNORE = /^\.git$/
+const FOLDER_IGNORE = new MultiMatch([/^\.git$/])
 
-ProjectView.content-plugins.folder.push ->
-  if !it || _.isString(it) then 'source-folder.directory'
-
-
-dir-tree-sync = (vol, dir, ignore=/^$/, relpath=[]) ->
-  vol.readdirSync(dir).filter(-> !it.match(ignore)).map (file) ->
-    {name: file, path: path.join(dir, file), relpath: [...relpath, file]}
-      if vol.statSync(..path).isDirectory!
-        ..files = dir-tree-sync(vol, ..path, ignore, ..relpath)
-  
-list-create-file = (files, path, kind="file") ->
-  if typeof path == 'string' then path = path.split('/')
-
-  cwd = {name: '/', files}
-  for pel in path
-    if !cwd.files? then cwd.files = []
-    e = cwd.files.find (e) -> e.name == pel
-    if !e?
-      e = {name: pel, files: undefined, tags: undefined}
-      cwd.files.push e
-    cwd = e
-
-  if kind == 'folder' && !cwd.files
-    cwd.files = []
-
-  return cwd;
+ProjectView.content-plugins.folder.push (loc) ->
+  if loc.scheme in ['file', 'memfs'] then 'source-folder.directory'
 
 
 

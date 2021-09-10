@@ -15,7 +15,7 @@ export default {
     props: ['loc'],
     data: () => ({files: []}),
     computed: {
-        sourceType() { return ProjectView.detectFolderSource(this.path); }
+        sourceType() { return this.loc && ProjectView.detectFolderSource(this.loc); }
     },
     mounted() {
         this.$watch('loc', () => {                         // it is quite unfortunate that this cannot

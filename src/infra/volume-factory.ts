@@ -1,5 +1,6 @@
 import fs from 'fs';      /** @kremlin.native */
 import path from 'path';  /** @kremlin.native */
+import pathShim from 'path';  // for browser environment
 import { JSONKeyedMap } from './keyed-map';
 import { Volume, SubdirectoryVolume } from './volume';
 
@@ -44,8 +45,10 @@ interface VolumeScheme<V extends Volume = Volume> {
 
 
 class FsVolumeScheme implements VolumeScheme<SubdirectoryVolume> {
+    fs: Volume
+    constructor(_fs: Volume = <any>fs) { this.fs = _fs }
     createVolumeFromPath(p: string) {
-        return new SubdirectoryVolume(<any>fs, p, path);
+        return new SubdirectoryVolume(this.fs, p, path.join ? path :  pathShim);
     }
 }
 
