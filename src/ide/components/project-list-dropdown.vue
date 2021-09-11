@@ -1,6 +1,6 @@
 <template>
     <vue-context ref="l">
-        <li v-for="item in items" :key="item.name">
+        <li v-for="item in items" :key="keyOf(item)">
             <a @click="action('open', {item})">{{item.name}}</a>
         </li>
         <hr/>
@@ -15,6 +15,10 @@ import { VueContext } from 'vue-context';
 export default {
     props: ['items'],
     methods: {
+        keyOf(item) {
+            return item.loc ? `${item.loc.scheme}:${item.loc.path}`
+                            : item.name;
+        },
         toggle() {
             if (!this.$refs.l.show)
                 this.$refs.l.open(this.position());

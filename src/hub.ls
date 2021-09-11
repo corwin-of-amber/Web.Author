@@ -5,6 +5,7 @@ if typeof Buffer == 'undefined'
 require! {
   jquery: $
   lodash: _
+  memfs
   './infra/volume-factory': { VolumeFactory, FsVolumeScheme }
   './viewer/html-viewer': { HTMLDocument }
   './viewer/wordpress/render.ls': { WordPressTheme }
@@ -12,6 +13,7 @@ require! {
   './ide/index.ls': { IDE }
   './net/mysql': { MySQLProject }
   #'./net/p2p.ls':    {AuthorP2P}
+  './net/static': { OnDemandFsVolumeScheme }
   './typeset/wasi-pdflatex': { PDFLatexBuild: W }
 }
 
@@ -22,10 +24,15 @@ CLIENT_OPTS = void
 #CLIENT_OPTS = servers: hub: 'ws://localhost:3300'
 
 VolumeFactory.instance.schemes.set 'file', new FsVolumeScheme
+VolumeFactory.instance.schemes.set 'memfs', \
+  mfs-scheme = new OnDemandFsVolumeScheme(new memfs.Volume)
 
 
-$ ->
+$ ->>
   ide = new IDE
+
+  if 1
+    await mfs-scheme.populate!
 
   $('body').append ide.layout.el
   ide.start 'tex'
