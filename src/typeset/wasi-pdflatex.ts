@@ -68,30 +68,12 @@ namespace PDFLatexBuild {
         }
     }
 
-    /** Essential paths for `pdflatex` */
-    const TEXMF_CNF = `
-ROOT = /tex
-
-DROOT = $ROOT/dist
-TLROOT = $ROOT/tldist
-
-TEXFORMATS = $DROOT
-
-TFMFONTS = $DROOT/fonts//:$TLROOT//
-T1FONTS = $DROOT/fonts//:$TLROOT//
-PKFONTS = $DROOT/fonts//:$TLROOT//
-
-TEXFONTMAPS = $DROOT
-
-TEXINPUTS = .:$DROOT:$DROOT/fonts/fd:$TLROOT//
-`;
-
     export const texdist: ResourceBundle = {
         '/bin/pdftex': '#!/bin/tex/pdftex.wasm',
         '/bin/pdflatex': '#!/bin/tex/pdftex.wasm',
-        '/bin/texmf.cnf': TEXMF_CNF,
-        '/tex/dist/': new Resource('/bin/tex/dist.tar'),
-        '/tex/tldist/': new Resource('/bin/tex/tldist.tar')
+        '/bin/texmf.cnf': new Resource('/bin/tex/texmf.cnf'),
+        '/dist/': new Resource('/bin/tex/dist.tar'),
+        '/tldist/': new Resource('/bin/tex/tldist.tar')
     };
 
 }

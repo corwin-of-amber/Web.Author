@@ -13,6 +13,7 @@
   "dependencies": {
     "automerge": "^0.12.1",
     "automerge-slots": "github:corwin-of-amber/automerge-slots",
+    "buffer": "^4.9.2",
     "child-process-promise": "^2.2.1",
     "codemirror": "^5.48.0",
     "commander": "^7.2.0",

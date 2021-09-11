@@ -16,3 +16,7 @@ bower_components
 /npm-link
 /build
 .DS_Store
+.vercel
+
+# This has to be built by nanoTeX
+/bin/tex

@@ -1,6 +1,10 @@
-#process = @_process
+/* Kremlin is a bit incomplete at the moment */
 if typeof Buffer == 'undefined'
   window.Buffer = require('buffer').Buffer
+if !process.nextTick?
+  process <<< require('process')
+  #process.nextTick = (f, ...args) -> f(...args) # risky!!
+
 
 require! {
   jquery: $
@@ -25,7 +29,7 @@ CLIENT_OPTS = void
 
 VolumeFactory.instance.schemes.set 'file', new FsVolumeScheme
 VolumeFactory.instance.schemes.set 'memfs', \
-  mfs-scheme = new OnDemandFsVolumeScheme(new memfs.Volume)
+  mfs-scheme = new OnDemandFsVolumeScheme(mfs = new memfs.Volume)
 
 
 $ ->>
@@ -33,6 +37,7 @@ $ ->>
 
   if 1
     await mfs-scheme.populate!
+    window <<< {mfs}
 
   $('body').append ide.layout.el
   ide.start 'tex'
