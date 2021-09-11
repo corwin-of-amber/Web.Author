@@ -4,14 +4,14 @@ require! {
   path
   events: {EventEmitter}
   lodash: _
-  'glob-all': glob-all
   'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
   '../infra/volume': { SubdirectoryVolume }
   '../infra/volume-factory': { VolumeFactory }
   '../infra/fs-watch.ls': { FileWatcher }
-  '../infra/fs-traverse.ls': { dir-tree-sync, MultiMatch }
+  '../infra/fs-traverse.ls': { dir-tree-sync, glob-all, MultiMatch }
   '../infra/file-browse.ls': { FileDialog }
+  '../typeset/wasi-pdflatex': { PDFLatexBuild: WASI_PDFLatexBuild }
   '../typeset/latexmk.ls': { LatexmkBuild }
   './problems.ls': { safe }
 }
@@ -63,8 +63,9 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   build: ->>
     if !@_builder?
       @_builder = @current.builder()
-        ..on 'started' ~> @vue.build-status = 'in-progress'
-        ..on 'finished' ~> @vue.build-status = it.outcome
+        ..on 'started' ~> @vue.build-status = 'in-progress'; @emit 'build:started' it
+        ..on 'finished' ~> @vue.build-status = it.outcome; @emit 'build:finished' it
+        ..on 'progress' ~> @emit 'build:progress' it
     @_builder.make-watch!
 
   unbuild: ->
@@ -101,14 +102,18 @@ class TeXProject
     @_find-pdf @path  # @todo use loc
 
   get-main-tex-file: ->
-    fn = glob-all.sync(Array.from(['*.tex', '**/*.tex'] ++ @@IGNORE),
-                       {cwd: @path})  # @todo use loc and fs-traverse
-    fn.find ~> # @todo use loc
-      try      fs.readFileSync(path.join(@path, it), 'utf-8').match(/\\documentclass\s*[[{]/)
-      catch => false
+    volume = VolumeFactory.instance.get(@loc)
+    glob-all(['*.tex', '**/*.tex'], {exclude: @@IGNORE, cwd: '', fs: volume})
+      filename = [...(..)].find ~>
+        try      volume.readFileSync(it, 'utf-8').match(/\\documentclass\s*[[{]/)
+        catch => false
+    filename && {volume, filename}
 
   builder: ->
-    new LatexmkBuild @get-main-tex-file!, @path
+    main-tex = @get-main-tex-file!
+    if !main-tex then throw new Error('main TeX file not found in project')
+    new WASI_PDFLatexBuild main-tex
+    #new LatexmkBuild @get-main-tex-file!, @path
 
   _find-pdf: (root-dir) ->
     fns = glob-all.sync(Array.from(['out/*.pdf', '*.pdf' ++ @@IGNORE]),
@@ -133,7 +138,7 @@ class TeXProject
     else
       throw new Error("invalid project specifier '#{uri}'");
 
-  @IGNORE = ['!_*/**', '!.*/**']  # for glob-all
+  @IGNORE = ['_*/**', '.*/**']  # for glob-all
 
 
 

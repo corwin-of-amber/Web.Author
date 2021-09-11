@@ -14,6 +14,7 @@ class IDE
     @project = @layout.create-project!
     @editor = @layout.create-editor!
     @layout.create-viewer!
+    @layout.create-status!
     @_preset(mode)
     @layout.make-resizable!
 
@@ -32,6 +33,8 @@ class IDE
       recent := @project.lookup-recent it.project.loc
     @project.on 'file:select' ~>
       @file-select it
+    @project.on 'build:progress' ~>
+      @build-progress it
     @editor.on 'open' ~>
       recent?last-file = {it.type, it.loc}
     @viewer.on 'synctex-goto' ~> if @editor
@@ -45,6 +48,14 @@ class IDE
       @viewer?open item.loc
     else
       @editor?open item.loc
+
+  build-progress: !->
+    @layout.bars.status
+      if it.info?done then ..hide 50
+      else
+        switch it.stage
+        | 'install' => ..show "installing #{it.info.uri}"
+        | 'compile' => ..show "compiling #{it.info.filename}"
 
 
 export IDE

@@ -7,11 +7,66 @@
  */
 
 import fs from 'fs';  /* @kremlin.native */
+import { EventEmitter } from 'events';
 import { ExecCore } from 'wasi-kernel/src/kernel/exec';
 import { PackageManager, Resource, ResourceBundle } from 'basin-shell/src/package-mgr';
+import { Volume } from '../infra/volume';
 
 
-class PDFLatexBuild {
+class PDFLatexBuild extends EventEmitter {
+    pdflatex: PDFLatexPod
+    mainTexFile: Volume.Location
+
+    constructor(mainTexFile: Volume.Location) {
+        super();
+        this.mainTexFile = mainTexFile;
+        this.pdflatex = new PDFLatexPod();
+        this.pdflatex.packageManager.on('progress',
+            (info) => this.emit('progress', {stage: 'install', info}));
+    }
+
+    async make() {
+        console.log(`%cmake ${this.mainTexFile.filename}`, 'color: green');
+        this.emit('started');
+
+        try {
+            var {volume, filename} = this.mainTexFile,
+                content = volume.readFileSync(filename);
+            await this.pdflatex.prepare();
+            try {
+                this.emit('progress', {stage: 'compile', info: {filename, done: false}})
+                var out = await this.pdflatex.compile(content);
+            }
+            finally {
+                this.emit('progress', {stage: 'compile', info: {done: true}});
+            }
+            this.emit('finished', {outcome: 'ok', pdf: out});
+            return out;
+        }
+        catch (e) {
+            this.emit('finished', {outcome: 'error', error: e});
+            if (!(e instanceof PDFLatexPod.BuildError)) throw e;
+        }
+    }
+
+    clean() { /** @todo */ }
+
+    async remake() {
+        this.clean();
+        return await this.make();
+    }
+
+    watch() { /** @todo */}
+
+    async makeWatch() {
+        var res = await this.make();
+        this.watch();
+        return res;
+    }
+}
+
+
+class PDFLatexPod {
     core: ExecCore
     packageManager: PackageManager
 
@@ -27,44 +82,63 @@ class PDFLatexBuild {
     }
 
     prepare() {
-        return this.packageManager.install(PDFLatexBuild.texdist);
+        return (this._prepared ??=
+            this.packageManager.install(PDFLatexPod.texdist));
     }
 
-    uploadDocument(content: string) {
-        this.core.fs.writeFileSync('/home/doc.tex', content);
+    uploadDocument(content: string | Uint8Array, fn = '/home/doc.tex') {
+        this.core.fs.writeFileSync(fn, content);
     }
 
-    async start() {
-        await (this._prepared ??= this.prepare());
+    async start(fn: string = 'doc.tex', wd: string = '/home') {
+        await this.prepare();
+        this.core.fs.mkdirpSync(`${wd}/out`);
         return this.core.start('/bin/tex/pdftex.wasm',
-            ['pdflatex', 'doc.tex'], {PATH: '/bin', PWD: '/home'});
+            ['pdflatex', '-output-directory=out', fn], {PATH: '/bin', PWD: wd});
     }
 
-    async build(source: string) {
-        await (this._prepared ??= this.prepare());
+    async compile(source: string | Uint8Array) {
+        await this.prepare();
         this.uploadDocument(source);
         var rc = await this.start();
 
         if (rc == 0) {
-            return PDFLatexBuild.CompiledPDF.fromFile('/home/doc.pdf', this.core.fs);
-        }        
+            return PDFLatexPod.CompiledPDF.fromFile(
+                {volume: <any>this.core.fs, filename: '/home/out/doc.pdf'});
+        }
+        else throw new PDFLatexPod.BuildError(rc);
     }
 }
 
-namespace PDFLatexBuild {
+namespace PDFLatexPod {
 
     export class CompiledPDF {
         content: Uint8Array
 
         constructor(content: Uint8Array) { this.content = content; }
 
-        saveAs(filename = "/tmp/out.pdf", ifs = fs) {
-            ifs.writeFileSync(filename, this.content);
-            return filename;
+        saveAs(loc: Volume.Location = {volume: null, filename: "/tmp/out.pdf"}) {
+            (loc.volume ?? fs).writeFileSync(loc.filename, this.content);
+            return loc;
         }
 
-        static fromFile(filename: string, ifs: any = fs) {
-            return new CompiledPDF(ifs.readFileSync(filename));
+        toBlob() {
+            return new Blob([this.content], {type: "application/pdf"});
+        }
+
+        toURL() {
+            return URL.createObjectURL(this.toBlob());
+        }
+
+        static fromFile(loc: Volume.Location) {
+            return new CompiledPDF(loc.volume.readFileSync(loc.filename));
+        }
+    }
+
+    export class BuildError {
+        code: number
+        constructor(code: number) {
+            this.code = code;
         }
     }
 
@@ -79,4 +153,4 @@ namespace PDFLatexBuild {
 }
 
 
-export { PDFLatexBuild }
+export { PDFLatexBuild, PDFLatexPod }

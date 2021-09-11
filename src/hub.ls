@@ -18,7 +18,6 @@ require! {
   './net/mysql': { MySQLProject }
   #'./net/p2p.ls':    {AuthorP2P}
   './net/static': { OnDemandFsVolumeScheme }
-  './typeset/wasi-pdflatex': { PDFLatexBuild: W }
 }
 
 global.console = window.console   # for debugging
@@ -42,6 +41,10 @@ $ ->>
   $('body').append ide.layout.el
   ide.start 'tex'
 
+  ide.project.on 'build:finished' ->
+    if it.pdf?
+      ide.viewer.open it.pdf.toBlob!
+
   if 0
     p2p = new AuthorP2P(CLIENT_OPTS)
       ide.project.attach ..
@@ -60,7 +63,7 @@ $ ->>
 
     wp.build('workshops.wp')
 
-  window <<< {ide, ide.project, ide.viewer, wp, W}
+  window <<< {ide, ide.project, ide.viewer, wp}
 
   # this is for development: break some dangling references when reloading the page
   window.addEventListener 'beforeunload' ->

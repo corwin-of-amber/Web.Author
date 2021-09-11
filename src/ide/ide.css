@@ -135,3 +135,18 @@ ul[role=menu] > li > a:hover {
 button:focus, button:active {
     outline: none;
 }
+
+div.ide-bar-status {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+
+    background: #dddd;
+    padding: .1em .7em;
+    border-top-left-radius: .5em;
+}
+
+div.ide-bar-status.hidden {
+    display: none;
+}

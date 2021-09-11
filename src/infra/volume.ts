@@ -17,7 +17,7 @@ abstract class Volume {
     abstract unlinkSync(filename: string): void
     abstract renameSync(oldFilename: string, newFilename: string): void
 
-    externSync?(filename: string): {volume: Volume, filename: string}
+    externSync?(filename: string): Volume.Location
 }
 
 namespace Volume {
@@ -32,8 +32,10 @@ namespace Volume {
 
     export type WriteOptions = {encoding: Encoding};
 
-    export function externSync(loc: {volume: Volume, filename: string}) {
-        return loc.volume?.externSync(loc.filename) ?? loc;
+    export type Location = {volume: Volume, filename: string};
+
+    export function externSync(loc: Location) {
+        return loc.volume?.externSync?.(loc.filename) ?? loc;
     }
 }
 
@@ -74,7 +76,7 @@ class SubdirectoryVolume extends Volume {
 
     unlinkSync(filename: string) { this._.unlinkSync(this._abs(filename)); }
     renameSync(oldFilename: string, newFilename: string) {
-        this.renameSync(this._abs(oldFilename), this._abs(newFilename));
+        this._.renameSync(this._abs(oldFilename), this._abs(newFilename));
     }
 
     externSync(filename: string) {

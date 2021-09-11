@@ -4,7 +4,12 @@ import { PackageManager, Resource, ResourceBundle } from 'basin-shell/src/packag
 
 
 class OnDemandFsVolumeScheme extends FsVolumeScheme {
-    constructor(_fs?: Volume) { super(_fs); }
+    packageManager: PackageManager
+
+    constructor(_fs?: Volume) {
+        super(_fs);
+        this.packageManager = new PackageManager(<any>this.fs);  /** @oops need mkdirp */
+    }
 
     createVolumeFromPath(p: string) {
         return super.createVolumeFromPath(p);
@@ -12,8 +17,7 @@ class OnDemandFsVolumeScheme extends FsVolumeScheme {
 
     async populate() {
         /** @ohno for now, these are baked-in, because volume operations must be synchronous */
-        var pm = new PackageManager(<any>this.fs);  /** @oops need mkdirp */
-        await pm.install(ASSETS);
+        await this.packageManager.install(ASSETS);
     }
 }
 

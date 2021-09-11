@@ -13,6 +13,7 @@ class IDELayout
   ->
     @el = $('<div>').addClass('ide-layout')
     @panes = {}
+    @bars = {}
   
   create-pane: (id, size) ->
     $('<div>').addClass('ide-pane').attr('tabindex', '0')
@@ -47,6 +48,31 @@ class IDELayout
   
   create-viewer: !->
     @panes.viewer = @create-pane('ide-pane-viewer')
+
+  create-status: ->
+    @bars.status = new StatusBar
+      @el.append ..el
+
+
+/**
+ * A minimalistic status bar.
+ */
+class StatusBar
+  ->
+    @el = $ '<div>' .addClass ['ide-bar-status', 'hidden']
+    @rev = 0
+  
+  show: (text, duration) ->
+    @rev++
+    @el.removeClass 'hidden' .text text
+    if duration? then @hide duration
+
+  hide: (duration) ->
+    if duration?
+      rev = @rev
+      setTimeout (~> if rev == @rev then @hide!), duration
+    else
+      @el.addClass 'hidden'
 
 
 
