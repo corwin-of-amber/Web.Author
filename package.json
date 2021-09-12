@@ -7,7 +7,7 @@
     "start": "nw .&",
     "build": "kremlin index.html",
     "pack-vendor": "mkdir -p dist && tar czhf dist/vendor.tar.gz bin/tex",
-    "vercel-build": "if [ -e dist/vendor.tar.gz ] ; then tar xzvf dist/vendor.tar.gz ; fi"
+    "vercel-build": "./etc/vercel-build.sh"
   },
   "bin": {
     "tlprobe": "src/distutils/texlive/tlprobe.js"

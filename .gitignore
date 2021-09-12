@@ -17,6 +17,7 @@ bower_components
 /build
 .DS_Store
 .vercel
+_npmlink
 
 # nanoTex has its own repo
 /packages/nanotex
