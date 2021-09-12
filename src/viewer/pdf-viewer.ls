@@ -239,10 +239,17 @@ class SyncTeX extends EventEmitter
         @blur!
 
   @from-file = (filename) ->>
-    
     txt = await SyncTeX.read-file filename  
     new SyncTeX(synctex-parser.parseSyncTex(txt))
       ..filename = filename
+
+  @from-buffer = (buf) ->>
+    txt = await SyncTeX.read-buffer buf
+    new SyncTeX(synctex-parser.parseSyncTex(txt))
+
+  @from = ->
+    if typeof it == 'string' then @from-file it
+                  else @from-buffer it
 
   @read-file = (filename) -> new Promise (resolve, reject) ->
     if filename.endsWith('.gz')
@@ -255,18 +262,34 @@ class SyncTeX extends EventEmitter
     else
       fs.readFile filename, 'utf-8', resolve
 
+  @read-buffer = (buf) -> new Promise (resolve, reject) ->
+    td = new TextDecoder()
+    zlib = require('zlib')
+    if is-gzip(buf) then zlib.gunzip buf, (err, data) ->
+      if err then reject err else resolve td.decode(data)
+    else resolve td.decode(buf)
+
+
+# https://github.com/kevva/is-gzip/blob/master/index.js
+is-gzip = (buf) ->
+  if (!buf || buf.length < 3) then false
+  else
+    buf[0] == 0x1F && buf[1] == 0x8B && buf[2] == 0x08;
 
 
 class SyncTeX_MixIn
 
-  synctex-open: (filename) ->>
+  synctex-open: (filename-or-buffer, opts) ->>
     @synctex-init!
     @synctex?.remove!
     @synctex = null
 
-    @synctex = await SyncTeX.from-file filename
+    adjust = (pos) ~> pos
+      ..file.path = @_synctex-relative-path(..file.path, opts?base-dir)
+
+    @synctex = await SyncTeX.from filename-or-buffer, opts?base-dir
       @pages[@selected-page]?then @~_synctex-page
-      ..on 'synctex-goto' ~> @emit 'synctex-goto' ...&
+      ..on 'synctex-goto' (pos, ht) ~> @emit 'synctex-goto' adjust(pos), ht
       #@_synctex-watcher.single filename
 
   synctex-init: ->
@@ -301,6 +324,11 @@ class SyncTeX_MixIn
     if @synctex?
       @synctex.cover page.canvas, @zoom * @resolution
       @synctex.selected-page = @selected-page
+
+  _synctex-relative-path: (filename, base-dir) ->
+    if base-dir && filename.startsWith(base-dir)
+      filename.slice(base-dir.length)
+    else filename
 
 
 

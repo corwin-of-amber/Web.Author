@@ -49,6 +49,8 @@ $ ->>
   ide.project.on 'build:finished' ->
     if it.pdf?
       ide.viewer.open it.pdf.toBlob!
+      if it.pdf.synctex?
+        ide.viewer.synctex-open it.pdf.synctex.content, {base-dir: '/home'}  # @oops
 
   if 0
     p2p = new AuthorP2P(CLIENT_OPTS)

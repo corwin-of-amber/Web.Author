@@ -7,6 +7,7 @@
  */
 
 import fs from 'fs';  /* @kremlin.native */
+import path from 'path';
 import { EventEmitter } from 'events';
 import { ExecCore } from 'wasi-kernel/src/kernel/exec';
 import { PackageManager, Resource, ResourceBundle } from 'basin-shell/src/package-mgr';
@@ -35,7 +36,7 @@ class PDFLatexBuild extends EventEmitter {
             await this.pdflatex.prepare();
             try {
                 this.emit('progress', {stage: 'compile', info: {filename, done: false}})
-                var out = await this.pdflatex.compile(content);
+                var out = await this.pdflatex.compile(content, `/home/${volume.path.basename(filename)}`);
             }
             finally {
                 this.emit('progress', {stage: 'compile', info: {done: true}});
@@ -72,6 +73,9 @@ class PDFLatexPod {
 
     _prepared: Promise<void>
 
+    mainTex: string = '/home/doc.tex'
+    opts = {outdir: 'out', synctex: 1}
+
     constructor() {
         this.core = new ExecCore({stdin: false});
         this.core.on('stream:out', ({fd, data}) =>
@@ -86,25 +90,35 @@ class PDFLatexPod {
             this.packageManager.install(PDFLatexPod.texdist));
     }
 
-    uploadDocument(content: string | Uint8Array, fn = '/home/doc.tex') {
+    uploadDocument(content: string | Uint8Array, fn = this.mainTex) {
+        this.core.fs.mkdirSync(path.dirname(fn), {recursive: true});
         this.core.fs.writeFileSync(fn, content);
+        this.mainTex = fn;
     }
 
-    async start(fn: string = 'doc.tex', wd: string = '/home') {
+    async start(fn: string = this.mainTex, wd: string = '/home') {
         await this.prepare();
-        this.core.fs.mkdirpSync(`${wd}/out`);
+        this.core.fs.mkdirSync(path.resolve(wd, this.opts.outdir), {recursive: true});
+        var flags = [
+            `-output-directory=${this.opts.outdir}`,
+            `-synctex=${this.opts.synctex}`
+        ]
         return this.core.start('/bin/tex/pdftex.wasm',
-            ['pdflatex', '-output-directory=out', fn], {PATH: '/bin', PWD: wd});
+            ['pdflatex', ...flags, fn], {PATH: '/bin', PWD: wd});
     }
 
-    async compile(source: string | Uint8Array) {
+    async compile(source: string | Uint8Array, fn?: string) {
         await this.prepare();
-        this.uploadDocument(source);
+        this.uploadDocument(source, fn);
         var rc = await this.start();
 
         if (rc == 0) {
-            return PDFLatexPod.CompiledPDF.fromFile(
-                {volume: <any>this.core.fs, filename: '/home/out/doc.pdf'});
+            var volume = <unknown>this.core.fs as Volume,
+                outdir = path.resolve('/home', this.opts.outdir),
+                file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
+                job = fn ? path.basename(fn).replace(/\.tex$/, '') : 'doc';
+            return PDFLatexPod.CompiledPDF.fromFile(file(`${job}.pdf`))
+                .withSyncTeXMaybe(file(`${job}.synctex.gz`));
         }
         else throw new PDFLatexPod.BuildError(rc);
     }
@@ -112,26 +126,51 @@ class PDFLatexPod {
 
 namespace PDFLatexPod {
 
-    export class CompiledPDF {
+    type This<T extends new(...args: any) => any> = {
+        new(...args: ConstructorParameters<T>): any
+    } & Pick<T, keyof T>;
+
+    export class CompiledAsset {
         content: Uint8Array
+        contentType: string = "application/octet-stream"
 
         constructor(content: Uint8Array) { this.content = content; }
 
-        saveAs(loc: Volume.Location = {volume: null, filename: "/tmp/out.pdf"}) {
+        saveAs(loc: Volume.Location) {
             (loc.volume ?? fs).writeFileSync(loc.filename, this.content);
             return loc;
         }
 
         toBlob() {
-            return new Blob([this.content], {type: "application/pdf"});
+            return new Blob([this.content], {type: this.contentType});
         }
 
         toURL() {
             return URL.createObjectURL(this.toBlob());
         }
 
-        static fromFile(loc: Volume.Location) {
-            return new CompiledPDF(loc.volume.readFileSync(loc.filename));
+        static fromFile<T extends This<typeof CompiledAsset>>
+                (this: T, loc: Volume.Location): InstanceType<T> {
+            return new this(loc.volume.readFileSync(loc.filename));
+        }
+    }
+
+    export class CompiledPDF extends CompiledAsset {
+        contentType = "application/pdf"
+        synctex: CompiledAsset
+
+        saveAs(loc: Volume.Location = {volume: null, filename: "/tmp/out.pdf"}) {
+            return super.saveAs(loc);
+        }
+
+        withSyncTeX(loc: Volume.Location) {
+            this.synctex = CompiledAsset.fromFile(loc);
+            return this;
+        }
+
+        withSyncTeXMaybe(loc: Volume.Location) {
+            try { return this.withSyncTeX(loc); }
+            catch { return this; }
         }
     }
 

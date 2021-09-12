@@ -45,12 +45,12 @@ class TeXEditor extends EventEmitter
 
     @visited-files = new VisitedFiles
 
-  open: (locator) ->
-    @loc = locator
-    if locator.volume           => @open-file locator
+  open: (locator) ->>
+    if locator.volume           => await @open-file locator
     #else if _.isObject(locator) => @open-syncpad locator
     else
       throw new Error "invalid document locator: '#{locator}'"
+    @loc = locator
 
   open-file: (locator) ->
     @_pre-load!
@@ -75,7 +75,7 @@ class TeXEditor extends EventEmitter
 
   jump-to: (loc, {line, ch}={}, focus=true) ->>
     #try
-    #  filename := @volume.realpathSync filename
+    loc := {loc.volume, filename: loc.volume.path.normalize loc.filename}
     #catch
     if !@loc || !(loc.volume == @loc.volume && loc.filename == @loc.filename)
       await @open loc

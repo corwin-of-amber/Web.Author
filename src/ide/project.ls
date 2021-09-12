@@ -109,6 +109,11 @@ class TeXProject
         catch => false
     filename && {volume, filename}
 
+  get-file: (filename) ->
+    volume = VolumeFactory.instance.get(@loc)
+      filename = (..path ? path).normalize(filename)
+    return {volume, filename}
+
   builder: ->
     main-tex = @get-main-tex-file!
     if !main-tex then throw new Error('main TeX file not found in project')
@@ -152,8 +157,8 @@ Vue.component 'source-folder.directory', do
     refresh: ->
       if @loc
         @volume = VolumeFactory.instance.get(@loc)
-        if @volume instanceof SubdirectoryVolume && @volume.root.volume == fs
-          FileWatcher.dir.single @volume.root.dir   # @oops this is a global setting :/
+        if @volume instanceof SubdirectoryVolume
+          FileWatcher.dir.single @volume.root.dir, fs: @volume.root.volume   # @oops this is a global setting :/
         @files.splice 0, Infinity, ...dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE})
 
 

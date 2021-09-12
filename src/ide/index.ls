@@ -38,10 +38,13 @@ class IDE
     @editor.on 'open' ~>
       recent?last-file = {it.type, it.loc}
     @viewer.on 'synctex-goto' ~> if @editor
-      @editor.jump-to it.file.path, line: it.line
+      @editor.jump-to @file-of-project(it.file.path), line: it.line
 
   store: -> @config.store @
   restore: -> @config.restore-session @
+
+  file-of-project: (filename) ->
+    @project.current.get-file(filename)
 
   file-select: (item) ->
     if item.loc.filename is /\.pdf$/
