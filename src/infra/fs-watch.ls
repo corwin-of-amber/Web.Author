@@ -7,37 +7,38 @@ require! {
 }
 
 
-class DirectoryWatcher extends EventEmitter
-  ->
+class FileWatcher extends EventEmitter
+  (debounce-ms=250) ->
     super!
-    @dirs = []
     @watches = []
+    @debounce-emit = _.debounce ((tag, ev) ~> @emit tag, ev), debounce-ms
     if (typeof window !== 'undefined')
       window.addEventListener('unload', @~clear)
 
-  add: (dir, opts={}) !->
+  add: (filename, opts={}) !->
     _fs = opts.fs ? fs
     if !_fs?watch then return  # filesystem does not support watching
-    dir .= replace(/^file:\/\//, '')
-    @dirs.push dir
-    bind = ~> @handler dir, ...&
-    @watches.push _fs.watch(dir, {recursive: true, persistent: false}, bind)
+    filename .= replace(/^file:\/\//, '')
+    console.log "%cwatch #{filename}", 'color: #999'
+    bind = ~> @handler filename, ...&
+    @watches.push _fs.watch(filename, opts{recursive ? false, persistent ? false}, bind)
 
   clear: !->
     for @watches => ..close!
     @watches = []
-    @dirs = []
 
-  single: (dir, opts) !-> @clear! ; @add dir, opts
+  single: (filename, opts) !-> @clear! ; @add filename, opts
+  multiple: (filenames) !-> @clear! ; for filenames => @add ..
 
-  handler: (dir, ev, filename) ->
+  handler: (origin, ev, filename) ->
     setTimeout ~> 
-      console.log "%cchanged: #{filename}  [#{dir}]" 'color: #ccf'
-      @emit 'change' {dir, filename}
+      console.log "%cchanged: #{filename}  [#{origin}]" 'color: #ccf'
+      @debounce-emit 'change', {origin, filename}
     , 0
 
 
-class FileWatcher extends EventEmitter
+/** @deprecated */
+class _FileWatcher extends EventEmitter
   (debounce-ms=500) ->
     super!
     @filenames = []
@@ -63,7 +64,7 @@ class FileWatcher extends EventEmitter
       @debounce-emit {filename}
 
 
-FileWatcher.dir = new DirectoryWatcher
+#FileWatcher.dir = new DirectoryWatcher
 
 
 

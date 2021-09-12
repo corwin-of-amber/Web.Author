@@ -39,18 +39,19 @@ class PDFViewerCore extends EventEmitter
 
   open: (locator, page ? 1) ->>
     if locator instanceof Blob
-      uri = URL.createObjectURL(locator)
-      @loc = {volume: null, filename: uri}   # @todo
-    else
-      @loc = locator
+      locator = {volume: null, filename: URL.createObjectURL(locator)}
 
+    @loc = locator
     uri = @_to-uri(@loc)
 
     await pdfjsLib.getDocument(uri).promise
       @pdf?.destroy!
       @pdf = ..
       ..uri = uri
-      @watcher.single @loc.filename
+      if @loc.volume
+        @watcher.single @loc.filename, fs: @loc.volume
+      else
+        @watcher.clear!
     @selected-page = Math.min(page, @pdf.num-pages)
     @refresh!
     @

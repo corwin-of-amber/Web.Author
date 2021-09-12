@@ -12,11 +12,14 @@ import { EventEmitter } from 'events';
 import { ExecCore } from 'wasi-kernel/src/kernel/exec';
 import { PackageManager, Resource, ResourceBundle } from 'basin-shell/src/package-mgr';
 import { Volume } from '../infra/volume';
+// @ts-ignore
+import { FileWatcher } from '../infra/fs-watch.ls';
 
 
 class PDFLatexBuild extends EventEmitter {
     pdflatex: PDFLatexPod
     mainTexFile: Volume.Location
+    _watch: FileWatcher
 
     constructor(mainTexFile: Volume.Location) {
         super();
@@ -24,6 +27,9 @@ class PDFLatexBuild extends EventEmitter {
         this.pdflatex = new PDFLatexPod();
         this.pdflatex.packageManager.on('progress',
             (info) => this.emit('progress', {stage: 'install', info}));
+
+        this._watch = new FileWatcher();
+        this._watch.on('change', () => this.makeWatch());
     }
 
     async make() {
@@ -57,7 +63,10 @@ class PDFLatexBuild extends EventEmitter {
         return await this.make();
     }
 
-    watch() { /** @todo */}
+    watch() {
+        var {volume, filename} = this.mainTexFile;
+        this._watch.single(filename, {fs: volume});
+    }
 
     async makeWatch() {
         var res = await this.make();

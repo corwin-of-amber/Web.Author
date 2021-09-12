@@ -157,8 +157,6 @@ Vue.component 'source-folder.directory', do
     refresh: ->
       if @loc
         @volume = VolumeFactory.instance.get(@loc)
-        if @volume instanceof SubdirectoryVolume
-          FileWatcher.dir.single @volume.root.dir, fs: @volume.root.volume   # @oops this is a global setting :/
         @files.splice 0, Infinity, ...dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE})
 
 

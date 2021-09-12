@@ -68,7 +68,7 @@ class FileEdit extends EditItem
     try @rev.timestamp = @_timestamp!
     catch => return
     @watcher ?= new FileWatcher! .on 'change' (~> @_reload cm)
-      ..single @loc.filename
+      ..single @loc.filename, fs: @loc.volume
 
   unwatch: ->
     @watcher?clear! ; @watcher = null
