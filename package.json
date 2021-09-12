@@ -5,7 +5,9 @@
   "chromium-args": "--disable-background-timer-throttling",
   "scripts": {
     "start": "nw .&",
-    "build": "browserify src/hub.ls -o src/browser.bundle.js"
+    "build": "kremlin index.html",
+    "pack-vendor": "mkdir -p dist && tar czhf dist/vendor.tar.gz bin/tex",
+    "vercel-build": "if [ -e dist/vendor.tar.gz ] ; then tar xzvf dist/vendor.tar.gz ; fi"
   },
   "bin": {
     "tlprobe": "src/distutils/texlive/tlprobe.js"
@@ -39,18 +41,17 @@
   },
   "devDependencies": {
     "@types/jquery": "^3.5.5",
-    "@types/mysql": "^2.15.18",
-    "browserify-livescript": "^0.2.4"
-  },
-  "browserify": {
-    "transform": [
-      "browserify-livescript"
-    ]
+    "@types/mysql": "^2.15.18"
   },
   "window": {
     "icon": "img/icon.png"
   },
   "app": {
     "icon": "img/Icon.icns"
+  },
+  "kremlin": {
+    "assets": [
+      "node_modules/pdfjs-dist/build/pdf.worker.js"
+    ]
   }
 }

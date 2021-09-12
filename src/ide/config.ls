@@ -38,6 +38,8 @@ class IDEConfig
     if (vconf = @config?panes?viewer)? && ide.viewer
       ide.viewer.state = vconf
 
+  is-first-time: -> !@config.panes
+
 
 /**
  * Serialization: handle `Volume` instances in locations throughout the

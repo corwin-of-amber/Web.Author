@@ -16,7 +16,7 @@ require! {
 require './viewer.css'
 
 # yeah...
-pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.js'
+pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.js'
 
 
 

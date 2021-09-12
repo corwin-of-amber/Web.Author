@@ -22,7 +22,7 @@ class IDELayout
       @el.append ..
 
   make-resizable: ->
-    @split = Split @el.find('.ide-pane'), do
+    @split = Split @el.children('.ide-pane'), do
       sizes: @_sizes!
       elementStyle: (dimension, size, gutterSize) ->
         'flex-basis': "calc(#{size}% - #{gutterSize}px)"
@@ -31,10 +31,11 @@ class IDELayout
       minSize: 10
 
   _sizes: ->
-    defd = @el.children!get!map -> $(it).attr('data-size') ? 0 |> Number
+    panes = @el.children('.ide-pane').get!
+    defd = panes.map -> $(it).attr('data-size') ? 0 |> Number
     sum = defd.reduce (+), 0
-    undef = defd.filter (-> !it) .length
-    w = (100 - sum) / undef
+    num-undef = defd.filter (-> !it) .length
+    w = (100 - sum) / num-undef
     defd.map -> it || w
 
   create-project: ->

@@ -2,3 +2,4 @@ src
 bin
 *.app
 /packages
+/data/floc2022

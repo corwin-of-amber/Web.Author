@@ -41,6 +41,11 @@ $ ->>
   $('body').append ide.layout.el
   ide.start 'tex'
 
+  if 1
+    if ide.config.is-first-time!
+      ide.project.open {scheme: 'memfs', path: '/overleaf-examples'}
+        ide.editor.open ..get-main-tex-file!
+
   ide.project.on 'build:finished' ->
     if it.pdf?
       ide.viewer.open it.pdf.toBlob!

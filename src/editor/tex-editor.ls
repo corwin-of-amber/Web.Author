@@ -17,6 +17,8 @@ require! {
     '../ide/problems.ls': { safe }
 }
 
+require 'codemirror/lib/codemirror.css'
+require 'codemirror/addon/dialog/dialog.css'
 require './editor.css'
 
 

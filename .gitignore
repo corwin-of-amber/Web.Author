@@ -18,5 +18,8 @@ bower_components
 .DS_Store
 .vercel
 
+# nanoTex has its own repo
+/packages/nanotex
+
 # This has to be built by nanoTeX
 /bin/tex
