@@ -10,7 +10,8 @@ class MySQLProject {
     localWorkDir: string
 
     constructor(mysqlConfig: mysql.ConnectionConfig, schema: SchemaRef, localWorkDir?: string) {
-        this.db = mysql.createConnection(mysqlConfig);
+        this.db = mysql.createConnection(
+            {...MySQLProject.BASE_OPTIONS, ...mysqlConfig});
         this.schema = schema;
         this.localWorkDir = localWorkDir
     }
@@ -95,6 +96,10 @@ namespace MySQLProject {
     export type SchemaRef = TableRef[];
 
     export type QueryResult = {rows: any[], fields: any[]};
+
+    export const BASE_OPTIONS = {
+        charset: "UTF8MB4_UNICODE_CI"
+    };
 }
 
 
