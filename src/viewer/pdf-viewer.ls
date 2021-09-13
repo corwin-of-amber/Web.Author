@@ -75,18 +75,22 @@ class PDFViewerCore extends EventEmitter
         ..width = viewport.width ; ..height = viewport.height
         ..style.width = "#{viewport.width / @resolution}px"
 
-      page.render do
+      @_ongoing = page.render do
         canvasContext: ctx
         viewport: viewport
-      .promise.then ~>
+      @_ongoing.promise.then ~>
         {page, canvas}
+      .catch -> if !(it instanceof pdfjsLib.RenderingCancelledException) then throw it
 
   goto-page: (page-num) ->
     @selected-page = page-num
     @pages[page-num] ?= @render-page(page-num)
-      ..then (page) ~> @containing-element
-        @canvas?remove!
-        ..append (@canvas = page.canvas)
+      ..then (page) ~>
+        if !page? then return # cancelled
+        if !@canvas
+          @containing-element.append (@canvas = page.canvas)
+        else
+          @canvas.replaceWith (@canvas = page.canvas)
         @emit 'displayed' page
 
   flush: -> @pages = {}
@@ -123,13 +127,18 @@ class Nav_MixIn
 class Zoom_MixIn
   zoom-bind-ui: ->
     @_zoom = new Zoom(@containing-element[0])
-      ..zoom = 150
+      ..zoom = @zoom
       ..setZoom = (z) ~>
+        @_ongoing?cancel!
         @canvas.width @canvas.width! * z / @zoom
         @zoom = z
         @emit 'resizing' @canvas
         @_debounce-refresh!
-    @_debounce-refresh = _.debounce @~refresh, 300
+    @_debounce-refresh = _.debounce @~zoom-refresh, 300
+
+  zoom-refresh: ->
+    # no use refreshing once it gets too small
+    if @zoom >= 1 then @refresh!
 
 
 class SyncTeX extends EventEmitter

@@ -4,6 +4,7 @@
 class Zoom {
     $el: HTMLElement
     zoomRange: {min: number, max: number}
+    accel: number
 
     areaOffset: PointXY
     zoom: number
@@ -15,9 +16,10 @@ class Zoom {
 
     constructor($el: HTMLElement) {
         this.$el = $el;
-        this.zoomRange = {min: 25, max: 800};
+        this.zoomRange = {min: .25, max: 8};
+        this.accel = 5;
         this.areaOffset = {x: 0, y: 0};
-        this.zoom = 100;
+        this.zoom = 1;
         this.pscroll = {x: 0, y: 0};
 
         this.setZoom = (z) => { /* no default impl; caller should set this */ };
@@ -39,11 +41,11 @@ class Zoom {
 
     adjustZoom(newValue: number, around: PointXY = {x:0, y:0}) {
         var u = this.zoom, v = newValue,
-            sc = {x: (this.pscroll.x - around.x) * v / u + around.x,
-                  y: (this.pscroll.y - around.y) * v / u + around.y};
+            sc = {x: Math.max(0, (this.pscroll.x - around.x) * v / u + around.x),
+                  y: Math.max(0, (this.pscroll.y - around.y) * v / u + around.y)};
         this.zoom = v;
         this.pscroll = sc;
-        this.setZoom(v / 100);
+        this.setZoom(v); //Math.pow(5, (v - 100) / 100));
         this.setScroll(ptround(sc));
     }
 
@@ -51,8 +53,9 @@ class Zoom {
         if (ev.ctrlKey) {
             var o = this.areaOffset, r = this.zoomRange,
                 xy = {x: o.x - (ev.pageX - this.$el.offsetLeft),
-                      y: o.y - (ev.pageY - this.$el.offsetTop)};
-            this.adjustZoom(bounded(this.zoom - ev.deltaY, r.min, r.max), xy);
+                      y: o.y - (ev.pageY - this.$el.offsetTop)},
+                factor = Math.pow(this.accel, -ev.deltaY / 100);
+            this.adjustZoom(bounded(this.zoom * factor, r.min, r.max), xy);
             ev.stopPropagation();
             ev.preventDefault();
         }
