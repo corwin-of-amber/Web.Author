@@ -14,6 +14,8 @@ abstract class Volume {
     abstract writeFileSync(filename: string, content: Uint8Array | string,
                            options?: Volume.WriteOptions): void
 
+    abstract createReadStream(filename: string): ReadableStream
+
     abstract unlinkSync(filename: string): void
     abstract renameSync(oldFilename: string, newFilename: string): void
 
@@ -89,6 +91,10 @@ class SubdirectoryVolume extends Volume {
     writeFileSync(filename: string, content: Uint8Array | string,
                   options?: Volume.WriteOptions) {
         this._.writeFileSync(this._abs(filename), content, options);
+    }
+
+    createReadStream(filename: string) {
+        return this._.createReadStream(this._abs(filename));
     }
 
     unlinkSync(filename: string) { this._.unlinkSync(this._abs(filename)); }

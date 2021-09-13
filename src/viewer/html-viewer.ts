@@ -10,11 +10,15 @@ class HTMLViewerCore extends EventEmitter {
         super();
         this.content = $('<iframe>');
         this.content.addClass('viewer--html');
-        if (html) this.render(html);
+        if (html) this.open(html);
         container.append(this.content);
     }
 
-    render(html: HTMLDocument) {
+    destroy() {
+        this.content.remove();
+    }
+
+    open(html: HTMLDocument) {
         this.content[0].srcdoc = html.source;
     }
 }

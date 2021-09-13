@@ -38,6 +38,10 @@ class PDFViewerCore extends EventEmitter
       ..on 'change' non-reentrant ~>>
         await global-tasks.wait! ; await @reload!
 
+  destroy: ->
+    @watcher.clear!
+    @containing-element.empty! # umm
+
   open: (locator, page ? 1) ->>
     if locator instanceof Blob
       locator = {volume: null, filename: URL.createObjectURL(locator)}
@@ -247,8 +251,8 @@ class SyncTeX extends EventEmitter
       else
         @blur!
 
-  @from-file = (filename) ->>
-    txt = await SyncTeX.read-file filename  
+  @from-file = (filename, _fs) ->>
+    txt = await SyncTeX.read-file filename, _fs
     new SyncTeX(synctex-parser.parseSyncTex(txt))
       ..filename = filename
 
@@ -257,19 +261,19 @@ class SyncTeX extends EventEmitter
     new SyncTeX(synctex-parser.parseSyncTex(txt))
 
   @from = ->
-    if typeof it == 'string' then @from-file it
+    if it.volume? then @from-file it.filename, it.volume
                   else @from-buffer it
 
-  @read-file = (filename) -> new Promise (resolve, reject) ->
+  @read-file = (filename, _fs = fs) -> new Promise (resolve, reject) ->
     if filename.endsWith('.gz')
       # apply gunzip (use intermediate stream to save memory)
       zlib = node_require('zlib'); stream-buffers = node_require('stream-buffers')
-      fs.createReadStream(filename)  .on 'error' -> reject it
+      _fs.createReadStream(filename)  .on 'error' -> reject it
       .pipe(zlib.createGunzip())     .on 'error' -> reject it
       .pipe(new stream-buffers.WritableStreamBuffer)
       .on 'finish' -> resolve @getContentsAsString('utf-8')
     else
-      fs.readFile filename, 'utf-8', resolve
+      resolve _fs.readFileSync(filename, 'utf-8')
 
   @read-buffer = (buf) -> new Promise (resolve, reject) ->
     td = new TextDecoder()
@@ -293,8 +297,10 @@ class SyncTeX_MixIn
     @synctex?.remove!
     @synctex = null
 
+    base-dir = opts?base-dir ? filename-or-buffer.volume?root.dir
+
     adjust = (pos) ~> pos
-      ..file.path = @_synctex-relative-path(..file.path, opts?base-dir)
+      ..file.path = @_synctex-relative-path(..file.path, base-dir)
 
     @synctex = await SyncTeX.from filename-or-buffer, opts?base-dir
       @pages[@selected-page]?then @~_synctex-page
@@ -318,15 +324,13 @@ class SyncTeX_MixIn
       @synctex-open that
       @refresh!
 
-  synctex-locate: (pdf-filename) ->
-    if typeof pdf-filename != 'string' then return
-
-    pdf-filename .= replace(/^file:\/\//, '')
-
+  synctex-locate: (pdf-loc) ->
+    if !pdf-loc.volume? then return
     for suffix in ['.synctex.gz', '.synctex']
       try
-        fn = pdf-filename.replace(/(\.pdf|)$/, suffix)
-        if fs.statSync(fn).isFile! then return fn
+        fn = pdf-loc.filename.replace(/(\.pdf|)$/, suffix)
+        if pdf-loc.volume.statSync(fn).isFile!
+          return {pdf-loc.volume, filename: fn}
       catch
 
   _synctex-page: (page) ->
@@ -345,9 +349,11 @@ class PDFViewer extends PDFViewerCore
 
   open: (pdf, page) ->
     super pdf, page .then ~>
-      synctex = @synctex-locate(pdf)
+      synctex = @synctex-locate(@loc)
       if synctex? then @synctex-open synctex
       @ui-init! || @refresh!
+
+  destroy: -> super! ; @synctex?remove!
 
   ui-init: ->
     if !@_ui-init

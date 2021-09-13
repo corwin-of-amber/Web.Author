@@ -42,7 +42,7 @@ $ ->>
     window <<< {mfs}
 
   $('body').append ide.layout.el
-  ide.start 'tex'
+  ide.start!
 
   if 1
     if ide.config.is-first-time!
@@ -65,11 +65,11 @@ $ ->>
       window.addEventListener 'beforeunload' ..~close
 
   if 0
-    fs = require('fs')
+    ide.select-preset 'html'
     wp = new WordPressProject('/Users/corwin/var/tmp/floc2022-author', {wp_posts: 'wp_xsm8ru_posts'},
                               JSON.parse(fs.readFileSync('data/floc2022/connect-info.json', 'utf-8')))
       ..theme = new WordPressTheme('data/floc2022/template-page.html')
-      ..on 'rendered' ({content}) -> ide.viewer.render content
+      ..on 'rendered' ({content}) -> ide.viewer.open content
 
     wp.build('workshops.wp')
 

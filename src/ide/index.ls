@@ -15,14 +15,15 @@ class IDE
     @editor = @layout.create-editor!
     @layout.create-viewer!
     @layout.create-status!
-    @_preset(mode)
+    @select-preset(mode)
     @layout.make-resizable!
 
     @editor.cm.focus!
     @bind-events!
     @restore!
 
-  _preset: (mode) ->
+  select-preset: (mode) ->
+    @viewer?destroy!
     switch mode
     | 'tex' => @viewer = new PDFViewer(, @layout.panes.viewer)
     | 'html' => @viewer = new HTMLViewer(, @layout.panes.viewer)
