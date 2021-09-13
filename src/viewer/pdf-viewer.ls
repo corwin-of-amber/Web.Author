@@ -10,6 +10,7 @@ require! {
     '../infra/fs-watch.ls': { FileWatcher }
     '../infra/non-reentrant.ls': non-reentrant
     '../infra/ongoing.ls': { global-tasks }
+    '../infra/ui-pan-zoom': { Zoom }
     '../ide/problems.ls': { safe }
 }
 
@@ -121,16 +122,14 @@ class Nav_MixIn
 
 class Zoom_MixIn
   zoom-bind-ui: ->
-    @_debounce-refresh = _.debounce @~refresh, 300
-    @containing-element .on 'wheel' (ev) ~>
-      if ev.ctrlKey
-        if @canvas?
-          z = @zoom
-          @zoom -= ev.originalEvent.deltaY / 100
-          @canvas.width @canvas.width() * @zoom / z
+    @_zoom = new Zoom(@containing-element[0])
+      ..zoom = 150
+      ..setZoom = (z) ~>
+        @canvas.width @canvas.width! * z / @zoom
+        @zoom = z
         @emit 'resizing' @canvas
         @_debounce-refresh!
-        ev.preventDefault()
+    @_debounce-refresh = _.debounce @~refresh, 300
 
 
 class SyncTeX extends EventEmitter
