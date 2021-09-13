@@ -1,17 +1,19 @@
 <!-- !!! -->
 <!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <!-- base (this is replaced with a <base> tag in production) -->
+        <link href="../../img/icon.png" rel="icon" type="image/png">
 
-<meta charset="utf-8">
-<!-- base -->
+        <script data-mode="dev">
+            /* hack for pdfjs in nwjs https://github.com/mozilla/pdf.js/issues/9071 */
+            window.Response = undefined;
+        </script>
 
-<link href="../../img/icon.png" rel="icon" type="image/png">
-
-
-<script data-mode="dev">
-    /* hack for pdfjs in nwjs https://github.com/mozilla/pdf.js/issues/9071 */
-    window.Response = undefined;
-</script>
-<!-- <script src="node_modules/pdfjs-dist/build/pdf.js"></script> -->
-
-<script src="src/hub.ls"></script>
-<!-- @kremlin.plug -->
+        <script src="src/hub.ls"></script>
+    </head>
+    <body>
+        <!-- @kremlin.plug -->
+    </body>
+</html>
