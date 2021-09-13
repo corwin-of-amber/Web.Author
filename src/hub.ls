@@ -7,9 +7,11 @@ if !process.nextTick?
 
 
 require! {
+  fs
   jquery: $
   lodash: _
   memfs
+  './infra/volume': { WatchPolicy }
   './infra/volume-factory': { VolumeFactory, FsVolumeScheme }
   './viewer/html-viewer': { HTMLDocument }
   './viewer/wordpress/render.ls': { WordPressTheme }
@@ -26,7 +28,8 @@ global.console = window.console   # for debugging
 CLIENT_OPTS = void
 #CLIENT_OPTS = servers: hub: 'ws://localhost:3300'
 
-VolumeFactory.instance.schemes.set 'file', new FsVolumeScheme
+VolumeFactory.instance.schemes.set 'file', \
+  new FsVolumeScheme(fs, WatchPolicy.Centralized)
 VolumeFactory.instance.schemes.set 'memfs', \
   mfs-scheme = new OnDemandFsVolumeScheme(mfs = new memfs.Volume)
 

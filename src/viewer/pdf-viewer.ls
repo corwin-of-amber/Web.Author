@@ -62,7 +62,7 @@ class PDFViewerCore extends EventEmitter
     if loc.volume == fs then "file://#{loc.filename}" else loc.filename
 
   reload: ->
-    if @pdf?uri then @open that, @selected-page
+    if @loc then @open that, @selected-page
 
   render-page: (page-num) ->
     canvas = $('<canvas>')

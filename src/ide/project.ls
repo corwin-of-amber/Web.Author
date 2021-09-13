@@ -117,8 +117,10 @@ class TeXProject
   builder: ->
     main-tex = @get-main-tex-file!
     if !main-tex then throw new Error('main TeX file not found in project')
-    new WASI_PDFLatexBuild main-tex
-    #new LatexmkBuild @get-main-tex-file!, @path
+    if @loc.scheme == 'file'   # that's one way to decide about it
+      new LatexmkBuild main-tex.filename, @path
+    else
+      new WASI_PDFLatexBuild main-tex
 
   _find-pdf: (root-dir) ->
     fns = glob-all.sync(Array.from(['out/*.pdf', '*.pdf' ++ @@IGNORE]),

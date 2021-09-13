@@ -66,6 +66,11 @@ class SubdirectoryVolume extends Volume {
         this._watch = {policy: new WatchPolicy.Individual, setup: false};
     }
 
+    withWatchPolicy(policy: WatchPolicy) {
+        this._watch = {policy, setup: false};
+        return this;
+    }
+
     get _() { return this.root.volume; }
     _abs(relpath: string) { return this.path.join(this.root.dir, relpath); }
 

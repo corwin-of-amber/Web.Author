@@ -1,6 +1,8 @@
 node_require = global.require ? (->)
-  child-process-promise = .. 'child-process-promise'
   fs = .. 'fs'
+  util = .. 'util'
+  child_process = .. 'child_process'
+  child-process-promise = .. 'child-process-promise'
 require! {
     path,
     events: {EventEmitter}
@@ -40,6 +42,7 @@ class LatexmkBuild extends EventEmitter
   make: job non-reentrant ->>
     console.log "%cmake #{@base-dir} #{@main-tex-fn}", 'color: green'
     @emit 'started'
+    await @_yield! # this is needed because child_process locks Vue updates somehow?
     try
       rc = await \
         child-process-promise.spawn @latexmk, @_args!, \
@@ -58,6 +61,8 @@ class LatexmkBuild extends EventEmitter
 
   _args: -> @latexmk-flags ++ @pdflatex-flags ++ ["-outdir='#{@out-dir}'", @main-tex-fn]
   _env:  -> ^^global.process.env <<< @envvars
+
+  _yield: -> new Promise -> setTimeout it, 1
 
   remake: ->> @clean! ; await @make!
 

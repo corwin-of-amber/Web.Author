@@ -2,7 +2,7 @@ import fs from 'fs';      /** @kremlin.native */
 import path from 'path';  /** @kremlin.native */
 import pathShim from 'path';  // for browser environment
 import { JSONKeyedMap } from './keyed-map';
-import { Volume, SubdirectoryVolume } from './volume';
+import { Volume, SubdirectoryVolume, WatchPolicy } from './volume';
 
 
 class VolumeFactory {
@@ -46,9 +46,14 @@ interface VolumeScheme<V extends Volume = Volume> {
 
 class FsVolumeScheme implements VolumeScheme<SubdirectoryVolume> {
     fs: Volume
-    constructor(_fs: Volume = <any>fs) { this.fs = _fs }
+    wp: {new(): WatchPolicy}
+    constructor(_fs: Volume = <any>fs, wp: {new(): WatchPolicy} = WatchPolicy.Individual) {
+        this.fs = _fs;
+        this.wp = wp;
+    }
     createVolumeFromPath(p: string) {
-        return new SubdirectoryVolume(this.fs, p, path.join ? path :  pathShim);
+        return new SubdirectoryVolume(this.fs, p, path.join ? path :  pathShim)
+            .withWatchPolicy(new this.wp);
     }
 }
 
