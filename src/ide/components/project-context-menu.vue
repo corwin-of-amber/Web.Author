@@ -10,6 +10,7 @@
 
 <script>
 import { VueContext } from 'vue-context';
+import 'vue-context/dist/css/vue-context.css';
 
 export default {
     methods: {
