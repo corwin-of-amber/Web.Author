@@ -37,7 +37,8 @@ class IDE
     @project.on 'build:progress' ~>
       @build-progress it
     @editor.on 'open' ~>
-      recent?last-file = {it.type, it.loc}
+      if it.loc.volume == @project.volume
+        recent?last-file = {it.type, it.loc.filename}
     @viewer.on 'synctex-goto' ~> if @editor
       @editor.jump-to @file-of-project(it.file.path), line: it.line
 

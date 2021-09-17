@@ -30,6 +30,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
         action: ~> @action it
         build: ~> @build!
     .$mount!
+      ..projects = @_recent
 
     @file-dialog = new FileDialog(/*select-directory*/true)
 
@@ -52,7 +53,8 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
       @vue.loc = ..loc
       @add-recent ..loc
       @emit 'open', project: ..
-      if last-file? then @emit 'file:select', loc: last-file.loc
+      doc = if last-file then ..get-file(last-file.filename) else ..get-main-tex-file!
+      if doc? then @emit 'file:select', loc: doc
   
   open-dialog: ->>
     dir = await @file-dialog.open!
@@ -70,6 +72,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
   unbuild: ->
     if @_builder? then @_builder = void
+    @vue.build-status = void
 
   recent:~
     -> @_recent

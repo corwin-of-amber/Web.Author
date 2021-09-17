@@ -22,7 +22,7 @@ require! {
   './net/static': { OnDemandFsVolumeScheme }
 }
 
-global.console = window.console   # for debugging
+#global.console = window.console   # for debugging
 
 
 CLIENT_OPTS = void
@@ -46,6 +46,8 @@ $ ->>
 
   if 1
     if ide.config.is-first-time!
+      ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
+      ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/acm-sigplan'}
       ide.project.open {scheme: 'memfs', path: '/examples/acmart-minimal'}
         ide.editor.open ..get-main-tex-file!
 

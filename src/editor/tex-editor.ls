@@ -54,7 +54,7 @@ class TeXEditor extends EventEmitter
 
   open-file: (locator) ->
     @_pre-load!
-    @visited-files.enter @cm, locator.filename, -> new FileEdit(locator)
+    @visited-files.enter @cm, locator, -> new FileEdit(locator)
     .then ~> @emit 'open', {type: 'file', loc: locator, uri: locator.filename}
 
   open-syncpad: (slot) ->
@@ -69,7 +69,7 @@ class TeXEditor extends EventEmitter
     if @loc? then @open-file @loc
 
   save: ->
-    @visited-files.save @cm, @loc.filename
+    @visited-files.save @cm, @loc
     if @@is-dat(@loc.filename)
       @emit 'request-save'
 
