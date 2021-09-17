@@ -1,5 +1,9 @@
 src
 bin
+_build
 *.app
-/packages
+/packages/nanotex/dist
+/packages/nanotex/tldist
+/packages/nanotex/tlarchive
+/packages/nanotex/*.tar
 /data/floc2022
