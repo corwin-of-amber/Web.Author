@@ -1,0 +1,82 @@
+{
+    "packages": {
+        "acmart": {
+            "deps": [
+            "xkeyval",
+            "xstring",
+            "iftex",
+            "microtype",
+            "etoolbox",
+            "booktabs",
+            "refcount",
+            "ltxcmds",
+            "infwarerr",
+            "totpages",
+            "everyshi",
+            "environ",
+            "trimspaces",
+            "setspace",
+            "textcase",
+            "natbib",
+            "hyperxmp",
+            "kvoptions",
+            "kvsetkeys",
+            "pdfescape",
+            "pdftexcmds",
+            "stringenc",
+            "intcalc",
+            "ifmtarg",
+            "oberdiek",
+            "hyperref",
+            "kvdefinekeys",
+            "hycolor",
+            "letltxmacro",
+            "auxhook",
+            "etexcmds",
+            "url",
+            "bitset",
+            "bigintcalc",
+            "rerunfilecheck",
+            "uniquecounter",
+            "graphics",
+            "graphics-cfg",
+            "graphics-def",
+            "xcolor",
+            "geometry",
+            "ncctools",
+            "cmap",
+            "caption",
+            "float",
+            "comment",
+            "fancyhdr",
+            "gettitlestring"
+            ]
+        },
+        "latex": {
+            "deps": [
+                "amsfonts",
+                "cite",
+                "modes",
+                "metafont",
+                "l3kernel",
+                "cm",
+                "latex",
+                "amsmath",
+                "hyphen-base",
+                "pdftex",
+                "etex",
+                "latex-fonts",
+                "amscls",
+                "l3backend",
+                "plain",
+                "tex-ini-files",
+                "latexconfig",
+                "knuth-lib",
+                "ec"
+            ]
+        },
+        "amsfonts": {
+            "format": "tar"
+        }
+    }
+}

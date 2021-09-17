@@ -10,10 +10,14 @@ import fs from 'fs';  /* @kremlin.native */
 import path from 'path';
 import { EventEmitter } from 'events';
 import { ExecCore } from 'wasi-kernel/src/kernel/exec';
-import { PackageManager, Resource, ResourceBundle } from 'basin-shell/src/package-mgr';
+import { PackageManager, Resource, ResourceBundle, DownloadProgress }
+     from 'basin-shell/src/package-mgr';
+import { Xz } from 'xz-extract';
+     
 import { Volume } from '../infra/volume';
 // @ts-ignore
 import { FileWatcher } from '../infra/fs-watch.ls';
+import { Tlmgr } from '../distutils/texlive/tlmgr';
 
 
 class PDFLatexBuild extends EventEmitter {
@@ -79,6 +83,7 @@ class PDFLatexBuild extends EventEmitter {
 class PDFLatexPod {
     core: ExecCore
     packageManager: PackageManager
+    tlmgr: Tlmgr
 
     _prepared: Promise<void>
 
@@ -92,11 +97,17 @@ class PDFLatexPod {
             console.log(fd, new TextDecoder().decode(data)));
 
         this.packageManager = new PackageManager(this.core.fs);
+        this.tlmgr = new Tlmgr();
     }
 
     prepare() {
-        return (this._prepared ??=
-            this.packageManager.install(PDFLatexPod.texdist));
+        return (this._prepared ??= this._prepare());
+    }
+
+    async _prepare() {
+        await this.packageManager.install(PDFLatexPod.texdist);
+        await this.packageManager.install(
+            await PDFLatexPod.bundleOf(["latex", "lm", "acmart"], this.tlmgr));
     }
 
     uploadDocument(content: string | Uint8Array, fn = this.mainTex) {
@@ -132,6 +143,20 @@ class PDFLatexPod {
         else throw new PDFLatexPod.BuildError(rc);
     }
 }
+
+
+class XzResource extends Resource {
+    async blob(progress?: (p: DownloadProgress) => void) {
+        
+        var compressed = await (await super.blob(progress)).arrayBuffer(),
+            xz = new Xz(new Uint8Array(compressed));
+        
+        var //xz = new Xz(fs.readFileSync(this.uri.replace(/^[/]/, ''))),
+            unpacked = new Uint8Array(xz.decompressBlock());
+        return new Blob([unpacked]);
+    }
+}
+
 
 namespace PDFLatexPod {
 
@@ -195,8 +220,24 @@ namespace PDFLatexPod {
         '/bin/pdflatex': '#!/bin/tex/pdftex.wasm',
         '/bin/texmf.cnf': new Resource('/bin/tex/texmf.cnf'),
         '/dist/': new Resource('/bin/tex/dist.tar'),
-        '/tldist/': new Resource('/bin/tex/tldist.tar')
+        '/dist/pdftex.map': new Resource('/bin/tex/pdftex.map'),
+        //'/tldist/': new Resource('/bin/tex/tldist.tar')
     };
+
+    const NANOTEX_BASE = '/bin/tlnet',
+          NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts'].map(x => [x, 'tar'])); // these are too large
+
+    export async function bundleOf(joy: string[], tlmgr: Tlmgr) {
+        var pkgs = await tlmgr.collect(joy);
+        return {
+            '/tldist/': [
+                ...pkgs.map(nm =>
+                    NANOTEX_FMT[nm] == 'tar' ?
+                        new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
+                        new XzResource(`${NANOTEX_BASE}/${nm}.tar.xz`))
+            ]
+        } as ResourceBundle;
+    }
 
 }
 

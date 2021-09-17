@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nw .&",
     "build": "kremlin index.html",
-    "pack-vendor": "mkdir -p dist && tar czhf dist/vendor.tar.gz bin/tex",
+    "pack-vendor": "mkdir -p dist && tar czhf dist/vendor.tar.gz --exclude tldist.tar bin/tex",
     "vercel-build": "./etc/vercel-build.sh"
   },
   "bin": {
@@ -37,6 +37,7 @@
     "tempy": "^0.2.1",
     "vue": "^2.6.10",
     "vue-context": "^4.1.1",
+    "xz-extract": "file:../Web.OS.Shell/packages/xz-extract/xz-extract-0.1.0.tgz",
     "xz-pipe": "^0.0.3"
   },
   "devDependencies": {

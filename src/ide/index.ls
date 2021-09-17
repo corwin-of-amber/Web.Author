@@ -58,7 +58,7 @@ class IDE
       if it.info?done then ..hide 50
       else
         switch it.stage
-        | 'install' => ..show "installing #{it.info.uri}"
+        | 'install' => ..show "installing #{it.info.uri ? it.info.path}"
         | 'compile' => ..show "compiling #{it.info.filename}"
 
 
