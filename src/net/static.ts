@@ -25,7 +25,7 @@ class OnDemandFsVolumeScheme extends FsVolumeScheme {
 const ASSETS: ResourceBundle = {
     '/proj1/foo.tex': 'bar', 
     '/proj1/main.tex': 'documentclass ... ',
-    '/overleaf-examples/': new Resource('/data/overleaf-examples.tar')
+    '/': new Resource('/data/examples.tar')
 };
 
 

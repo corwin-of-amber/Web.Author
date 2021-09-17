@@ -46,7 +46,7 @@ $ ->>
 
   if 1
     if ide.config.is-first-time!
-      ide.project.open {scheme: 'memfs', path: '/overleaf-examples'}
+      ide.project.open {scheme: 'memfs', path: '/examples/acmart-minimal'}
         ide.editor.open ..get-main-tex-file!
 
   ide.project.on 'build:finished' ->
