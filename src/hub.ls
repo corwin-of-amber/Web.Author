@@ -46,9 +46,9 @@ $ ->>
 
   if 1
     if ide.config.is-first-time!
-      ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
+      ide.project.add-recent {scheme: 'memfs', path: '/examples/acmart-minimal'}
       ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/acm-sigplan'}
-      ide.project.open {scheme: 'memfs', path: '/examples/acmart-minimal'}
+      ide.project.open {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
         ide.editor.open ..get-main-tex-file!
 
   ide.project.on 'build:finished' ->
@@ -56,6 +56,9 @@ $ ->>
       ide.viewer.open it.pdf.toBlob!
       if it.pdf.synctex?
         ide.viewer.synctex-open it.pdf.synctex.content, {base-dir: '/home'}  # @oops
+    if (log = it.log ? it.error?log)?
+      log.saveAs(ide.project.current.get-file('out/build.log'))
+      ide.project.refresh!
 
   if 0
     p2p = new AuthorP2P(CLIENT_OPTS)

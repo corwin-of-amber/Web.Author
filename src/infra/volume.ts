@@ -18,6 +18,7 @@ abstract class Volume {
 
     abstract unlinkSync(filename: string): void
     abstract renameSync(oldFilename: string, newFilename: string): void
+    abstract mkdirSync(dirname: string, opts?: any): void
 
     abstract watch(filename: string, opts: any, listener: Volume.WatchListener): Volume.Watcher
 
@@ -100,6 +101,9 @@ class SubdirectoryVolume extends Volume {
     unlinkSync(filename: string) { this._.unlinkSync(this._abs(filename)); }
     renameSync(oldFilename: string, newFilename: string) {
         this._.renameSync(this._abs(oldFilename), this._abs(newFilename));
+    }
+    mkdirSync(filename: string, opts?: any) {
+        this._.mkdirSync(this._abs(filename), opts);
     }
 
     watch(filename: string, opts: any, listener: Volume.WatchListener) {

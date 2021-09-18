@@ -39,7 +39,6 @@ namespace Tlmgr {
 
     export type PackageInfo = {
         isMeta?: boolean
-        format?: 'tar' | 'tar.xz'
         deps?: string[]
     };
 

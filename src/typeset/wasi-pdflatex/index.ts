@@ -14,23 +14,27 @@ import { PackageManager, Resource, ResourceBundle, DownloadProgress }
      from 'basin-shell/src/package-mgr';
 import { Xz } from 'xz-extract';
      
-import { Volume } from '../infra/volume';
+import { Volume } from '../../infra/volume';
 // @ts-ignore
-import { FileWatcher } from '../infra/fs-watch.ls';
-import { Tlmgr } from '../distutils/texlive/tlmgr';
+import { FileWatcher } from '../../infra/fs-watch.ls';
+import { Tlmgr } from '../../distutils/texlive/tlmgr';
 
 
 class PDFLatexBuild extends EventEmitter {
-    pdflatex: PDFLatexPod
+    pdflatex: PDFLatexPod | PDFLatexWorkerI
     mainTexFile: Volume.Location
     _watch: FileWatcher
 
     constructor(mainTexFile: Volume.Location) {
         super();
         this.mainTexFile = mainTexFile;
-        this.pdflatex = new PDFLatexPod();
-        this.pdflatex.packageManager.on('progress',
-            (info) => this.emit('progress', {stage: 'install', info}));
+        this.pdflatex = new PDFLatexWorkerI();
+        // set up events
+        if (this.pdflatex instanceof PDFLatexPod)
+            this.pdflatex.packageManager.on('progress',
+                (info) => this.emit('progress', {stage: 'install', info}));
+        if (this.pdflatex instanceof EventEmitter)
+            this.pdflatex.on('progress', ev => this.emit('progress', ev));
 
         this._watch = new FileWatcher();
         this._watch.on('change', () => this.makeWatch());
@@ -42,21 +46,28 @@ class PDFLatexBuild extends EventEmitter {
 
         try {
             var {volume, filename} = this.mainTexFile,
-                content = volume.readFileSync(filename);
-            await this.pdflatex.prepare();
+                content = volume.readFileSync(filename),
+                pkgs = this._guessRequiredPackages(new TextDecoder().decode(content));
+            console.log(pkgs);
+            await this.pdflatex.prepare(pkgs);
             try {
                 this.emit('progress', {stage: 'compile', info: {filename, done: false}})
-                var out = await this.pdflatex.compile(content, `/home/${volume.path.basename(filename)}`);
+                var out: any = await this.pdflatex.compile(content, `/home/${volume.path.basename(filename)}`);
             }
             finally {
                 this.emit('progress', {stage: 'compile', info: {done: true}});
             }
-            this.emit('finished', {outcome: 'ok', pdf: out});
+            this.emit('finished', {
+                outcome: 'ok', 
+                pdf: out.pdf && PDFLatexPod.CompiledPDF.from(out.pdf),
+                log: out.log && PDFLatexPod.CompiledAsset.from(out.log)
+            });
             return out;
         }
         catch (e) {
+            if (e.log) e.log = PDFLatexPod.CompiledAsset.from(e.log);
             this.emit('finished', {outcome: 'error', error: e});
-            if (!(e instanceof PDFLatexPod.BuildError)) throw e;
+            if (e.$type !== 'BuildError') throw e;
         }
     }
 
@@ -77,7 +88,70 @@ class PDFLatexBuild extends EventEmitter {
         this.watch();
         return res;
     }
+
+    _guessRequiredPackages(source: string) {
+        // very rudimentary atm
+        var pkgs = ['latex', 'lm'];
+        if (source.match(/\\documentclass(\[.*?\])?{acmart}/)) pkgs.push('acmart');
+        return pkgs;
+    }
 }
+
+
+class PDFLatexWorkerI extends EventEmitter {
+    worker: Worker
+    _pending = new Map<number, Future>()
+    _uid = 0;
+
+    _startup() {
+        if (!this.worker) {
+            this.worker = new Worker('./wasi-pdflatex.worker.js' /* compiled from `./worker.ts` */);
+            this.worker.addEventListener('message', ev => this._handle(ev.data));
+            this.worker.addEventListener('messageerror', ev => {
+                console.error('messageerror', ev);
+            });
+        }
+    }
+
+    async _submit<T>(cmd: T & {id?: number}) {
+        cmd.id ??= ++this._uid;
+        return new Promise((resolve, reject) => {
+            this._pending.set(cmd.id, {resolve, reject});
+            this.worker.postMessage(cmd);
+        });
+    }
+
+    _handle({type, ev}: MessageFromWorker) {
+        console.log('message', type, ev);
+        switch (type) {
+        case 'completed':
+            var fut = this._pending.get(ev.id);
+            if (fut) {
+                this._pending.delete(ev.id);
+                switch (ev.status) {
+                case 'ok': fut.resolve(ev.ret); break;
+                default:   fut.reject(ev.exc); break;
+                }
+            }
+            break;
+        case 'progress':
+            this.emit('progress', ev);
+        }
+    }
+
+    async prepare(packages: string[] = []) {
+        this._startup();
+        return await this._submit({method: 'prepare', args: [packages]});
+    }
+
+    async compile(source: string | Uint8Array, fn?: string) {
+        this._startup();
+        return await this._submit({method: 'compile', args: [source, fn]});
+    }
+}
+
+type MessageFromWorker = {type: 'completed' | 'progress', ev: any};
+type Future = {resolve: (v: any) => void, reject: (err: any) => void};
 
 
 class PDFLatexPod {
@@ -85,7 +159,8 @@ class PDFLatexPod {
     packageManager: PackageManager
     tlmgr: Tlmgr
 
-    _prepared: Promise<void>
+    _ready: Promise<void>
+    _installed = new Set<string>()
 
     mainTex: string = '/home/doc.tex'
     opts = {outdir: 'out', synctex: 1}
@@ -100,14 +175,22 @@ class PDFLatexPod {
         this.tlmgr = new Tlmgr();
     }
 
-    prepare() {
-        return (this._prepared ??= this._prepare());
+    prepare(packages: string[] = []) {
+        if (!this._ready || packages.some(pkg => !this._installed.has(pkg)))
+            this._ready = this._prepare(packages);
+        return this._ready;
     }
 
-    async _prepare() {
-        await this.packageManager.install(PDFLatexPod.texdist);
-        await this.packageManager.install(
-            await PDFLatexPod.bundleOf(["latex", "lm", "acmart"], this.tlmgr));
+    async _prepare(packages: string[]) {
+        packages = packages.filter(pkg => !this._installed.has(pkg));
+        if (!this._installed.has('texdist'))
+            await this.packageManager.install(PDFLatexPod.texdist);
+        if (packages.length > 0)
+            await this.packageManager.install(
+                await PDFLatexPod.bundleOf(packages, this.tlmgr));
+
+        this._installed.add('texdist');
+        for (let pkg of packages) this._installed.add(pkg);
     }
 
     uploadDocument(content: string | Uint8Array, fn = this.mainTex) {
@@ -132,15 +215,20 @@ class PDFLatexPod {
         this.uploadDocument(source, fn);
         var rc = await this.start();
 
+        var volume = <unknown>this.core.fs as Volume,
+            outdir = path.resolve('/home', this.opts.outdir),
+            file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
+            job = fn ? path.basename(fn).replace(/\.tex$/, '') : 'doc';
+
         if (rc == 0) {
-            var volume = <unknown>this.core.fs as Volume,
-                outdir = path.resolve('/home', this.opts.outdir),
-                file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
-                job = fn ? path.basename(fn).replace(/\.tex$/, '') : 'doc';
-            return PDFLatexPod.CompiledPDF.fromFile(file(`${job}.pdf`))
-                .withSyncTeXMaybe(file(`${job}.synctex.gz`));
+            return {
+                pdf: PDFLatexPod.CompiledPDF.fromFile(file(`${job}.pdf`))
+                        .withSyncTeXMaybe(file(`${job}.synctex.gz`)),
+                log: PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`))
+            }
         }
-        else throw new PDFLatexPod.BuildError(rc);
+        else throw new PDFLatexPod.BuildError(rc).withLog(
+            PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`)));
     }
 }
 
@@ -171,7 +259,9 @@ namespace PDFLatexPod {
         constructor(content: Uint8Array) { this.content = content; }
 
         saveAs(loc: Volume.Location) {
-            (loc.volume ?? fs).writeFileSync(loc.filename, this.content);
+            const ifs = loc.volume ?? fs;
+            ifs.mkdirSync((loc.volume?.path ?? path).dirname(loc.filename), {recursive: true});
+            ifs.writeFileSync(loc.filename, this.content);
             return loc;
         }
 
@@ -186,6 +276,17 @@ namespace PDFLatexPod {
         static fromFile<T extends This<typeof CompiledAsset>>
                 (this: T, loc: Volume.Location): InstanceType<T> {
             return new this(loc.volume.readFileSync(loc.filename));
+        }
+
+        static fromFileMaybe<T extends This<typeof CompiledAsset>>
+                (this: T, loc: Volume.Location): InstanceType<T> {
+            try { return this.fromFile(loc); }
+            catch { return undefined; }
+        }
+
+        static from(data: any) {
+            if (data instanceof CompiledAsset) return data;
+            else return new CompiledAsset(data.content);
         }
     }
 
@@ -206,12 +307,27 @@ namespace PDFLatexPod {
             try { return this.withSyncTeX(loc); }
             catch { return this; }
         }
+
+        static from(data: any) {
+            if (data instanceof CompiledPDF) return data;
+            else {
+                var c = new CompiledPDF(data.content);
+                if (data.synctex) c.synctex = CompiledAsset.from(data.synctex);
+                return c;
+            }
+        }
     }
 
     export class BuildError {
+        $type = 'BuildError'
         code: number
+        log?: CompiledAsset
         constructor(code: number) {
             this.code = code;
+        }
+        withLog(log: CompiledAsset) {
+            this.log = log;
+            return this;
         }
     }
 
@@ -225,7 +341,8 @@ namespace PDFLatexPod {
     };
 
     const NANOTEX_BASE = '/bin/tlnet',
-          NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts'].map(x => [x, 'tar'])); // these are too large
+          NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts']   // these are too large for LZMA2-js
+                                           .map(x => [x, 'tar']));
 
     export async function bundleOf(joy: string[], tlmgr: Tlmgr) {
         var pkgs = await tlmgr.collect(joy);
