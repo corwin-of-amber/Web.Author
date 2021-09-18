@@ -48,7 +48,7 @@ class PDFLatexBuild extends EventEmitter {
             var {volume, filename} = this.mainTexFile,
                 content = volume.readFileSync(filename),
                 pkgs = this._guessRequiredPackages(new TextDecoder().decode(content));
-            console.log(pkgs);
+
             await this.pdflatex.prepare(pkgs);
             try {
                 this.emit('progress', {stage: 'compile', info: {filename, done: false}})
@@ -122,7 +122,6 @@ class PDFLatexWorkerI extends EventEmitter {
     }
 
     _handle({type, ev}: MessageFromWorker) {
-        console.log('message', type, ev);
         switch (type) {
         case 'completed':
             var fut = this._pending.get(ev.id);

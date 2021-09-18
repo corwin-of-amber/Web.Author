@@ -63,9 +63,10 @@ class StatusBar
     @el = $ '<div>' .addClass ['ide-bar-status', 'hidden']
     @rev = 0
   
-  show: (text, duration) ->
+  show: ({text ? '', widget}, duration) ->
     @rev++
     @el.removeClass 'hidden' .text text
+      if widget? then ..append widget
     if duration? then @hide duration
 
   hide: (duration) ->
@@ -76,5 +77,8 @@ class StatusBar
       @el.addClass 'hidden'
 
 
+ProgressWidget = ->
+  $ '<span>' .addClass 'progress' .text it
 
-export IDELayout
+
+export IDELayout, StatusBar, ProgressWidget

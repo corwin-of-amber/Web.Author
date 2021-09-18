@@ -1,5 +1,5 @@
 require! {
-  './layout.ls': { IDELayout }
+  './layout.ls': { IDELayout, ProgressWidget }
   './config.ls': { IDEConfig }
   '../viewer/pdf-viewer.ls': { PDFViewer }
   '../viewer/html-viewer': { HTMLViewer }
@@ -32,10 +32,9 @@ class IDE
     recent = void
     @project.on 'open' ~>
       recent := @project.lookup-recent it.project.loc
-    @project.on 'file:select' ~>
-      @file-select it
-    @project.on 'build:progress' ~>
-      @build-progress it
+    @project.on 'file:select' ~> @file-select it
+    @project.on 'build:progress' ~> @build-progress it
+    @project.on 'build:finished' ~> @build-finished it
     @editor.on 'open' ~>
       if it.loc.volume == @project.volume
         recent?last-file = {it.type, it.loc.filename}
@@ -58,9 +57,16 @@ class IDE
     @layout.bars.status
       if it.info?done then ..hide 50
       else
+        widget = if it.info.download && it.info.download.downloaded > 1e6
+          then ProgressWidget(" #{Math.floor(it.info.download?downloaded / 1e6)}MB")
         switch it.stage
-        | 'install' => ..show "installing #{it.info.uri ? it.info.path}"
-        | 'compile' => ..show "compiling #{it.info.filename}"
+        | 'install' => ..show text: "installing #{it.info.uri ? it.info.path}", widget: widget
+        | 'compile' => ..show text: "compiling #{it.info.filename}"
+  
+  build-finished: !->
+      if it.outcome == 'error'
+        @layout.bars.status.show text: 'build failed.' + \
+          (if it.error?log then '' else ' (internal error!)')
 
 
 export IDE
