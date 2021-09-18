@@ -10,6 +10,7 @@ class VolumeFactory {
     memo = new JSONKeyedMap<VolumeFactory.Locator, Volume>()
  
     get(locator: VolumeFactory.Locator) {
+        locator = {scheme: locator.scheme, path: locator.path}; // normalize
         var vol = this.memo.get(locator);
         if (!vol) {
             vol = this._gen(locator);

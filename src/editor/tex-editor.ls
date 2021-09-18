@@ -63,7 +63,7 @@ class TeXEditor extends EventEmitter
     .then ~> @emit 'open', {type: 'syncpad', slot.uri, slot}
 
   _pre-load: !->
-    if @loc? then @visited-files.leave @cm, @loc.filename
+    if @loc? then @visited-files.leave @cm, @loc
 
   reload: ->
     if @loc? then @open-file @loc

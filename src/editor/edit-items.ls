@@ -8,7 +8,7 @@ require! {
 
 class VisitedFiles
   ->
-    @info = new Map
+    @info = new LocationMap
 
   get: (key, gen) ->
     if (rec = @info.get(key))? then rec
@@ -18,6 +18,15 @@ class VisitedFiles
   enter: (cm, key, gen) ->> await (e = @get key, gen).enter cm ; e
   leave: (cm, key) ->       @get key, (->) ?.leave cm
   save:  (cm, key) ->       @get key, (-> assert false) .save cm
+
+
+class LocationMap
+  -> @map = new Map
+  get: (loc) ->
+    if (sub = @map.get(loc.volume)) then sub.get(loc.filename)
+  set: (loc, value) ->
+    if !(sub = @map.get(loc.volume)) then @map.set loc.volume, sub = new Map
+    sub.set loc.filename, value
 
 
 class EditItem
@@ -80,9 +89,7 @@ class FileEdit extends EditItem
   _reload: (cm) ->>
     if @changed-on-disk!
       console.log 'reload', @loc.filename
-      @checkpoint cm
-      await @load cm
-      @watch! ; @enter cm
+      @enter cm
 
 
 detect-line-ends = (txt) ->

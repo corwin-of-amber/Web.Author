@@ -57,7 +57,7 @@ $ ->>
 
   ide.project.on 'build:finished' ->
     if it.pdf?
-      ide.viewer.open it.pdf.toBlob!
+      ide.viewer.open it.pdf.toBlob!, ide.viewer.selected-page  # @todo go to page 1 if not the same project
       if it.pdf.synctex?
         ide.viewer.synctex-open it.pdf.synctex.content, {base-dir: '/home'}  # @oops
     if (log = it.log ? it.error?log)?
