@@ -28,6 +28,8 @@ require! {
 CLIENT_OPTS = void
 #CLIENT_OPTS = servers: hub: 'ws://localhost:3300'
 
+if typeof nw !== 'undefined' then window.DEV = true
+
 VolumeFactory.instance.schemes.set 'file', \
   new FsVolumeScheme(fs, WatchPolicy.Centralized)
 VolumeFactory.instance.schemes.set 'memfs', \

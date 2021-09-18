@@ -17,6 +17,8 @@ import { Xz } from 'xz-extract';
 import { Volume } from '../../infra/volume';
 // @ts-ignore
 import { FileWatcher } from '../../infra/fs-watch.ls';
+// @ts-ignore
+import { globAll } from '../../infra/fs-traverse.ls';
 import { Tlmgr } from '../../distutils/texlive/tlmgr';
 
 
@@ -46,13 +48,14 @@ class PDFLatexBuild extends EventEmitter {
 
         try {
             var {volume, filename} = this.mainTexFile,
-                content = volume.readFileSync(filename),
-                pkgs = this._guessRequiredPackages(new TextDecoder().decode(content));
+                source = this._collect(volume),
+                entry = new TextDecoder().decode(source[filename]),
+                pkgs = this._guessRequiredPackages(entry);
 
             await this.pdflatex.prepare(pkgs);
             try {
                 this.emit('progress', {stage: 'compile', info: {filename, done: false}})
-                var out: any = await this.pdflatex.compile(content, `/home/${volume.path.basename(filename)}`);
+                var out: any = await this.pdflatex.compile(source, filename);
             }
             finally {
                 this.emit('progress', {stage: 'compile', info: {done: true}});
@@ -89,11 +92,23 @@ class PDFLatexBuild extends EventEmitter {
         return res;
     }
 
+    _collect(volume: Volume) {
+        return Object.fromEntries(
+            [...globAll(['**'], {type: 'file', exclude: ['out', '**/.*'],
+                                 cwd: '', fs: volume})].map((fn: string) =>
+                [fn, volume.readFileSync(fn)])
+        );
+    }
+
     _guessRequiredPackages(source: string) {
-        // very rudimentary atm
-        var pkgs = ['latex', 'lm'];
-        if (source.match(/\\documentclass(\[.*?\])?{acmart}/)) pkgs.push('acmart');
-        return pkgs;
+        if ((<any>window)?.DEV) return ['dev'];  // for faster dev cycles
+        else {
+            // this is basically a rudimentary placeholder
+            var pkgs = ['latex', 'lm'];
+            if (source.match(/\\documentclass(\[.*?\])?{acmart}/))
+                pkgs.push('acmart');
+            return pkgs;
+        }
     }
 }
 
@@ -143,9 +158,9 @@ class PDFLatexWorkerI extends EventEmitter {
         return await this._submit({method: 'prepare', args: [packages]});
     }
 
-    async compile(source: string | Uint8Array, fn?: string) {
+    async compile(source: {[fn: string]: string | Uint8Array}, main?: string) {
         this._startup();
-        return await this._submit({method: 'compile', args: [source, fn]});
+        return await this._submit({method: 'compile', args: [source, main]});
     }
 }
 
@@ -192,7 +207,8 @@ class PDFLatexPod {
         for (let pkg of packages) this._installed.add(pkg);
     }
 
-    uploadDocument(content: string | Uint8Array, fn = this.mainTex) {
+    uploadDocument(content: string | Uint8Array, fn = this.mainTex, wd = '/home') {
+        fn = path.join(wd, fn);
         this.core.fs.mkdirSync(path.dirname(fn), {recursive: true});
         this.core.fs.writeFileSync(fn, content);
         this.mainTex = fn;
@@ -209,15 +225,16 @@ class PDFLatexPod {
             ['pdflatex', ...flags, fn], {PATH: '/bin', PWD: wd});
     }
 
-    async compile(source: string | Uint8Array, fn?: string) {
+    async compile(source: {[fn: string]: string | Uint8Array}, main?: string) {
         await this.prepare();
-        this.uploadDocument(source, fn);
-        var rc = await this.start();
+        for (let [fn, content] of Object.entries(source))
+            this.uploadDocument(content, fn);
+        var rc = await this.start(main);
 
         var volume = <unknown>this.core.fs as Volume,
             outdir = path.resolve('/home', this.opts.outdir),
             file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
-            job = fn ? path.basename(fn).replace(/\.tex$/, '') : 'doc';
+            job = main ? path.basename(main).replace(/\.tex$/, '') : 'doc';
 
         if (rc == 0) {
             return {
@@ -340,6 +357,7 @@ namespace PDFLatexPod {
     };
 
     const NANOTEX_BASE = '/bin/tlnet',
+          NANOTEX_DEV = '/bin/tex/tldist.tar',
           NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts']   // these are too large for LZMA2-js
                                            .map(x => [x, 'tar']));
 
@@ -348,9 +366,10 @@ namespace PDFLatexPod {
         return {
             '/tldist/': [
                 ...pkgs.map(nm =>
-                    NANOTEX_FMT[nm] == 'tar' ?
-                        new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
-                        new XzResource(`${NANOTEX_BASE}/${nm}.tar.xz`))
+                    nm == 'dev' ? new Resource(NANOTEX_DEV) :
+                        NANOTEX_FMT[nm] == 'tar' ?
+                            new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
+                            new XzResource(`${NANOTEX_BASE}/${nm}.tar.xz`))
             ]
         } as ResourceBundle;
     }

@@ -47,10 +47,14 @@ glob-all = (patterns, opts={}) !->*
 
   mm = MultiMatch.promote(patterns)
   prune = MultiMatch.promote(opts.exclude)
+  check-type = switch opts.type
+    | undefined, '*' => (-> true)
+    | 'file' => (-> !it.stat.isDirectory!)
+    | 'dir' => (-> it.stat.isDirectory!)
   ii = traverse-core(opts.fs, opts.path, opts.cwd, prune)
   while !(cur = ii.next!).done
     entry = cur.value
-    if mm.exec(entry.path) then yield entry.path
+    if check-type(entry) && mm.exec(entry.path) then yield entry.path
 
 
 export dir-tree-sync, glob-all, MultiMatch
