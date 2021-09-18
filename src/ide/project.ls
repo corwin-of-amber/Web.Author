@@ -50,12 +50,16 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     last-file = project.last-file
     project = TeXProject.promote(project)
     @current = project
-      @vue.loc = ..loc
+      @vue.loc = ..loc; @vue.name = ..name
       @add-recent ..loc
       @emit 'open', project: ..
       doc = if last-file then ..get-file(last-file.filename) else ..get-main-tex-file!
       if doc? then @emit 'file:select', loc: doc
   
+  open-recent: (name) ->
+    @open @recent.find(-> it.name == name) ? \
+          TeXProject.create {scheme: 'memfs', path: "/proj/#{name}"}
+
   open-dialog: ->>
     dir = await @file-dialog.open!
     @open dir
@@ -98,8 +102,12 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   
 
 class TeXProject
-  (@loc) ->
+  (@loc, @name) ->
     @path = @loc.path
+    @name ?= path.basename(loc.path)
+
+  create: ->
+    VolumeFactory.instance.get(@loc).mkdirSync @loc.path, recursive: true
 
   get-main-pdf-path: ->
     @_find-pdf @path  # @todo use loc
@@ -147,6 +155,9 @@ class TeXProject
       new TeXProject(loc)
     else
       throw new Error("invalid project specifier '#{uri}'");
+
+  @create = (loc) -> new TeXProject(loc)
+    ..create!
 
   @IGNORE = ['_*/**', '.*/**']  # for glob-all
 

@@ -1,6 +1,6 @@
 <template>
     <div class="project-view">
-        <project-header ref="header" name="project" :build-status="buildStatus"
+        <project-header ref="header" :name="name" :build-status="buildStatus"
             :projects="projects" @action="action" @build="build"/>
         <project-files ref="files" :loc="loc"
             @action="action" @file:select="select"/>
@@ -12,7 +12,8 @@ import ProjectHeader from './project-header.vue';
 import ProjectFiles from './project-files.vue';
 
 export default {
-    data: () => ({loc: null, clientState: undefined, projects: [], buildStatus: undefined}),
+    data: () => ({loc: null, name: 'project', clientState: undefined,
+                  projects: [], buildStatus: undefined}),
     components: {ProjectHeader, ProjectFiles}
 }
 </script>

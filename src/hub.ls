@@ -39,6 +39,8 @@ VolumeFactory.instance.schemes.set 'memfs', \
 $ ->>
   ide = new IDE
 
+  sp = new URLSearchParams(location.search)
+
   if 1
     await mfs-scheme.populate!
     window <<< {mfs}
@@ -50,8 +52,8 @@ $ ->>
     if ide.config.is-first-time!
       ide.project.add-recent {scheme: 'memfs', path: '/examples/acmart-minimal'}
       ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/acm-sigplan'}
-      ide.project.open {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
-        ide.editor.open ..get-main-tex-file!
+      ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
+      ide.project.open-recent sp.get('project') ? 'scientific-writing-exercise'
 
   ide.project.on 'build:finished' ->
     if it.pdf?

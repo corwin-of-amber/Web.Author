@@ -76,6 +76,7 @@ div.gutter.gutter-horizontal {
     font-size: 14px;
     padding: 2px 0 2px 5px;
     border-bottom: 1px solid #f2f2f2;
+    cursor: pointer;
 }
 
 .project-header div.bar > span {
