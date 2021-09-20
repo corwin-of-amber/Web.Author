@@ -39,6 +39,7 @@ class PDFViewerCore extends EventEmitter
         await global-tasks.wait! ; await @reload!
 
   destroy: ->
+    @_ongoing?cancel!
     @watcher.clear!
     @containing-element.empty! # umm
 
@@ -79,6 +80,7 @@ class PDFViewerCore extends EventEmitter
         ..width = viewport.width ; ..height = viewport.height
         ..style.width = "#{viewport.width / @resolution}px"
 
+      @_ongoing?cancel!
       @_ongoing = page.render do
         canvasContext: ctx
         viewport: viewport

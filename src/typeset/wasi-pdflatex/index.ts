@@ -60,6 +60,21 @@ class PDFLatexBuild extends EventEmitter {
             finally {
                 this.emit('progress', {stage: 'compile', info: {done: true}});
             }
+            this.emit('intermediate', {                    
+                pdf: out.pdf && PDFLatexPod.CompiledPDF.from(out.pdf),
+                log: out.log && PDFLatexPod.CompiledAsset.from(out.log)
+            });
+
+            try {
+                this.emit('progress', {stage: 'bibtex', info: {done: false}});
+                await this.pdflatex.utils.bibtex.compile(out.job);
+                out = await this.pdflatex.compile(source, filename);
+                out = await this.pdflatex.compile(source, filename);
+            }
+            finally {
+                this.emit('progress', {stage: 'bibtex', info: {done: true}});
+            }
+
             this.emit('finished', {
                 outcome: 'ok', 
                 pdf: out.pdf && PDFLatexPod.CompiledPDF.from(out.pdf),
@@ -104,7 +119,7 @@ class PDFLatexBuild extends EventEmitter {
         if ((<any>window)?.DEV) return ['dev'];  // for faster dev cycles
         else {
             // this is basically a rudimentary placeholder
-            var pkgs = ['latex', 'lm'];
+            var pkgs = ['latex', 'lm', 'bibtex'];
             if (source.match(/\\documentclass(\[.*?\])?{acmart}/))
                 pkgs.push('acmart');
             return pkgs;
@@ -113,6 +128,10 @@ class PDFLatexBuild extends EventEmitter {
 }
 
 
+/**
+ * This is a pile of RPC boilerplate intended to run PDFLatexPod and BibTexPod
+ * in a worker.
+ */
 class PDFLatexWorkerI extends EventEmitter {
     worker: Worker
     _pending = new Map<number, Future>()
@@ -128,7 +147,7 @@ class PDFLatexWorkerI extends EventEmitter {
         }
     }
 
-    async _submit<T>(cmd: T & {id?: number}) {
+    async _submit<T>(cmd: T & {id?: number}): Promise<any> {
         cmd.id ??= ++this._uid;
         return new Promise((resolve, reject) => {
             this._pending.set(cmd.id, {resolve, reject});
@@ -153,18 +172,31 @@ class PDFLatexWorkerI extends EventEmitter {
         }
     }
 
-    async prepare(packages: string[] = []) {
+    async prepare(packages: string[] = []): Promise<void> {
         this._startup();
         return await this._submit({method: 'prepare', args: [packages]});
     }
 
-    async compile(source: {[fn: string]: string | Uint8Array}, main?: string) {
+    async compile(source: PDFLatexPod.CompileInput, main?: string, wd?: string): 
+            Promise<PDFLatexPod.CompileRet> {
         this._startup();
-        return await this._submit({method: 'compile', args: [source, main]});
+        return await this._submit({method: 'compile', args: [source, main, wd]});
+    }
+
+    utils = {
+        bibtex: {
+            compile: async (job: string, wd?: string) => {
+                return await this._submit(
+                    {method: 'bibtex:compile', args: [job, wd]}
+                ) as BibTexPod.CompileRet;
+            }
+        }
     }
 }
 
-type MessageFromWorker = {type: 'completed' | 'progress', ev: any};
+type MessageFromWorker = {type: 'completed' | 'progress',
+                          ev: {id: number, status: string,
+                               ret: any, exc: any}};
 type Future = {resolve: (v: any) => void, reject: (err: any) => void};
 
 
@@ -179,6 +211,8 @@ class PDFLatexPod {
     mainTex: string = '/home/doc.tex'
     opts = {outdir: 'out', synctex: 1}
 
+    utils: {bibtex: BibTexPod}
+
     constructor() {
         this.core = new ExecCore({stdin: false});
         this.core.on('stream:out', ({fd, data}) =>
@@ -187,6 +221,10 @@ class PDFLatexPod {
 
         this.packageManager = new PackageManager(this.core.fs);
         this.tlmgr = new Tlmgr();
+
+        this.utils = {
+            bibtex: new BibTexPod(this.core, this.opts)
+        };
     }
 
     prepare(packages: string[] = []) {
@@ -225,26 +263,28 @@ class PDFLatexPod {
             ['pdflatex', ...flags, fn], {PATH: '/bin', PWD: wd});
     }
 
-    async compile(source: {[fn: string]: string | Uint8Array}, main?: string) {
+    async compile(source: PDFLatexPod.CompileInput, main?: string, wd?: string)
+            : Promise<PDFLatexPod.CompileRet> {
         await this.prepare();
         for (let [fn, content] of Object.entries(source))
             this.uploadDocument(content, fn);
-        var rc = await this.start(main);
+        var rc = await this.start(main, wd);
 
         var volume = <unknown>this.core.fs as Volume,
             outdir = path.resolve('/home', this.opts.outdir),
             file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
-            job = main ? path.basename(main).replace(/\.tex$/, '') : 'doc';
+            job = main ? path.basename(main).replace(/\.(tex|ltx)$/, '') : 'doc',
+            log = PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`));
 
         if (rc == 0) {
             return {
+                job,
                 pdf: PDFLatexPod.CompiledPDF.fromFile(file(`${job}.pdf`))
                         .withSyncTeXMaybe(file(`${job}.synctex.gz`)),
-                log: PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`))
-            }
+                log
+            };
         }
-        else throw new PDFLatexPod.BuildError(rc).withLog(
-            PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`)));
+        else throw new PDFLatexPod.BuildError(rc).withLog(log);
     }
 }
 
@@ -263,6 +303,9 @@ class XzResource extends Resource {
 
 
 namespace PDFLatexPod {
+
+    export type CompileInput = {[fn: string]: string | Uint8Array};
+    export type CompileRet = {job: string, pdf: CompiledPDF, log?: CompiledAsset};
 
     type This<T extends new(...args: any) => any> = {
         new(...args: ConstructorParameters<T>): any
@@ -336,6 +379,7 @@ namespace PDFLatexPod {
 
     export class BuildError {
         $type = 'BuildError'
+        prog = 'pdflatex'
         code: number
         log?: CompiledAsset
         constructor(code: number) {
@@ -350,6 +394,7 @@ namespace PDFLatexPod {
     export const texdist: ResourceBundle = {
         '/bin/pdftex': '#!/bin/tex/pdftex.wasm',
         '/bin/pdflatex': '#!/bin/tex/pdftex.wasm',
+        '/bin/bibtex': '#!/bin/tex/bibtex.wasm',
         '/bin/texmf.cnf': new Resource('/bin/tex/texmf.cnf'),
         '/dist/': new Resource('/bin/tex/dist.tar'),
         '/dist/pdftex.map': new Resource('/bin/tex/pdftex.map'),
@@ -374,6 +419,45 @@ namespace PDFLatexPod {
         } as ResourceBundle;
     }
 
+}
+
+
+class BibTexPod {
+    core: ExecCore
+    opts: {outdir: string}
+
+    constructor(core: ExecCore, opts: {outdir: string}) {
+        this.core = core;
+        this.opts = opts;
+    }
+
+    async start(job: string, wd: string = '/home') {
+        var args = [path.join(this.opts.outdir, job)];
+        return this.core.start('/bin/tex/bibtex.wasm',
+            ['/bin/bibtex', ...args], {PATH: '/bin', PWD: wd});
+    }
+
+    async compile(job: string, wd?: string) {
+        var rc = await this.start(job);
+
+        var volume = <unknown>this.core.fs as Volume,
+            outdir = path.resolve('/home', this.opts.outdir),
+            file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
+            log = PDFLatexPod.CompiledAsset.fromFileMaybe(file(`bib.log`));
+
+        if (rc == 0)
+            return {log}
+        else
+            throw new BibTexPod.BuildError(rc).withLog(log);
+    }
+}
+
+namespace BibTexPod {
+    export type CompileRet = {log: PDFLatexPod.CompiledAsset};
+
+    export class BuildError extends PDFLatexPod.BuildError {
+        prog = 'bibtex'
+    }
 }
 
 

@@ -55,11 +55,15 @@ $ ->>
       ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
       ide.project.open-recent sp.get('project') ? 'scientific-writing-exercise'
 
-  ide.project.on 'build:finished' ->
+  update-pdf = ->
     if it.pdf?
       ide.viewer.open it.pdf.toBlob!, ide.viewer.selected-page  # @todo go to page 1 if not the same project
       if it.pdf.synctex?
         ide.viewer.synctex-open it.pdf.synctex.content, {base-dir: '/home'}  # @oops
+
+  ide.project.on 'build:intermediate' update-pdf
+  ide.project.on 'build:finished' ->
+    update-pdf it
     if (log = it.log ? it.error?log)?
       log.saveAs(ide.project.current.get-file('out/build.log'))
       ide.project.refresh!

@@ -72,6 +72,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
         ..on 'started' ~> @vue.build-status = 'in-progress'; @emit 'build:started' it
         ..on 'finished' ~> @vue.build-status = it.outcome; @emit 'build:finished' it
         ..on 'progress' ~> @emit 'build:progress' it
+        ..on 'intermediate' ~> @emit 'build:intermediate' it
     @_builder.make-watch!
 
   unbuild: ->

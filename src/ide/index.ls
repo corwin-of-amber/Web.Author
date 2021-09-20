@@ -62,6 +62,7 @@ class IDE
         switch it.stage
         | 'install' => ..show text: "installing #{it.info.uri ? it.info.path}", widget: widget
         | 'compile' => ..show text: "compiling #{it.info.filename}"
+        | 'bibtex'  => ..show text: "running bibtex & recompiling..."
   
   build-finished: !->
       if it.outcome == 'error'

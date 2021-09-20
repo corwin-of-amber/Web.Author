@@ -21,18 +21,19 @@ class PDFLatexWorker {
     }
 
     emit(type: string, ev: object) {
-        // @ts-ignore
-        postMessage({type, ev});
+        (<Client><unknown> /* ?? */ self).postMessage({type, ev});
     }
 
     async execute(command: Command) {
         try {
-            var ret: any;
-            switch (command.method) {
+            var {method, args} = command, ret: any;
+            switch (method) {
             case 'prepare':
-                ret = await this.pdflatex.prepare(...<[string[]]>command.args); break;
+                ret = await this.pdflatex.prepare(...<[string[]]>args); break;
             case 'compile':
-                ret = await this.pdflatex.compile(...<[any, any]>command.args); break;
+                ret = await this.pdflatex.compile(...<[any, any]>args); break;
+            case 'bibtex:compile':
+                ret = await this.pdflatex.utils.bibtex.compile(...<[string, string]>args); break;
             }
             this.emit('completed', {id: command.id, status: 'ok', ret});
         }
