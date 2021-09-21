@@ -14,6 +14,6 @@ class OngoingTasks
 
 
 global-tasks = new OngoingTasks
-window <<< {global-tasks}
+
 
 export OngoingTasks, global-tasks

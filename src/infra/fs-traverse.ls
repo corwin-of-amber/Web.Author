@@ -33,15 +33,17 @@ dir-tree-sync = (dir, opts) ->
   prune = MultiMatch.promote(opts.exclude)
   dir-tree-core(opts.fs, opts.path, dir, prune)
 
-traverse-core = (fs, path, dir, prune=MultiMatch.NONE) !->*
-  for file in fs.readdirSync(dir).filter(-> !prune.exec(it))
+traverse-core = (fs, path, dir, cwd, prune=MultiMatch.NONE) !->*
+  fulldir = path.resolve('/', cwd, dir)
+  for file in fs.readdirSync(fulldir).filter(-> !prune.exec(it))
     subpath = path.join(dir, file)
-    substat = fs.statSync(subpath)
-    yield {path: subpath, stat: substat}
+    subfullpath = path.resolve('/', cwd, subpath)
+    substat = fs.statSync(subfullpath)
+    yield {path: subpath, fullpath: subfullpath, stat: substat}
     if substat.isDirectory!
-      yield from traverse-core(fs, path, subpath, prune)
+      yield from traverse-core(fs, path, subpath, cwd, prune)
 
-glob-all = (patterns, opts={}) !->*
+traverse-frontend = (patterns, opts={}) !->*
   opts = {exclude: [], cwd: '', fs, ...opts}
   if !opts.path then opts.path = opts.fs.path ? path
 
@@ -51,10 +53,21 @@ glob-all = (patterns, opts={}) !->*
     | undefined, '*' => (-> true)
     | 'file' => (-> !it.stat.isDirectory!)
     | 'dir' => (-> it.stat.isDirectory!)
-  ii = traverse-core(opts.fs, opts.path, opts.cwd, prune)
+
+  ii = traverse-core(opts.fs, opts.path, '', opts.cwd, prune)
   while !(cur = ii.next!).done
     entry = cur.value
-    if check-type(entry) && mm.exec(entry.path) then yield entry.path
+    if check-type(entry) && mm.exec(entry.path) then yield entry
+
+glob-all = (patterns, opts={}) !->*
+  ii = traverse-frontend(patterns, opts)
+  while !(cur = ii.next!).done
+    yield cur.value.path
+
+timestamp-all = (patterns, opts={}) -> {}
+  ii = traverse-frontend(patterns, opts)
+  while !(cur = ii.next!).done
+    ..[cur.value.path] = cur.value.stat{mtime, mtimeMs}
 
 
-export dir-tree-sync, glob-all, MultiMatch
+export dir-tree-sync, glob-all, timestamp-all, MultiMatch

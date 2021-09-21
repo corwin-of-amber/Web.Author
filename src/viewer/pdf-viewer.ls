@@ -86,7 +86,9 @@ class PDFViewerCore extends EventEmitter
         viewport: viewport
       @_ongoing.promise.then ~>
         {page, canvas}
-      .catch -> if !(it instanceof pdfjsLib.RenderingCancelledException) then throw it
+
+    .catch -> if !(it instanceof pdfjsLib.RenderingCancelledException ||
+                   it.message == 'Transport destroyed') then throw it
 
   goto-page: (page-num) ->
     @selected-page = page-num

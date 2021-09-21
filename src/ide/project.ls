@@ -34,6 +34,9 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
     @file-dialog = new FileDialog(/*select-directory*/true)
 
+    @on 'build:started' ~> @vue.build-status = 'in-progress'
+    @on 'build:finished' ~> @vue.build-status = it.outcome; @update-log it
+
   volume:~
     -> @vue.$refs.files.$refs.source.volume
 
@@ -69,8 +72,8 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   build: ->>
     if !@_builder?
       @_builder = @current.builder()
-        ..on 'started' ~> @vue.build-status = 'in-progress'; @emit 'build:started' it
-        ..on 'finished' ~> @vue.build-status = it.outcome; @emit 'build:finished' it
+        ..on 'started' ~> @emit 'build:started' it
+        ..on 'finished' ~> @emit 'build:finished' it
         ..on 'progress' ~> @emit 'build:progress' it
         ..on 'intermediate' ~> @emit 'build:intermediate' it
     @_builder.make-watch!
@@ -78,6 +81,11 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   unbuild: ->
     if @_builder? then @_builder = void
     @vue.build-status = void
+
+  update-log: (build-result) ->
+    if (log = build-result.log ? build-result.error?log)?
+      log.saveAs(@current.get-file('out/build.log'))
+      @refresh!
 
   recent:~
     -> @_recent

@@ -18,12 +18,15 @@ import { Volume } from '../../infra/volume';
 // @ts-ignore
 import { FileWatcher } from '../../infra/fs-watch.ls';
 // @ts-ignore
-import { globAll } from '../../infra/fs-traverse.ls';
+import { globAll, timestampAll } from '../../infra/fs-traverse.ls';
+// @ts-ignore
+import { LatexmkClone } from '../latexmk.ls';
 import { Tlmgr } from '../../distutils/texlive/tlmgr';
 
 
 class PDFLatexBuild extends EventEmitter {
     pdflatex: PDFLatexPod | PDFLatexWorkerI
+    latexmk: LatexmkClone
     mainTexFile: Volume.Location
     _watch: FileWatcher
 
@@ -55,7 +58,7 @@ class PDFLatexBuild extends EventEmitter {
             await this.pdflatex.prepare(pkgs);
             try {
                 this.emit('progress', {stage: 'compile', info: {filename, done: false}})
-                var out: any = await this.pdflatex.compile(source, filename);
+                var out = await this.pdflatex.compile(source, filename);
             }
             finally {
                 this.emit('progress', {stage: 'compile', info: {done: true}});
@@ -65,16 +68,29 @@ class PDFLatexBuild extends EventEmitter {
                 log: out.log && PDFLatexPod.CompiledAsset.from(out.log)
             });
 
-            try {
-                this.emit('progress', {stage: 'bibtex', info: {done: false}});
-                await this.pdflatex.utils.bibtex.compile(out.job);
-                out = await this.pdflatex.compile(source, filename);
-                out = await this.pdflatex.compile(source, filename);
+            if (out.log) {
+                var latexmk = this._latexmk('pdflatex', out, volume);
+                
+                if (latexmk.needBibtex()) {
+                    try {
+                        this.emit('progress', {stage: 'bibtex', info: {done: false}});
+                        var bibout = await this.pdflatex.utils.bibtex.compile(out.job);
+                        this._latexmk('bibtex', bibout);
+                        out = await this.pdflatex.compile(source, filename);
+                        this._latexmk('pdflatex', out);
+                        if (latexmk.needLatex()) {
+                            out = await this.pdflatex.compile(source, filename);
+                        }
+                    }
+                    finally {
+                        this.emit('progress', {stage: 'bibtex', info: {done: true}});
+                    }
+                }
+                else if (latexmk.needLatex()) {
+                    out = await this.pdflatex.compile(source, filename);
+                }
             }
-            finally {
-                this.emit('progress', {stage: 'bibtex', info: {done: true}});
-            }
-
+            
             this.emit('finished', {
                 outcome: 'ok', 
                 pdf: out.pdf && PDFLatexPod.CompiledPDF.from(out.pdf),
@@ -125,6 +141,17 @@ class PDFLatexBuild extends EventEmitter {
             return pkgs;
         }
     }
+
+    _latexmk(prog: string, out: any, volume?: Volume) {
+        var latexmk = (this.latexmk ??= new LatexmkClone());
+        if (volume)
+            latexmk.timestamps.source = timestampAll(['**'], {type: 'file', cwd: '', fs: volume});
+
+        if (out.log)         latexmk.processLog(prog, out.log.content);
+        if (out.timestamps)  latexmk.timestamps.build = out.timestamps;
+            
+        return latexmk;
+    }
 }
 
 
@@ -135,7 +162,7 @@ class PDFLatexBuild extends EventEmitter {
 class PDFLatexWorkerI extends EventEmitter {
     worker: Worker
     _pending = new Map<number, Future>()
-    _uid = 0;
+    _uid = 0
 
     _startup() {
         if (!this.worker) {
@@ -216,7 +243,6 @@ class PDFLatexPod {
     constructor() {
         this.core = new ExecCore({stdin: false});
         this.core.on('stream:out', ({fd, data}) =>
-            /** @todo collect in some log */
             console.log(fd, new TextDecoder().decode(data)));
 
         this.packageManager = new PackageManager(this.core.fs);
@@ -277,11 +303,12 @@ class PDFLatexPod {
             log = PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`));
 
         if (rc == 0) {
+            var timestamps = timestampAll(['**'], {type: 'file', cwd: '/home', fs: volume});
             return {
                 job,
                 pdf: PDFLatexPod.CompiledPDF.fromFile(file(`${job}.pdf`))
                         .withSyncTeXMaybe(file(`${job}.synctex.gz`)),
-                log
+                log, timestamps
             };
         }
         else throw new PDFLatexPod.BuildError(rc).withLog(log);
@@ -305,7 +332,7 @@ class XzResource extends Resource {
 namespace PDFLatexPod {
 
     export type CompileInput = {[fn: string]: string | Uint8Array};
-    export type CompileRet = {job: string, pdf: CompiledPDF, log?: CompiledAsset};
+    export type CompileRet = {job: string, pdf: CompiledPDF, log?: CompiledAsset, timestamps?: any};
 
     type This<T extends new(...args: any) => any> = {
         new(...args: ConstructorParameters<T>): any
@@ -426,24 +453,28 @@ class BibTexPod {
     core: ExecCore
     opts: {outdir: string}
 
+    stdout = new BibTexPod.Stdout
+
     constructor(core: ExecCore, opts: {outdir: string}) {
         this.core = core;
         this.opts = opts;
+        this.core.on('stream:out', ({fd, data}) => this.stdout.push(data));
     }
 
     async start(job: string, wd: string = '/home') {
         var args = [path.join(this.opts.outdir, job)];
+        this.stdout.clear();
         return this.core.start('/bin/tex/bibtex.wasm',
             ['/bin/bibtex', ...args], {PATH: '/bin', PWD: wd});
     }
 
-    async compile(job: string, wd?: string) {
-        var rc = await this.start(job);
+    async compile(job: string, wd: string = '/home') {
+        var rc = await this.start(job, wd);
 
-        var volume = <unknown>this.core.fs as Volume,
-            outdir = path.resolve('/home', this.opts.outdir),
-            file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
-            log = PDFLatexPod.CompiledAsset.fromFileMaybe(file(`bib.log`));
+        var /*volume = <unknown>this.core.fs as Volume,
+            outdir = path.resolve(wd, this.opts.outdir),
+            file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),*/
+            log = new PDFLatexPod.CompiledAsset(this.stdout.buffer);
 
         if (rc == 0)
             return {log}
@@ -457,6 +488,24 @@ namespace BibTexPod {
 
     export class BuildError extends PDFLatexPod.BuildError {
         prog = 'bibtex'
+    }
+
+    export class Stdout {
+        _buffer: Uint8Array[] = []
+        clear() { this._buffer = []; }
+        push(data: Uint8Array) { this._buffer.push(data); }
+        get buffer() { return concat(this._buffer); }
+    }
+
+    // Uint8Array concat boilerplate
+    function concat(arrays: Uint8Array[]) {
+        let totalLength = arrays.reduce((acc, value) => acc + value.length, 0),
+            result = new Uint8Array(totalLength), pos = 0;
+        for (let array of arrays) {
+            result.set(array, pos);
+            pos += array.length;
+        }
+        return result;
     }
 }
 

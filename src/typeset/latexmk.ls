@@ -1,7 +1,6 @@
 node_require = global.require ? (->)
   fs = .. 'fs'
   util = .. 'util'
-  child_process = .. 'child_process'
   child-process-promise = .. 'child-process-promise'
 require! {
     path,
@@ -88,6 +87,51 @@ class LatexmkBuild extends EventEmitter
       set-remove-all input, output
 
 
+/**
+ * A small utility class that mimics the most basic functionality of `latexmk`,
+ * specifically detecting if `bibtex` should be run or `pdflatex` should be
+ * re-run.
+ */
+class LatexmkClone
+  ->
+    @bbl = {missing: [], used: []}
+    @bib = {used: []}
+    @flags = {crossrefs: false}
+    @timestamps = {source: {}, build: {}}
+
+  process-log: (prog, log) ->
+    if log.volume? then log = log.volume.readFileSync log.filename, 'utf-8'
+    if log instanceof Uint8Array then log = new TextDecoder().decode(log)
+
+    egrep = -> [...log.matchAll(it)]
+
+    switch prog
+    | 'pdflatex' =>
+      @bbl =
+        missing: egrep(/\nNo file (.+\.bbl)\.\n/g).map(-> it.1)
+        used: egrep(/\(([^()]+\.bbl)\)/g).map(-> it.1)
+      @flags.crossrefs = !!log.match(/Rerun to get cross-references right\./)
+    | 'bibtex' =>
+      @bib =
+        used: egrep(/\nDatabase file #\d+: (.+)/g).map(-> it.1)
+    console.log @bbl
+
+  need-bibtex: ->
+    # not 100% certain about this. what if the list of `.bib` files has changed?
+    if @bbl.missing.length then true
+    else if @bbl.used.length && !@bib.used.length then true
+    else
+      bib-latest-ms = Math.max(0,
+        ...@bib.used.map(~> @timestamps.source[it]?mtimeMs ? 0))
+      for u in @bbl.used
+        mtime-ms = @timestamps.build[u]?mtimeMs ? 0
+        if bib-latest-ms > mtime-ms then return true
+      
+      false
+
+  need-latex: ->
+    return @flags.crossrefs
+
 
 exists-file = (filename) ->
   try fs.statSync(filename).isFile!
@@ -104,4 +148,4 @@ set-remove-all = (a, b) ->
 
 
 
-export LatexmkBuild
+export LatexmkBuild, LatexmkClone
