@@ -193,6 +193,9 @@ class SyncTeX_MixIn
           return {pdf-loc.volume, filename: fn}
       catch
 
+  synctex-lookup: (loc /* {filename, line} */) ->
+    @synctex?lookup(loc)?[0].scrollIntoView!
+
   _synctex-page: (page) ->
     if @synctex?
       @synctex.cover page.canvas, @zoom * @resolution

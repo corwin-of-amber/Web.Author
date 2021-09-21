@@ -41,6 +41,9 @@ class IDE
     @viewer.on 'synctex-goto' ~> if @editor
       @editor.jump-to @file-of-project(it.file.path), line: it.line
 
+    @editor.cm.addKeyMap do
+      "Ctrl-Tab": @~synctex-lookup
+
   store: -> @config.store @
   restore: -> @config.restore-session @
 
@@ -52,6 +55,9 @@ class IDE
       @viewer?open item.loc
     else
       @editor?open item.loc
+
+  synctex-lookup: (cm) ->
+    @viewer.synctex-lookup {@editor.loc.filename, line: cm.getCursor!line + 1}
 
   build-progress: !->
     @layout.bars.status

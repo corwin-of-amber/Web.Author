@@ -52,6 +52,18 @@ class SyncTeX extends EventEmitter
         b = cur.value
     b
 
+  reverse-hit-test: (loc) ->
+    for [i, page] in Object.entries(@sync-data.pages)
+      for root in page.blocks
+        w = @walk(root)
+        while !(cur = w.next!).done
+          b = cur.value
+          if b.line == loc.line then return @_block-touchup(b)
+
+  lookup: (loc) ->
+    b = @reverse-hit-test(loc)
+    b && @focus(b)
+
   /**
    * Hack: crop oversized boxes, which are sometimes created by title macros
    * or included graphics.
