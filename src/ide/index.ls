@@ -9,6 +9,7 @@ class IDE
   ->
     @layout = new IDELayout
     @config = new IDEConfig
+    @app-title = document.title ? 'ToXin'
   
   start: (mode = 'tex') ->
     @project = @layout.create-project!
@@ -31,6 +32,7 @@ class IDE
   bind-events: ->
     recent = void
     @project.on 'open' ~>
+      document.title = "#{it.project.name} │ #{@app-title}"
       recent := @project.lookup-recent it.project.loc
     @project.on 'file:select' ~> @file-select it
     @project.on 'build:progress' ~> @build-progress it
