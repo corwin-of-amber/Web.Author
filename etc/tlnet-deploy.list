@@ -19,6 +19,7 @@ latexconfig
 knuth-lib
 ec
 lm
+bibtex
 acmart
 xkeyval
 xstring
