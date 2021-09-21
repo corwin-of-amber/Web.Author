@@ -21,7 +21,7 @@ class WPShortCodeElement extends LitElement {
 
     delayedSlotsIn(sels: {[contentSel: string]: string}) {
         var ob = new MutationObserver(() => this.slotsIn(sels));
-        ob.observe(this, {childList: true, subtree: true });
+        ob.observe(this, {childList: true, subtree: true});
     }
 }
 
@@ -115,7 +115,7 @@ class SectionNews extends WPShortCodeElement {
                     </article>`)}
                 </div>
             </div>
-        </sction>
+        </section>
         `;
     }
 }
