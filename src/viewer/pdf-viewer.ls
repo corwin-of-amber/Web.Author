@@ -150,26 +150,22 @@ class Zoom_MixIn
 
 
 class Pan_MixIn
+
+  pan-clearance: {left: 4, right: -4, top: 20, bottom: -20}
+
   pan-into-view: ($el) ->
     ce-box = @containing-element.0.getBoundingClientRect!
     el-box = $el.0.getBoundingClientRect!
-    clearance = {x: 0, y: 20}
-    how-far =
-      left: el-box.left - ce-box.left - clearance.x
-      right: el-box.right - ce-box.right + clearance.x
-      top: el-box.top - ce-box.top - clearance.y
-      bottom: el-box.bottom - ce-box.bottom + clearance.y
+    clearance = @pan-clearance
+    how-far = {[.., el-box[..] - ce-box[..] - clearance[..]] \
+               for <[left right top bottom]>}
 
-    portion = (start, end) ->
-      if start < 0 then start
-      else if end > 0 then Math.min(start, end)
-      else 0
-
+    drift = (start, end) -> Math.min(start, Math.max(0, end))
     how-far
-      adjust = {x: portion(..left, ..right), y: portion(..top, ..bottom)}
+      adjust = {x: drift(..left, ..right), y: drift(..top, ..bottom)}
 
-    @containing-element.0.scrollLeft += adjust.x
-    @containing-element.0.scrollTop += adjust.y
+    @containing-element.0
+      ..scrollLeft += adjust.x; ..scrollTop += adjust.y
 
 
 
