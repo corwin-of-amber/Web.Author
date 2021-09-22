@@ -14,8 +14,9 @@ class SyncTeX extends EventEmitter
     @overlay = $('<svg xmlns="http://www.w3.org/2000/svg">')
       ..addClass('synctex-overlay')
       ..on 'mousemove mousedown' @~mouse-handler
-    @highlight = $(document.createElementNS('http://www.w3.org/2000/svg', 'rect'))
-      ..addClass 'highlight'
+    @highlight = $svg('rect') .addClass 'highlight' .hide!
+      @overlay.append ..
+    @cursor = $svg('rect') .addClass 'cursor' .hide!
       @overlay.append ..
 
   cover: (canvas, scale) ->
@@ -52,17 +53,30 @@ class SyncTeX extends EventEmitter
         b = cur.value
     b
 
-  reverse-hit-test: (loc) ->
+  lookup: (loc) ->
+    candidates = []
     for [i, page] in Object.entries(@sync-data.pages)
       for root in page.blocks
         w = @walk(root)
         while !(cur = w.next!).done
           b = cur.value
-          if b.line == loc.line then return @_block-touchup(b)
+          if b.height && (sub = @_block-has-location-geq(b, loc))?
+            candidates.push {page: +i, block: @_block-touchup(b), sub}
 
-  lookup: (loc) ->
-    b = @reverse-hit-test(loc)
-    b && @focus(b)
+    # Get the candidates with minimal line number
+    min-line = Math.min(...candidates.map((.sub.line)))
+    candidates = candidates.filter((.sub.line == min-line))
+
+    # Get the candidates with maximal page number
+    # (to account for page breaks & numbering)
+    max-page = Math.max(...candidates.map((.page)))
+    candidates = candidates.filter((.page == max-page))
+
+    #@overlay.empty!.append @highlight
+    #@_block-trace candidates.map((.block))
+
+    if candidates.length
+      {page: candidates[0].page, block: @_block-union candidates.map((.block))}
 
   /**
    * Hack: crop oversized boxes, which are sometimes created by title macros
@@ -94,37 +108,76 @@ class SyncTeX extends EventEmitter
     loc ?= block
     {loc.file, loc.line, loc.page, loc.fileNumber}
 
+  _block-has-location: (block, loc) ->
+    for sub in block.elements ? []
+      if @_location-match sub, loc then return sub
+    if @_location-match block, loc then block
+
+  _block-has-location-geq: (block, loc) ->
+    subs = (block.elements ? []).filter ~> @_location-geq it, loc
+    _.minBy(subs, -> it.line)
+
+  _block-union: (bs) ->
+    r = bs[0]{left, bottom, width, height}
+      ..right = ..left + ..width; ..top = ..bottom - ..height
+      for b in bs
+        ..left = Math.min(..left, b.left)
+        ..bottom = Math.max(..bottom, b.bottom)
+        ..right = Math.max(..right, b.left + b.width)
+        ..top = Math.min(..top, b.bottom - b.height)
+    {r.left, r.bottom, width: r.right - r.left, height: r.bottom - r.top}
+
+  _block-bounding-box: (block) ->
+    b = block
+    {x: b.left, y: b.bottom - b.height, width: b.width ? 0.1, height: b.height}
+      if ..width < 0 then ..x += ..width ; ..width = -..width
+
   _block-dump: (block, with-elements=true) !->  # for debugging
     b = block
     console.log "#{b.file.name}:#{b.line}  #{b.type}  #{Math.round(b.left)},#{Math.round(b.bottom)} #{Math.round(b.width)}×#{Math.round(b.height)} "
     lloc = ""
-    for e in b.elements
+    for e in (if with-elements then b.elements else [])
       loc = "#{e.file.name}:#{e.line}"
       if loc == lloc then loc = " " * loc.length else lloc = loc
       console.log "     #{loc}  #{e.type}  #{Math.round(e.left)},#{Math.round(e.bottom)} #{Math.round(e.width)}×#{Math.round(e.height)} " e
 
-  focus: (block) ->
-    @selected-block = block
-    @highlight.attr x: block.left, y: block.bottom - block.height, \
-                    width: block.width, height: block.height
-    @highlight.show!
+  _block-trace: (blocks, with-elements=true) ->  # for debugging
+    if !Array.isArray(blocks) then blocks = [blocks]
+
+    trace = (b) ~> $svg('rect').addClass('debug-trace')
+      ..attr @_block-bounding-box(b)
+      @overlay.append ..
+
+    for b in blocks
+      for e in (if with-elements then b.elements else [])
+        if e.type in ['k', 'x', 'g', '$']
+          trace e .addClass 'element' .addClass "type-#{e.type}"
+      trace b .addClass "type-#{b.type}"
+
+  _location-match: (b, loc) ->
+    b.file?path.endsWith(loc.filename) && b.line == loc.line
+
+  _location-geq: (b, loc) ->
+    b.file?path.endsWith(loc.filename) && b.line >= loc.line
+
+  focus: ($el, block) ->
+    $el.attr @_block-bounding-box(block) .show!
   
-  blur: ->
-    @selected-block = void
-    @highlight.hide!
+  blur: ($el = @highlight.add @cursor) ->
+    $el.hide!
 
   mouse-handler: (ev) ->
     if (page-num = @selected-page)?
       ctm = @overlay.0.getScreenCTM()  # assuming ctm.a, ctm.d are the scaling factors
       p = {x: ev.offsetX / ctm.a, y: ev.offsetY / ctm.d}
       if (ht = @hit-test-single(@sync-data.pages[page-num], p))?
-        @focus ht
+        @focus @highlight, ht
         if ev.type === 'mousedown'
           #console.log '-' * 60, p
           #for [...@hit-test(@sync-data.pages[page-num], p)] => @_block-dump ..
           @emit 'synctex-goto' @_block-location(ht, p), ht
       else
-        @blur!
+        @blur @highlight
 
   @from-file = (filename, _fs) ->>
     txt = await SyncTeX.read-file filename, _fs
@@ -163,6 +216,9 @@ is-gzip = (buf) ->
   if (!buf || buf.length < 3) then false
   else
     buf[0] == 0x1F && buf[1] == 0x8B && buf[2] == 0x08;
+
+$svg = (tag-name) ->
+  $(document.createElementNS('http://www.w3.org/2000/svg', tag-name))
 
 
 export { SyncTeX }

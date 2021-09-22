@@ -1,4 +1,5 @@
 require! {
+  'codemirror': { keyName }
   './layout.ls': { IDELayout, ProgressWidget }
   './config.ls': { IDEConfig }
   '../viewer/pdf-viewer.ls': { PDFViewer }
@@ -41,10 +42,15 @@ class IDE
       if it.loc.volume == @project.volume
         recent?last-file = {it.type, it.loc.filename}
     @viewer.on 'synctex-goto' ~> if @editor
-      @editor.jump-to @file-of-project(it.file.path), line: it.line
+      @editor.jump-to @file-of-project(it.file.path), line: it.line - 1
 
-    @editor.cm.addKeyMap do
-      "Ctrl-Tab": @~synctex-lookup
+    # Keyboard events
+    document.body.addEventListener 'keydown' -> global-keymap[keyName(it)]?!
+
+    Ctrl = @editor.Ctrl
+    global-keymap =
+      "#{Ctrl}-Enter": @~synctex-forward
+      "Esc": ~> @viewer.synctex.blur!
 
   store: -> @config.store @
   restore: -> @config.restore-session @
@@ -58,8 +64,9 @@ class IDE
     else
       @editor?open item.loc
 
-  synctex-lookup: (cm) ->
-    @viewer.synctex-lookup {@editor.loc.filename, line: cm.getCursor!line + 1}
+  synctex-forward: ->
+    {loc, cm} = @editor
+    @viewer.synctex-forward {loc.filename, line: cm.getCursor!line + 1}
 
   build-progress: !->
     @layout.bars.status

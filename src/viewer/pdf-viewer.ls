@@ -72,13 +72,13 @@ class PDFViewerCore extends EventEmitter
   render-page: (page-num) ->
     canvas = $('<canvas>')
     @pdf.getPage(page-num).then (page) ~>
-      viewport = page.getViewport({scale: 1})
-      scale = @zoom * @resolution
+      page-size = page.getViewport({scale: 1})
+      scale = Math.max(@zoom, 1) * @resolution
       viewport = page.getViewport({scale})
       ctx = canvas.0.getContext('2d')
       canvas.0
         ..width = viewport.width ; ..height = viewport.height
-        ..style.width = "#{viewport.width / @resolution}px"
+        ..style.width = "#{page-size.width * @zoom}px"
 
       @_ongoing?cancel!
       @_ongoing = page.render do
@@ -139,7 +139,7 @@ class Zoom_MixIn
       ..setZoom = (z) ~>
         @_ongoing?cancel!
         @canvas.width @canvas.width! * z / @zoom
-        @zoom = z
+        @zoom = z; @flush!  # @todo maybe not always flush?
         @emit 'resizing' @canvas
         @_debounce-refresh!
     @_debounce-refresh = _.debounce @~zoom-refresh, 300
@@ -147,6 +147,29 @@ class Zoom_MixIn
   zoom-refresh: ->
     # no use refreshing once it gets too small
     if @zoom >= 1 then @refresh!
+
+
+class Pan_MixIn
+  pan-into-view: ($el) ->
+    ce-box = @containing-element.0.getBoundingClientRect!
+    el-box = $el.0.getBoundingClientRect!
+    clearance = {x: 0, y: 20}
+    how-far =
+      left: el-box.left - ce-box.left - clearance.x
+      right: el-box.right - ce-box.right + clearance.x
+      top: el-box.top - ce-box.top - clearance.y
+      bottom: el-box.bottom - ce-box.bottom + clearance.y
+
+    portion = (start, end) ->
+      if start < 0 then start
+      else if end > 0 then Math.min(start, end)
+      else 0
+
+    how-far
+      adjust = {x: portion(..left, ..right), y: portion(..top, ..bottom)}
+
+    @containing-element.0.scrollLeft += adjust.x
+    @containing-element.0.scrollTop += adjust.y
 
 
 
@@ -193,11 +216,19 @@ class SyncTeX_MixIn
           return {pdf-loc.volume, filename: fn}
       catch
 
-  synctex-lookup: (loc /* {filename, line} */) ->
-    @synctex?lookup(loc)?[0].scrollIntoView!
+  synctex-forward: (loc /* {filename, line} */) ->>
+    if (lu = @synctex?lookup(loc))?
+      if lu.page != @selected-page
+        await @goto-page lu.page
+      @_synctex-cursor lu.block
+
+  _synctex-cursor: (block) ->
+    @synctex.focus @synctex.cursor, block
+      @pan-into-view ..
 
   _synctex-page: (page) ->
     if @synctex?
+      @synctex.blur!
       @synctex.cover page.canvas, @zoom * @resolution
       @synctex.selected-page = @selected-page
 
@@ -230,7 +261,7 @@ class PDFViewer extends PDFViewerCore
       safe ~>> v.loc && @open v.loc, v.selected-page
 
 
-PDFViewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< SyncTeX_MixIn::
+PDFViewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< Pan_MixIn:: <<<< SyncTeX_MixIn::
 
 
 

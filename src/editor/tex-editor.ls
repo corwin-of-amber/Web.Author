@@ -33,7 +33,7 @@ class TeXEditor extends EventEmitter
       matchBrackets: true
       styleActiveLine: true
 
-    Ctrl = if @@is-mac then "Cmd" else "Ctrl"
+    Ctrl = @Ctrl = if @@is-mac then "Cmd" else "Ctrl"
 
     @cm.addKeyMap do
       "#{Ctrl}-S": @~save
@@ -80,7 +80,7 @@ class TeXEditor extends EventEmitter
     if !@loc || !(loc.volume == @loc.volume && loc.filename == @loc.filename)
       await @open loc
     if line?
-      @cm.setCursor {line: line - 1, ch: ch ? 0}  # @todo that -1 is bogus
+      @cm.setCursor {line, ch: ch ? 0}
       @cm.scrollIntoView null, 150
     if focus then requestAnimationFrame ~> @cm.focus!
 
