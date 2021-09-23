@@ -85,6 +85,7 @@ class TeXEditor extends EventEmitter
     if focus then requestAnimationFrame ~> @cm.focus!
 
   track-line: (on-move) -> new LineTracking(@cm, on-move)
+  stay-flag: -> new StayFlag(@cm)
 
   state:~
     -> {@loc, cursor: @cm.getCursor!}
@@ -100,6 +101,7 @@ class TeXEditor extends EventEmitter
     filename.match(/^dat:\//)
 
  
+/** Auxiliary class */
 class EventHook
   (@cm, @event-type, @handler) ->
     @cm.on @event-type, @handler
@@ -111,11 +113,21 @@ class EventHook
  * Notifies whenever the current line changes.
  */
 class LineTracking extends EventHook
-  (@cm, on-move) ->
-    at-line = @cm.getCursor!line
-    super @cm, 'cursorActivity', ~>
+  (cm, on-move) ->
+    at-line = cm.getCursor!line
+    super cm, 'cursorActivity', ~>
       l = @cm.getCursor!line
       if l != at-line then at-line := l; on-move!
+
+
+/**
+ * This flag is `true` as long as the cursor was not moved.
+ */
+class StayFlag extends EventHook
+  (cm) ->
+    @value = true
+    super cm, 'cursorActivity', ~>
+      @value = false; @destroy!
 
 
 

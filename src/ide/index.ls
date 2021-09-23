@@ -68,8 +68,10 @@ class IDE
     {loc, cm} = @editor
     one-shot = ~>
       @viewer.synctex-forward {loc.filename, line: cm.getCursor!line + 1}
-    one-shot!
-    @_track = @editor.track-line one-shot
+    if !@_stay?value
+      one-shot!; @_track?destroy!; @_stay = @editor.stay-flag!
+    else
+      @_track = @editor.track-line one-shot
 
   build-progress: !->
     @layout.bars.status
