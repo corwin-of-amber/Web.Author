@@ -50,7 +50,7 @@ class IDE
     Ctrl = @editor.Ctrl
     global-keymap =
       "#{Ctrl}-Enter": @~synctex-forward
-      "Esc": ~> @viewer.synctex.blur!
+      "Esc": ~> @viewer.synctex.blur!; @_track?destroy!
 
   store: -> @config.store @
   restore: -> @config.restore-session @
@@ -66,7 +66,10 @@ class IDE
 
   synctex-forward: ->
     {loc, cm} = @editor
-    @viewer.synctex-forward {loc.filename, line: cm.getCursor!line + 1}
+    one-shot = ~>
+      @viewer.synctex-forward {loc.filename, line: cm.getCursor!line + 1}
+    one-shot!
+    @_track = @editor.track-line one-shot
 
   build-progress: !->
     @layout.bars.status

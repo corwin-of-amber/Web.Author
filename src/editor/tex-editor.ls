@@ -84,6 +84,8 @@ class TeXEditor extends EventEmitter
       @cm.scrollIntoView null, 150
     if focus then requestAnimationFrame ~> @cm.focus!
 
+  track-line: (on-move) -> new LineTracking(@cm, on-move)
+
   state:~
     -> {@loc, cursor: @cm.getCursor!}
     (v) ->
@@ -96,6 +98,24 @@ class TeXEditor extends EventEmitter
 
   @is-dat = (filename) ->
     filename.match(/^dat:\//)
+
+ 
+class EventHook
+  (@cm, @event-type, @handler) ->
+    @cm.on @event-type, @handler
+  destroy: ->
+    @cm.off @event-type, @handler
+
+
+/**
+ * Notifies whenever the current line changes.
+ */
+class LineTracking extends EventHook
+  (@cm, on-move) ->
+    at-line = @cm.getCursor!line
+    super @cm, 'cursorActivity', ~>
+      l = @cm.getCursor!line
+      if l != at-line then at-line := l; on-move!
 
 
 
