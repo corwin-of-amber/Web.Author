@@ -46,6 +46,8 @@ class PDFViewerCore extends EventEmitter
   open: (locator, page ? 1) ->>
     if locator instanceof Blob
       locator = {volume: null, filename: URL.createObjectURL(locator)}
+    else if locator instanceof URL
+      locator = {volume: null, filename: locator.href}
 
     @loc = locator
     uri = @_to-uri(@loc)
@@ -61,6 +63,9 @@ class PDFViewerCore extends EventEmitter
     @selected-page = Math.min(page, @pdf.num-pages)
     @refresh!
     @
+
+  fit: ->
+    @containingElement.0.scrollTo 0, 0
 
   _to-uri: (loc) ->
     loc = Volume.externSync(loc)
@@ -164,8 +169,7 @@ class Pan_MixIn
     how-far
       adjust = {x: drift(..left, ..right), y: drift(..top, ..bottom)}
 
-    @containing-element.0
-      ..scrollLeft += adjust.x; ..scrollTop += adjust.y
+    @containing-element.0.scrollBy adjust.x, adjust.y
 
 
 
@@ -250,11 +254,17 @@ class PDFViewer extends PDFViewerCore
       @nav-bind-ui!
       @zoom-bind-ui!
       @_ui-init = true      
-      
+  
+  _scroll:~
+    -> @containingElement.0.{scrollLeft, scrollTop}
+    (v) -> @containingElement.0 <<< v{scrollLeft, scrollTop}
+
   state:~
-    -> {@loc, @selected-page}
+    -> {@loc, @selected-page, scroll: @_scroll}
     (v) ->
-      safe ~>> v.loc && @open v.loc, v.selected-page
+      safe ~>>
+        if (v.loc) then await @open v.loc, v.selected-page
+        if (v.scroll) then @_scroll = that
 
 
 PDFViewer:: <<<< Nav_MixIn:: <<<< Zoom_MixIn:: <<<< Pan_MixIn:: <<<< SyncTeX_MixIn::

@@ -50,7 +50,8 @@ class IDE
     Ctrl = @editor.Ctrl
     global-keymap =
       "#{Ctrl}-Enter": @~synctex-forward
-      "Esc": ~> @viewer.synctex.blur!; @_track?destroy!
+      "F1": @~help
+      "Esc": ~> @viewer.synctex?blur!; @_track?destroy!; @home!
 
   store: -> @config.store @
   restore: -> @config.restore-session @
@@ -88,6 +89,15 @@ class IDE
       if it.outcome == 'error'
         @layout.bars.status.show text: 'build failed.' + \
           (if it.error?log then '' else ' (internal error!)')
+
+  home: ->
+    if @_back-to
+      @viewer.state = @_back-to; @_back-to = void
+
+  help: ->>
+    @_back-to = @viewer.state
+    await @viewer.open new URL("/data/toxin-manual/out/main.pdf", window.location)
+    @viewer.fit!
 
 
 export IDE

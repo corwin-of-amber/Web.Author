@@ -55,6 +55,7 @@ $ ->>
       ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
       ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/bibtex'}
       ide.project.open-recent sp.get('project') ? 'scientific-writing-exercise'
+      ide.help!
 
   update-pdf = ->
     if it.pdf?
