@@ -1,7 +1,7 @@
-fs = require 'fs-extra'
-require! path
-require! tempy
-child-process-promise = require 'child-process-promise'
+require! {
+  fs, path, tempy
+  'child-process-promise': child-process-promise
+}
 
 
 
