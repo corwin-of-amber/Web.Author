@@ -92,7 +92,10 @@ div.gutter.gutter-horizontal {
 
 .project-header div.bar > span {
     flex-grow: 1;
-    margin: 2px;
+    margin: 2px 0 2px 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .project-header button.badge {
