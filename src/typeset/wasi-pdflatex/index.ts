@@ -138,6 +138,10 @@ class PDFLatexBuild extends EventEmitter {
             var pkgs = ['latex', 'lm', 'bibtex'];
             if (source.match(/\\documentclass(\[.*?\])?{acmart}/))
                 pkgs.push('acmart');
+            var detect = PDFLatexPod.NANOTEX_RECOGNIZED_PKGS;
+            for (let mo of source.matchAll(/\\usepackage(?:\[.*?\])?{(.*?)}/g)) {
+                if (detect.has(mo[1])) pkgs.push(mo[1]);
+            }
             return pkgs;
         }
     }
@@ -319,6 +323,8 @@ class PDFLatexPod {
 class XzResource extends Resource {
     async blob(progress?: (p: DownloadProgress) => void) {
         
+        console.log(this.uri);
+
         var compressed = await (await super.blob(progress)).arrayBuffer(),
             xz = new Xz(new Uint8Array(compressed));
         
@@ -428,9 +434,12 @@ namespace PDFLatexPod {
         //'/tldist/': new Resource('/bin/tex/tldist.tar')
     };
 
+    export const NANOTEX_RECOGNIZED_PKGS = new Set(
+        ['geometry', 'adjustbox', 'wrapfig', 'menukeys']);
+
     const NANOTEX_BASE = '/bin/tlnet',
           NANOTEX_DEV = '/bin/tex/tldist.tar',
-          NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts']   // these are too large for LZMA2-js
+          NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts', 'pgf']   // these are too large for LZMA2-js
                                            .map(x => [x, 'tar']));
 
     export async function bundleOf(joy: string[], tlmgr: Tlmgr) {
@@ -471,10 +480,7 @@ class BibTexPod {
     async compile(job: string, wd: string = '/home') {
         var rc = await this.start(job, wd);
 
-        var /*volume = <unknown>this.core.fs as Volume,
-            outdir = path.resolve(wd, this.opts.outdir),
-            file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),*/
-            log = new PDFLatexPod.CompiledAsset(this.stdout.buffer);
+        var log = new PDFLatexPod.CompiledAsset(this.stdout.buffer);
 
         if (rc == 0)
             return {log}

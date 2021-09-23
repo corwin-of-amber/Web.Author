@@ -8,9 +8,13 @@
 
 \usepackage{lmodern}
 
-\newcommand\ToXinB{\raisebox{0.4pt}{T}\hspace{-1pt}\raisebox{1pt}{o}\hspace{-1.6pt}X\hspace{-1pt}{\itshape in}}
+\newcommand\ToXinB{\mbox{
+    \raisebox{0.4pt}{T}\hspace{-1pt}\raisebox{1pt}{o}%
+    \hspace{-1.6pt}X\hspace{-1pt}{\itshape in}}}
 
-\newcommand\ToXin{\raisebox{0.5pt}{T}\hspace{-.8pt}\raisebox{1pt}{o}\hspace{-1pt}X{\hspace{-1pt}\itshape in}}
+\newcommand\ToXin{\mbox{
+    \raisebox{0.5pt}{T}\hspace{-.8pt}\raisebox{1pt}{o}%
+    \hspace{-1pt}X{\hspace{-1pt}\itshape in}}}
 
 \newcommand\keyplus{\raisebox{.7pt}{\fontsize{8}{8}\selectfont+}}
 \newcommand\myreturn{\fontsize{9}{9}\selectfont\return}
@@ -21,7 +25,7 @@
 \includegraphics[width=1cm,valign=t]{gfx/leaf.png}
 }
 
-Welcome to \ToXin! \cmd\return
+Welcome to \ToXin!
 
 \bigskip\noindent
 {\ToXin} allows you to compose {\LaTeX} documents in your browser, typeset them,

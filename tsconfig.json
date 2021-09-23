@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "es2019",
         "moduleResolution": "node",
-        "lib": ["es2019", "dom", "WebWorker"],
+        "lib": ["es2020", "dom", "WebWorker"],
         "allowSyntheticDefaultImports": true,
         "esModuleInterop": true,
         "downlevelIteration": true,

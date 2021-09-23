@@ -18,6 +18,20 @@
                 "hyphen-base", "pdftex", "etex", "latex-fonts", "amscls", "l3backend", "plain",
                 "tex-ini-files", "latexconfig", "knuth-lib", "ec"
             ]
+        },
+        "wrapfig": {
+            "deps": ["collectbox", "iftex", "xkeyval"]
+        },
+        "pgf": {
+            "deps": ["xstring", "etoolbox", "xcolor", "relsize", "kvoptions", "ltxcmds", "kvsetkeys"]
+        },
+        "adjustbox": {
+            "deps": ["graphics", "graphics-cfg", "graphics-def"]
+        },
+        "menukeys": {
+            "deps": ["l3packages", "pgf",
+                "xstring", "etoolbox", "xcolor", "relsize", "kvoptions", "ltxcmds", "kvsetkeys"],
+            "comment": "this currently includes transitive dependencies from `pgf`"
         }
     }
 }

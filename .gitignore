@@ -8,7 +8,7 @@ bower_components
 /data/scratch
 /data/snapshots
 /data/**/connect-info.json
-/data/examples.tar
+/data/*.tar
 .*.swp
 *.bundle.js
 *.app

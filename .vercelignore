@@ -4,3 +4,4 @@ _build
 *.app
 /packages/nanotex
 /data/floc2022
+/build/kremlin/worker
