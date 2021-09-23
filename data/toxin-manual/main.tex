@@ -8,28 +8,30 @@
 
 \usepackage{lmodern}
 
-\newcommand\ToXinB{\mbox{
+\newcommand\ToXinB{\mbox{%
     \raisebox{0.4pt}{T}\hspace{-1pt}\raisebox{1pt}{o}%
     \hspace{-1.6pt}X\hspace{-1pt}{\itshape in}}}
 
-\newcommand\ToXin{\mbox{
+\newcommand\ToXin{\mbox{%
     \raisebox{0.5pt}{T}\hspace{-.8pt}\raisebox{1pt}{o}%
     \hspace{-1pt}X{\hspace{-1pt}\itshape in}}}
 
 \newcommand\keyplus{\raisebox{.7pt}{\fontsize{8}{8}\selectfont+}}
 \newcommand\myreturn{\fontsize{9}{9}\selectfont\return}
 
+\newcommand\smiley{\raisebox{-1.3pt}{\includegraphics[width=.85em]{gfx/smiley.png}}}
+
 \begin{document}
 
-\section*{\ToXinB: Online \LaTeX\ System
-\includegraphics[width=1cm,valign=t]{gfx/leaf.png}
+\section*{\ToXinB: Online \LaTeX\ System\hfill
+\includegraphics[width=1cm,valign=t]{gfx/leaf.png}~
 }
 
-Welcome to \ToXin!
+Welcome to \ToXin! 
 
 \bigskip\noindent
 {\ToXin} allows you to compose {\LaTeX} documents in your browser, typeset them,
-and easily edit them with modern Sync{\TeX} support.
+and edit them easily with modern Sync{\TeX} support.
 
 \bigskip\noindent
 Everything runs on your browser platform ---
@@ -48,7 +50,7 @@ try this:
  \textit{To show the compiled document again, press {\rm Esc}.}
 
  
-\item Zoom in and out using pinch or Ctrl + mouse wheel.
+\item Zoom in and out using pinch or Ctrl{\,\keyplus\,}mouse wheel.
 To move between pages, click the white area of the page to move the focus there,
 then use either $\leftarrow$/$\rightarrow$
 or PgUp/PgDn.
@@ -57,9 +59,9 @@ or PgUp/PgDn.
 {\ToXin} highlights lines and formula parts in green.
 Click an element to jump to the corresponding line in the {\LaTeX} source editor.
 
-\item When in the editor, press Ctrl+Enter ({\cmd\keyplus\myreturn\,} on a Mac keyboard).
+\item When in the editor, press Ctrl\keyplus Enter ({\cmd\keyplus\myreturn\,} on a Mac keyboard).
 The correponding line is shown in blue in the PDF.
-Press it twice to enable \emph{line tracking}: the blue mark will move in synchronization with where the cursor is in the editor.
+Press the key combination twice to enable \emph{line tracking}: the blue mark will move in concert with where the cursor is in the editor.
 Press Esc to exit tracking mode.
 
 \item 
@@ -76,7 +78,7 @@ Notice that only a fraction of the existing
 {\LaTeX} packages is currently available;
 more will be enabled in the future.
 Notably, the official example of the
-\texttt{acmart} class is included.
+\texttt{acmart} class is included (as well as this manual \smiley).
 \end{minipage}
 
 

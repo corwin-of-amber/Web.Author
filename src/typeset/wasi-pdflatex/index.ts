@@ -322,14 +322,10 @@ class PDFLatexPod {
 
 class XzResource extends Resource {
     async blob(progress?: (p: DownloadProgress) => void) {
-        
-        console.log(this.uri);
-
         var compressed = await (await super.blob(progress)).arrayBuffer(),
             xz = new Xz(new Uint8Array(compressed));
         
-        var //xz = new Xz(fs.readFileSync(this.uri.replace(/^[/]/, ''))),
-            unpacked = new Uint8Array(xz.decompressBlock());
+        var unpacked = new Uint8Array(xz.decompressBlock());
         return new Blob([unpacked]);
     }
 }
