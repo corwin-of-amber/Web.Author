@@ -21,6 +21,9 @@ class IDELayout
       if size? then ..attr 'data-size' size
       @el.append ..
 
+  with-focus-indicator: (pane) ->
+    pane.append $('<span>').addClass('ide-pane-focus-indicator')
+
   make-resizable: ->
     @split = Split @el.children('.ide-pane'), do
       sizes: @_sizes!
@@ -49,6 +52,7 @@ class IDELayout
   
   create-viewer: !->
     @panes.viewer = @create-pane('ide-pane-viewer')
+      @with-focus-indicator ..
 
   create-status: ->
     @bars.status = new StatusBar
