@@ -11,8 +11,8 @@ vendor() {
 
 examples() {
     set -x
-    tar cf data/examples.tar --exclude '.*' --strip-components=1 data/examples
-    tar cf data/toxin-manual.tar --exclude '.*' --strip-components=1 data/toxin-manual
+    tar cf data/examples.tar --exclude '.*' --exclude out --strip-components=1 data/examples
+    tar cf data/toxin-manual.tar --exclude '.*' --exclude out --strip-components=1 data/toxin-manual
 }
 
 case $1 in
