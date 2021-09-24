@@ -91,9 +91,11 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     -> @_recent
     (v) -> @_recent = @vue.projects = v
 
-  add-recent: (loc, name) ->
+  add-recent: (loc, name, where_ = 'start') ->
     if ! @lookup-recent loc
-      @recent.splice 0, 0, {name: name ? path.basename(loc.path), loc}
+      name ?= path.basename(loc.path)
+      if where_ == 'start' then @recent.unshift {name, loc}
+                           else @recent.push {name, loc}
 
   lookup-recent: (loc) -> @recent.find(-> it.loc === loc)
 
