@@ -71,6 +71,9 @@ $ ->>
   ide.project.on 'build:intermediate' update-pdf
   ide.project.on 'build:finished' update-pdf
 
+  if !window.DEV
+    window.addEventListener 'beforeunload', ide~store
+
   if 0
     p2p = new AuthorP2P(CLIENT_OPTS)
       ide.project.attach ..
@@ -88,13 +91,15 @@ $ ->>
       ..on 'rendered' ({content}) -> ide.viewer.open content
 
     wp.build('workshops.wp')
+    window <<< {wp}
 
-  window <<< {ide, ide.project, ide.viewer, wp}
+  window <<< {ide}
 
   # this is for development: break some dangling references when reloading the page
-  window.addEventListener 'beforeunload' ->
-    Date::com$cognitect$transit$equals = \
-    Date::com$cognitect$transit$hashCode = null
-    for own prop of window
-      if typeof window[prop] == 'object' then window[prop] = null
-    document.body.innerHTML = ""
+  if window.DEV
+    window.addEventListener 'beforeunload' ->
+      Date::com$cognitect$transit$equals = \
+      Date::com$cognitect$transit$hashCode = null
+      for own prop of window
+        if typeof window[prop] == 'object' then window[prop] = null
+      document.body.innerHTML = ""
