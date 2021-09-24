@@ -20,7 +20,7 @@ class FileWatcher extends EventEmitter
     if !_fs?watch then return  # filesystem does not support watching
     filename .= replace(/^file:\/\//, '')
     console.log "%cwatch #{filename}", 'color: #999'
-    origin = {fs: _fs, filename, mtime: 0}
+    origin = {fs: _fs, filename, opts, mtime: 0}
     bind = ~> @handler origin, ...&
     @watches.push _fs.watch(filename, opts{recursive ? false, persistent ? false}, bind)
 
@@ -33,9 +33,10 @@ class FileWatcher extends EventEmitter
 
   handler: (origin, ev, filename) ->
     setTimeout ~>
-      mtime = origin.fs.statSync(origin.filename).mtimeMs
+      mtime = if origin.opts.recursive then void
+              else origin.fs.statSync(origin.filename).mtimeMs
       console.log "%cchanged: #{filename}  #{mtime}  [#{origin.filename}]" 'color: #ccf'
-      if (mtime != origin.mtime)
+      if (!mtime? || mtime != origin.mtime)
         origin.mtime = mtime
         @debounce-emit 'change', {origin, filename}
     , 0

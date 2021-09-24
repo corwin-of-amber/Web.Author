@@ -11,7 +11,7 @@ require! {
   jquery: $
   lodash: _
   memfs
-  './infra/volume': { WatchPolicy }
+  './infra/volume': { SubdirectoryVolume, WatchPolicy }
   './infra/volume-factory': { VolumeFactory, FsVolumeScheme }
   './viewer/html-viewer': { HTMLDocument }
   './viewer/wordpress/render.ls': { WordPressTheme }
@@ -20,6 +20,7 @@ require! {
   './net/mysql': { MySQLProject }
   #'./net/p2p.ls':    {AuthorP2P}
   './net/static': { OnDemandFsVolumeScheme }
+  './net/local': { LocalDBSync }
 }
 
 #global.console = window.console   # for debugging
@@ -32,8 +33,9 @@ if typeof nw !== 'undefined' then window.DEV = true
 
 VolumeFactory.instance.schemes.set 'file', \
   new FsVolumeScheme(fs, WatchPolicy.Centralized)
-VolumeFactory.instance.schemes.set 'memfs', \
-  mfs-scheme = new OnDemandFsVolumeScheme(mfs = new memfs.Volume)
+VolumeFactory.instance.schemes.set 'memfs', mfs-scheme = \
+  new OnDemandFsVolumeScheme(new memfs.Volume,
+                             WatchPolicy.IndividualWithRec)
 
 
 $ ->>
@@ -43,7 +45,9 @@ $ ->>
 
   if 1
     await mfs-scheme.populate!
-    window <<< {mfs}
+    ldb = new LocalDBSync('memfsync');
+    await ldb.attach(VolumeFactory.get({scheme: 'memfs', path: '/'}))
+    window <<< {ldb}
 
   $('body').append ide.layout.el
   ide.start!

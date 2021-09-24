@@ -54,7 +54,7 @@ serialize = (o) ->
 
 deserialize = (o) ->
   transform o, -> 
-    if it?$type == 'Volume' then VolumeFactory.instance.get(it)
+    if it?$type == 'Volume' then VolumeFactory.get(it)
 
 transform = (o, f) ->
   if (fo = f(o))? then fo

@@ -37,6 +37,10 @@ namespace VolumeFactory {
     export type Locator = {scheme: string, path: string}
 
     export const instance = new VolumeFactory
+
+    export function get(locator: VolumeFactory.Locator) {
+        return instance.get(locator);
+    }
 }
 
 

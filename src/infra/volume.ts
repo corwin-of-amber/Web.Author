@@ -77,6 +77,8 @@ class SubdirectoryVolume extends Volume {
     get _() { return this.root.volume; }
     _abs(relpath: string) { return this.path.join(this.root.dir, relpath); }
 
+    _notify(filename: string) { this._watch.policy.notify(filename); }
+
     realpathSync(fp: string) { return fp; /** @todo */ }
 
     readdirSync(dir: string) { return this._.readdirSync(this._abs(dir)); }
@@ -92,6 +94,7 @@ class SubdirectoryVolume extends Volume {
     writeFileSync(filename: string, content: Uint8Array | string,
                   options?: Volume.WriteOptions) {
         this._.writeFileSync(this._abs(filename), content, options);
+        this._notify(filename);
     }
 
     createReadStream(filename: string) {
@@ -108,7 +111,7 @@ class SubdirectoryVolume extends Volume {
 
     watch(filename: string, opts: any, listener: Volume.WatchListener) {
         if (!this._watch.setup) {
-            this._watch.policy.setup(this.root, this.path);
+            this._watch.policy.setup(this);
             this._watch.setup = true;
         }
         return this._watch.policy.watch(filename, opts, listener);
@@ -122,20 +125,21 @@ class SubdirectoryVolume extends Volume {
 
 
 interface WatchPolicy {
-    setup(root: {volume: Volume, dir: string}, path?: Volume.IPath): void
+    setup(volume: SubdirectoryVolume): void
     watch(filename: string, opts: any, listener: Volume.WatchListener): Volume.Watcher
+    notify(filename: string): void
 }
 
 namespace WatchPolicy {
 
     abstract class Base {
-        root: {volume: Volume, dir: string}
-        path: Volume.IPath
+        volume: SubdirectoryVolume
 
-        setup(root: {volume: Volume, dir: string}, path = root.volume.path) {
-            this.root = root;
-            this.path = path;
+        setup(volume: SubdirectoryVolume) {
+            this.volume = volume;
         }
+
+        notify(filename: string) { }
     }
 
     /**
@@ -144,8 +148,31 @@ namespace WatchPolicy {
      */
     export class Individual extends Base implements WatchPolicy {
         watch(filename: string, opts: any, listener: Volume.WatchListener) {
-            var fp = this.path.join(this.root.dir, filename);
-            return this.root.volume.watch(fp, opts, listener);
+            var fp = this.volume._abs(filename);
+            return this.volume.root.volume.watch(fp, opts, listener);
+        }
+    }
+
+    /**
+     * This is like the `Individual` policy, but contains a polyfill for
+     * `{recursive: true}` that does not exist natively on memfs.
+     */
+    export class IndividualWithRec extends Individual {
+        watch(filename: string, opts: any, listener: Volume.WatchListener) {
+            if (opts.recursive)
+                this._recWatchers.add(listener);
+            return super.watch(filename, opts, listener);
+        }
+
+        notify(filename: string) {
+            for (let h of this._recWatchers) {
+                h('change', this.volume.externSync(filename).filename);
+            }
+        }
+
+        get _recWatchers(): Set<Function> {
+            var ext = this.volume.externSync('/').volume;
+            return (<any>ext)._volumeWRec ??= new Set<Function>();
         }
     }
 
@@ -157,9 +184,9 @@ namespace WatchPolicy {
         _master: Volume.Watcher
         _delegates = new Set<Volume.WatchListener>()
 
-        setup(root: {volume: Volume, dir: string}, path = root.volume.path) {
-            super.setup(root, path);
-            this._master = root.volume.watch(root.dir, {recursive: true},
+        setup(volume: SubdirectoryVolume) {
+            super.setup(volume);
+            this._master = volume.root.volume.watch(volume.root.dir, {recursive: true},
                 (eventType, filename) => {
                     for (let l of this._delegates) l(eventType, filename);
                 });
@@ -167,7 +194,7 @@ namespace WatchPolicy {
 
         watch(filename: string, opts: any, listener: Volume.WatchListener) {
             var delegate = (eventType: string, eventFilename: string) => {
-                if (eventFilename === filename)
+                if (eventFilename === filename) /** @todo or descendant thereof if `opts.recursive` */
                     listener(eventType, eventFilename);
             };
             this._delegates.add(delegate);

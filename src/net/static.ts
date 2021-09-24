@@ -1,4 +1,4 @@
-import type { Volume } from '../infra/volume';
+import type { Volume, WatchPolicy } from '../infra/volume';
 import { FsVolumeScheme } from '../infra/volume-factory';
 import { PackageManager, Resource, ResourceBundle } from 'basin-shell/src/package-mgr';
 
@@ -6,8 +6,8 @@ import { PackageManager, Resource, ResourceBundle } from 'basin-shell/src/packag
 class OnDemandFsVolumeScheme extends FsVolumeScheme {
     packageManager: PackageManager
 
-    constructor(_fs?: Volume) {
-        super(_fs);
+    constructor(_fs?: Volume, wp?: {new(): WatchPolicy}) {
+        super(_fs, wp);
         this.packageManager = new PackageManager(<any>this.fs);  /** @oops need mkdirp */
     }
 
@@ -23,8 +23,6 @@ class OnDemandFsVolumeScheme extends FsVolumeScheme {
 
 
 const ASSETS: ResourceBundle = {
-    '/proj1/foo.tex': 'bar', 
-    '/proj1/main.tex': 'documentclass ... ',
     '/home/': new Resource('/data/toxin-manual.tar'),
     '/': new Resource('/data/examples.tar')
 };

@@ -116,13 +116,13 @@ class TeXProject
     @name ?= path.basename(loc.path)
 
   create: ->
-    VolumeFactory.instance.get(@loc).mkdirSync @loc.path, recursive: true
+    VolumeFactory.get(@loc).mkdirSync @loc.path, recursive: true
 
   get-main-pdf-path: ->
     @_find-pdf @path  # @todo use loc
 
   get-main-tex-file: ->
-    volume = VolumeFactory.instance.get(@loc)
+    volume = VolumeFactory.get(@loc)
     glob-all(['*.tex', '**/*.tex'], {exclude: @@IGNORE, cwd: '', fs: volume})
       filename = [...(..)].find ~>
         try      volume.readFileSync(it, 'utf-8').match(/\\documentclass\s*[[{]/)
@@ -130,7 +130,7 @@ class TeXProject
     filename && {volume, filename}
 
   get-file: (filename) ->
-    volume = VolumeFactory.instance.get(@loc)
+    volume = VolumeFactory.get(@loc)
       filename = (..path ? path).normalize(filename)
     return {volume, filename}
 
@@ -181,7 +181,7 @@ Vue.component 'source-folder.directory', do
   methods:
     refresh: ->
       if @loc
-        @volume = VolumeFactory.instance.get(@loc)
+        @volume = VolumeFactory.get(@loc)
         @files.splice 0, Infinity, ...dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE})
 
 
