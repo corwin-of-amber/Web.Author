@@ -44,7 +44,7 @@ class IDE
     @viewer.on 'synctex-goto' ~> if @editor
       @editor.jump-to @file-of-project(it.file.path), line: it.line - 1
 
-    # Keyboard events
+    # - Global keyboard events -
     document.body.addEventListener 'keydown' -> global-keymap[keyName(it)]?!
 
     Ctrl = @editor.Ctrl
@@ -87,8 +87,9 @@ class IDE
   
   build-finished: !->
       if it.outcome == 'error'
+        type = it.error?$type ? it.error?name
         @layout.bars.status.show text: 'build failed.' + \
-          (if it.error?log then '' else ' (internal error!)')
+          (if type in ['ChildProcessError', 'BuildError'] then '' else ' (internal error!)')
 
   home: ->
     if @_back-to

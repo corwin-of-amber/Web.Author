@@ -20,7 +20,8 @@ class FileWatcher extends EventEmitter
     if !_fs?watch then return  # filesystem does not support watching
     filename .= replace(/^file:\/\//, '')
     console.log "%cwatch #{filename}", 'color: #999'
-    bind = ~> @handler filename, ...&
+    origin = {fs: _fs, filename, mtime: 0}
+    bind = ~> @handler origin, ...&
     @watches.push _fs.watch(filename, opts{recursive ? false, persistent ? false}, bind)
 
   clear: !->
@@ -31,41 +32,13 @@ class FileWatcher extends EventEmitter
   multiple: (filenames) !-> @clear! ; for filenames => @add ..
 
   handler: (origin, ev, filename) ->
-    setTimeout ~> 
-      console.log "%cchanged: #{filename}  [#{origin}]" 'color: #ccf'
-      @debounce-emit 'change', {origin, filename}
+    setTimeout ~>
+      mtime = origin.fs.statSync(origin.filename).mtimeMs
+      console.log "%cchanged: #{filename}  #{mtime}  [#{origin.filename}]" 'color: #ccf'
+      if (mtime != origin.mtime)
+        origin.mtime = mtime
+        @debounce-emit 'change', {origin, filename}
     , 0
-
-
-/** @deprecated */
-class _FileWatcher extends EventEmitter
-  (debounce-ms=500) ->
-    super!
-    @filenames = []
-
-    @@dir.on 'change' @~handler
-    @debounce-emit = _.debounce (ev) ~> @emit 'change' ev, debounce-ms
-
-  add: (filename) !->
-    filename .= replace(/^file:\/\//, '')
-    console.log "watch #{filename}"
-    @filenames.push filename
-
-  clear: !->
-    @filenames = []
-
-  single: (filename) !-> @clear! ; @add filename
-  multiple: (filenames) !-> @clear! ; for filenames => @add ..
-
-  handler: ({dir, filename}) ->
-    filename = path.join(dir, filename)
-    if @filenames.includes(filename)
-      console.log "%cchanged: #{filename}" 'color: #bbe'
-      @debounce-emit {filename}
-
-
-#FileWatcher.dir = new DirectoryWatcher
-
 
 
 export FileWatcher
