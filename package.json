@@ -7,8 +7,8 @@
     "start": "nw .&",
     "build": "kremlin index.html",
     "build:worker": "kremlin -o build/kremlin/worker src/typeset/wasi-pdflatex/worker.ts && cp build/kremlin/worker/worker.js build/kremlin/wasi-pdflatex.worker.js",
-    "pack:examples": "COPYFILE_DISABLE=1 tar cf data/examples.tar --strip-components=1 data/examples && tar cf data/toxin-manual.tar --strip-components=1 data/toxin-manual",
-    "pack:vendor": "COPYFILE_DISABLE=1 mkdir -p dist && tar czhf dist/vendor.tar.gz --exclude tldist.tar bin/tex",
+    "pack:examples": "./etc/pack.sh examples",
+    "pack:vendor": "./etc/pack.sh vendor",
     "vercel-build": "./etc/vercel-build.sh"
   },
   "bin": {
