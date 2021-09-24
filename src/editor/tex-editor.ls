@@ -46,6 +46,7 @@ class TeXEditor extends EventEmitter
     @visited-files = new VisitedFiles
 
   open: (locator) ->>
+    locator = @_normalize-loc locator
     if locator.volume           => await @open-file locator
     #else if _.isObject(locator) => @open-syncpad locator
     else
@@ -54,11 +55,13 @@ class TeXEditor extends EventEmitter
 
   open-file: (locator) ->
     @_pre-load!
+    locator = @_normalize-loc locator
     @visited-files.enter @cm, locator, -> new FileEdit(locator)
     .then ~> @emit 'open', {type: 'file', loc: locator, uri: locator.filename}
 
   open-syncpad: (slot) ->
     @_pre-load!
+    locator = @_normalize-loc locator
     @visited-files.enter @cm, slot.uri, -> new SyncPadEdit(slot)
     .then ~> @emit 'open', {type: 'syncpad', slot.uri, slot}
 
@@ -74,9 +77,7 @@ class TeXEditor extends EventEmitter
       @emit 'request-save'
 
   jump-to: (loc, {line, ch}={}, focus=true) ->>
-    #try
-    loc := {loc.volume, filename: loc.volume.path.normalize loc.filename}
-    #catch
+    loc = @_normalize-loc loc
     if !@loc || !(loc.volume == @loc.volume && loc.filename == @loc.filename)
       await @open loc
     if line?
@@ -86,6 +87,12 @@ class TeXEditor extends EventEmitter
 
   track-line: (on-move) -> new LineTracking(@cm, on-move)
   stay-flag: -> new StayFlag(@cm)
+
+  _normalize-loc: (loc) ->
+    if loc.volume?path
+      loc = {loc.volume, filename: loc.volume.path.normalize loc.filename}
+      if !loc.filename.startsWith('/') then loc.filename = '/' + loc.filename
+    loc
 
   state:~
     -> {@loc, cursor: @cm.getCursor!}
