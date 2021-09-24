@@ -22,7 +22,7 @@ else
 fi
 
 # Download packages from tlnet
-for pkg in `cat etc/tlnet-deploy.list`; do
+for pkg in `cat data/distutils/texlive/tlnet-deploy.list`; do
     echo "$TLNET/archive/$pkg.tar.xz"
     [ -e "$DL/$pkg.tar.xz" ] || curl "$TLNET/archive/$pkg.tar.xz" > "$DL/$pkg.tar.xz"
 done

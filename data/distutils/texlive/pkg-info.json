@@ -19,19 +19,30 @@
                 "tex-ini-files", "latexconfig", "knuth-lib", "ec"
             ]
         },
+        "verbatim": {
+            "meta": true,
+            "deps": ["tools"]
+        },
+        "xcolor": {
+            "deps": ["graphics", "graphics-def"],
+            "comment": "actually, xcolor has different deps depending on options... :("
+        },
         "wrapfig": {
             "deps": ["collectbox", "iftex", "xkeyval"]
         },
+        "tikz": {
+            "meta": true,
+            "deps": ["pgf"]
+        },
         "pgf": {
-            "deps": ["xstring", "etoolbox", "xcolor", "relsize", "kvoptions", "ltxcmds", "kvsetkeys"]
+            "deps": ["xstring", "etoolbox", "xcolor", "relsize", "kvoptions", "ltxcmds", "kvsetkeys",
+                     "graphics", "graphics-cfg", "graphics-def"]
         },
         "adjustbox": {
             "deps": ["graphics", "graphics-cfg", "graphics-def"]
         },
         "menukeys": {
-            "deps": ["l3packages", "pgf",
-                "xstring", "etoolbox", "xcolor", "relsize", "kvoptions", "ltxcmds", "kvsetkeys"],
-            "comment": "this currently includes transitive dependencies from `pgf`"
+            "deps": ["l3packages", "pgf"]
         }
     }
 }

@@ -138,9 +138,8 @@ class PDFLatexBuild extends EventEmitter {
             var pkgs = ['latex', 'lm', 'bibtex'];
             if (source.match(/\\documentclass(\[.*?\])?{acmart}/))
                 pkgs.push('acmart');
-            var detect = PDFLatexPod.NANOTEX_RECOGNIZED_PKGS;
             for (let mo of source.matchAll(/\\usepackage(?:\[.*?\])?{(.*?)}/g)) {
-                if (detect.has(mo[1])) pkgs.push(mo[1]);
+                pkgs.push(...mo[1].split(',').map(s => s.trim()));
             }
             return pkgs;
         }
@@ -234,7 +233,7 @@ type Future = {resolve: (v: any) => void, reject: (err: any) => void};
 class PDFLatexPod {
     core: ExecCore
     packageManager: PackageManager
-    tlmgr: Tlmgr
+    tlmgr: PDFLatexPod.NanoTexMgr
 
     _ready: Promise<void>
     _installed = new Set<string>()
@@ -250,7 +249,7 @@ class PDFLatexPod {
             console.log(fd, new TextDecoder().decode(data)));
 
         this.packageManager = new PackageManager(this.core.fs);
-        this.tlmgr = new Tlmgr();
+        this.tlmgr = new PDFLatexPod.NanoTexMgr();
 
         this.utils = {
             bibtex: new BibTexPod(this.core, this.opts)
@@ -269,7 +268,7 @@ class PDFLatexPod {
             await this.packageManager.install(PDFLatexPod.texdist);
         if (packages.length > 0)
             await this.packageManager.install(
-                await PDFLatexPod.bundleOf(packages, this.tlmgr));
+                await this.tlmgr.bundleOf(packages));
 
         this._installed.add('texdist');
         for (let pkg of packages) this._installed.add(pkg);
@@ -427,28 +426,41 @@ namespace PDFLatexPod {
         '/bin/texmf.cnf': new Resource('/bin/tex/texmf.cnf'),
         '/dist/': new Resource('/bin/tex/dist.tar'),
         '/dist/pdftex.map': new Resource('/bin/tex/pdftex.map'),
-        //'/tldist/': new Resource('/bin/tex/tldist.tar')
     };
 
-    export const NANOTEX_RECOGNIZED_PKGS = new Set(
-        ['geometry', 'adjustbox', 'wrapfig', 'menukeys']);
+    const TLNET_DEPLOY_LIST_URI = '/data/distutils/texlive/tlnet-deploy.list';
 
     const NANOTEX_BASE = '/bin/tlnet',
           NANOTEX_DEV = '/bin/tex/tldist.tar',
           NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts', 'pgf']   // these are too large for LZMA2-js
                                            .map(x => [x, 'tar']));
 
-    export async function bundleOf(joy: string[], tlmgr: Tlmgr) {
-        var pkgs = await tlmgr.collect(joy);
-        return {
-            '/tldist/': [
-                ...pkgs.map(nm =>
+    export class NanoTexMgr extends Tlmgr {
+        async _fetch() {
+            var json = await super._fetch(),
+                list = await (await fetch(TLNET_DEPLOY_LIST_URI)).text();
+            // fill in packages from the list, with no deps
+            for (let pkg of list.split(/\n+/).map(s => s.trim()))
+                if (pkg) json.packages[pkg] ??= {};
+            return json;
+        }
+
+        async collect(pkgs: Set<string>) {
+            var exists = (await this.pkgInfo).packages;
+            return (await super.collect(pkgs)).filter(pkg => exists[pkg]);
+        }
+
+        async bundleOf(joy: string[]) {
+            var pkgs = await this.collect(new Set(joy));
+            console.log('%c[nanotex] installing from tlmgr:', 'color: green', pkgs);
+            return {
+                '/tldist/': pkgs.map(nm =>
                     nm == 'dev' ? new Resource(NANOTEX_DEV) :
                         NANOTEX_FMT[nm] == 'tar' ?
                             new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
                             new XzResource(`${NANOTEX_BASE}/${nm}.tar.xz`))
-            ]
-        } as ResourceBundle;
+            } as ResourceBundle;
+        }
     }
 
 }

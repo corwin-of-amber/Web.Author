@@ -66,6 +66,7 @@ ncctools
 cmap
 caption
 float
+tools
 comment
 fancyhdr
 gettitlestring
