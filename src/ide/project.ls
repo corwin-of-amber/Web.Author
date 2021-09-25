@@ -91,6 +91,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
   select: (loc, {type ? 'file', silent ? false} ? {}) ->
     if loc.volume == @volume
+      @current.visit loc
       @lookup-recent(@current.loc)?last-file = {type, loc.filename}
       @vue.$refs.files.select(loc.filename, silent)
 
@@ -148,12 +149,11 @@ class TeXProject
 
   get-config: ->
     volume = VolumeFactory.get(@loc)
-    glob-all(['toxin.json', 'project.json'], {cwd: '', fs: volume})
-      json = [...(..)].map ~>
-        try      JSON.parse(volume.readFileSync(it))
-        catch => void
-      .find -> it
-    json
+    [...glob-all(['toxin.json', 'project.json'], {cwd: '', fs: volume})]
+    .map ~>
+      try      JSON.parse(volume.readFileSync(it))
+      catch => void
+    .find -> it
 
   builder: ->
     main-tex = @get-main-tex-file!
@@ -162,6 +162,10 @@ class TeXProject
       new LatexmkBuild main-tex.filename, @path
     else
       new WASI_PDFLatexBuild main-tex
+
+  visit: (loc) ->
+    if @get-config!?mode == 'browse' && @_is-document(loc)
+      @transient-config.main = @volume.path.relative('/', loc.filename)
 
   _find-pdf: (root-dir) ->
     fns = glob-all.sync(Array.from(['out/*.pdf', '*.pdf' ++ @@IGNORE]),

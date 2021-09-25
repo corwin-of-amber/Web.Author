@@ -1,8 +1,15 @@
 % Totoro sitting in the snow
 % By Noa Hoffmann and Pascal Günthner, 21.12.2020
-\documentclass[tikz,11pt]{{standalone}} 
+
+% |
+% | This one does take a while to compile. sorry. 😞
+% |
+
+\documentclass{article} 
 %%%<
+\usepackage{tikz}
 \usepackage{verbatim}
+\usepackage{lmodern}
 %%%>
 \begin{comment}
 :Title: Totoro sitting in the snow
@@ -16,7 +23,7 @@ This is a drawing of Totoro, the star of the Japanese animated fantasy film
 The Koch snowflake fractal has been used to draw snow,
 repetitive tasks are done in "foreach" loops.
 \end{comment}
-\usepackage{calligra}
+%\usepackage{calligra}
 \usepackage[T1]{fontenc}
 \usetikzlibrary{%
   shapes, shadows, patterns, calc,
@@ -78,9 +85,9 @@ repetitive tasks are done in "foreach" loops.
   \pic [scale = \i, opacity = 0.9] at (rand*7.5, rnd*18-10.5) {snowflake};}
 % cloud with merry christmas
 \node [cloud,aspect = 6.5, cloud puff arc = 120, cloud puffs = 12.9, fill = white,
-       color = white] at (0,7) {\Huge M \hspace{9.8cm}.};
-\node [color = red] at (0,7) {\fontsize{50}{80}
-                              \textbf{Merry Christmas \quad }};
+       color = white] at (0,7) {};
+%\node [color = red] at (0,7) {\fontsize{50}{80}
+%                              \textbf{Merry Christmas %\quad }};
 % tail
 \path [draw, fill, rotate = 50] (-4,-7.5) circle (1.5 and 2.2);
 % snowhill
