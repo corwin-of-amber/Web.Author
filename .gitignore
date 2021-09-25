@@ -20,6 +20,8 @@ bower_components
 .vercel
 _npmlink
 
+/bin/xzminidec.wasm
+
 # nanoTex has its own repo
 /packages/nanotex
 

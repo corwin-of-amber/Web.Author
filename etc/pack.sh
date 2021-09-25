@@ -6,7 +6,7 @@ export COPYFILE_DISABLE=1
 vendor() {
     set -x
     mkdir -p dist
-    tar czhf dist/vendor.tar.gz --exclude tldist.tar bin/tex    
+    tar czhf dist/vendor.tar.gz --exclude tldist.tar bin/tex bin/xzminidec.wasm
 }
 
 examples() {

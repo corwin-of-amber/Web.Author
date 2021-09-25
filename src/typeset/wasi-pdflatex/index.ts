@@ -12,7 +12,6 @@ import { EventEmitter } from 'events';
 import { ExecCore } from 'wasi-kernel/src/kernel/exec';
 import { PackageManager, Resource, ResourceBundle, DownloadProgress }
      from 'basin-shell/src/package-mgr';
-import { Xz } from 'xz-extract';
      
 import { Volume } from '../../infra/volume';
 // @ts-ignore
@@ -136,7 +135,7 @@ class PDFLatexBuild extends EventEmitter {
     }
 
     _guessRequiredPackages(source: string) {
-        if ((<any>window)?.DEV) return ['dev'];  // for faster dev cycles
+        if ((<any>window)?.DEV && !localStorage['toxin-dist']) return ['dev'];  // for faster dev cycles
         else {
             // this is basically a rudimentary placeholder
             var pkgs = ['latex', 'lm', 'bibtex'];
@@ -326,11 +325,26 @@ class PDFLatexPod {
 class XzResource extends Resource {
     async blob(progress?: (p: DownloadProgress) => void) {
         var compressed = await (await super.blob(progress)).arrayBuffer(),
-            xz = new Xz(new Uint8Array(compressed));
-        
-        var unpacked = new Uint8Array(xz.decompressBlock());
-        return new Blob([unpacked]);
+            decompressed = await XzResource.unpackSync(new Uint8Array(compressed));
+
+        return new Blob([decompressed]);
     }
+
+    /** unpacking is synchronous; `async` is only needed for fetching the `.wasm` */
+    static async unpackSync(ui8a: Uint8Array) {
+        var xz = new ExecCore({stdin: false}),
+            buf = {1: [], 2: []}, h = ({fd, data}) => buf[fd]?.push(data);
+        xz.on('stream:out', h);
+        xz.cached = this._wasm_cache;
+        xz.fs.writeFileSync('/dev/stdin', ui8a);
+        var rc = await xz.start('/bin/xzminidec.wasm');
+        if (rc == 0) return concat(buf[1]);
+        else throw new Error('[xz] ' + 
+            buf[2].length ? new TextDecoder().decode(concat(buf[2])) : 'unknown error');
+    }
+
+    /** @note reusing the ExecCore itself doesn't work, somehow (wasi-kernel bug?) */
+    static _wasm_cache = new Map<string, Promise<WebAssembly.Module>>();
 }
 
 
@@ -435,9 +449,7 @@ namespace PDFLatexPod {
     const TLNET_DEPLOY_LIST_URI = '/data/distutils/texlive/tlnet-deploy.list';
 
     const NANOTEX_BASE = '/bin/tlnet',
-          NANOTEX_DEV = '/bin/tex/tldist.tar',
-          NANOTEX_FMT = Object.fromEntries(['lm', 'amsfonts', 'pgf']   // these are too large for LZMA2-js
-                                           .map(x => [x, 'tar']));
+          NANOTEX_DEV = '/bin/tex/tldist.tar';
 
     export class NanoTexMgr extends Tlmgr {
         async _fetch() {
@@ -461,9 +473,7 @@ namespace PDFLatexPod {
             return {
                 '/tldist/': pkgs.map(nm =>
                     nm == 'dev' ? new Resource(NANOTEX_DEV) :
-                        NANOTEX_FMT[nm] == 'tar' ?
-                            new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
-                            new XzResource(`${NANOTEX_BASE}/${nm}.tar.xz`))
+                        new XzResource(`${NANOTEX_BASE}/${nm}.tar.xz`))
             } as ResourceBundle;
         }
     }
@@ -516,16 +526,18 @@ namespace BibTexPod {
         get buffer() { return concat(this._buffer); }
     }
 
-    // Uint8Array concat boilerplate
-    function concat(arrays: Uint8Array[]) {
-        let totalLength = arrays.reduce((acc, value) => acc + value.length, 0),
-            result = new Uint8Array(totalLength), pos = 0;
-        for (let array of arrays) {
-            result.set(array, pos);
-            pos += array.length;
-        }
-        return result;
+}
+
+
+// Uint8Array concat boilerplate
+function concat(arrays: Uint8Array[]) {
+    let totalLength = arrays.reduce((acc, value) => acc + value.length, 0),
+        result = new Uint8Array(totalLength), pos = 0;
+    for (let array of arrays) {
+        result.set(array, pos);
+        pos += array.length;
     }
+    return result;
 }
 
 

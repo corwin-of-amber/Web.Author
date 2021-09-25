@@ -30,8 +30,3 @@ done
 # Update build cache
 mkdir -p $DLCACHE
 cp -r $DL/* $DLCACHE/
-
-# These packages are too large to be unpacked on the client :/
-for pkg in amsfonts lm pgf; do
-    ./dist/xzminidec < "$DL/$pkg.tar.xz" > "$DL/$pkg.tar"
-done
