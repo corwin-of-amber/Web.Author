@@ -62,6 +62,10 @@ export default {
             var vol = this.$refs.source.volume, path = vol.path;
             vol.renameSync(path.join(...ev.path, ev.from),
                            path.join(...ev.path, ev.to));
+        },
+        select(path, silent=false) {
+            this.$refs.list.select(path);
+            if (!silent) { console.warn('[project] select', path); /** @todo */ }
         }
     },
     components: {FileList, ProjectContextMenu}

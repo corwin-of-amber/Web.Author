@@ -76,6 +76,8 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
         ..on 'finished' ~> @emit 'build:finished' it
         ..on 'progress' ~> @emit 'build:progress' it
         ..on 'intermediate' ~> @emit 'build:intermediate' it
+    else
+      @_builder.set-main @current.get-main-tex-file!
     @_builder.make-watch!
 
   unbuild: ->
@@ -86,6 +88,11 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     if (log = build-result.log ? build-result.error?log)?
       log.saveAs(@current.get-file('out/build.log'))
       @refresh!
+
+  select: (loc, {type ? 'file', silent ? false} ? {}) ->
+    if loc.volume == @volume
+      @lookup-recent(@current.loc)?last-file = {type, loc.filename}
+      @vue.$refs.files.select(loc.filename, silent)
 
   recent:~
     -> @_recent
@@ -116,25 +123,37 @@ class TeXProject
   (@loc, @name) ->
     @path = @loc.path
     @name ?= path.basename(loc.path)
+    @transient-config = {}
+
+  volume:~
+    -> VolumeFactory.get(@loc)
 
   create: ->
-    VolumeFactory.get(@loc).mkdirSync @loc.path, recursive: true
+    @volume.mkdirSync @loc.path, recursive: true
 
   get-main-pdf-path: ->
     @_find-pdf @path  # @todo use loc
 
   get-main-tex-file: ->
-    volume = VolumeFactory.get(@loc)
-    glob-all(['*.tex', '**/*.tex'], {exclude: @@IGNORE, cwd: '', fs: volume})
-      filename = [...(..)].find ~>
-        try      volume.readFileSync(it, 'utf-8').match(/\\documentclass\s*[[{]/)
-        catch => false
+    volume = @volume
+    if !(filename = @transient-config?main ? @get-config!?main)?
+      glob-all(['*.tex', '**/*.tex'], {exclude: @@IGNORE, cwd: '', fs: volume})
+        filename = [...(..)].find ~> @_is-document({volume, filename: it})
     filename && {volume, filename}
 
   get-file: (filename) ->
-    volume = VolumeFactory.get(@loc)
+    volume = @volume
       filename = (..path ? path).normalize(filename)
     return {volume, filename}
+
+  get-config: ->
+    volume = VolumeFactory.get(@loc)
+    glob-all(['toxin.json', 'project.json'], {cwd: '', fs: volume})
+      json = [...(..)].map ~>
+        try      JSON.parse(volume.readFileSync(it))
+        catch => void
+      .find -> it
+    json
 
   builder: ->
     main-tex = @get-main-tex-file!
@@ -152,6 +171,10 @@ class TeXProject
     if main-tex? && (fn = fns.find(pdf-matches)) then ;
     else fn = fns[0]
     fn && path.join(root-dir, fn)
+
+  _is-document: ({volume, filename}) ->
+    try      volume.readFileSync(filename, 'utf-8').match(/\\documentclass\s*[[{]/)
+    catch => false
 
   @promote = (loc) ->
     if loc instanceof TeXProject then return loc
