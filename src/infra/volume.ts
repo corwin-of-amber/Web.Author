@@ -101,12 +101,17 @@ class SubdirectoryVolume extends Volume {
         return this._.createReadStream(this._abs(filename));
     }
 
-    unlinkSync(filename: string) { this._.unlinkSync(this._abs(filename)); }
+    unlinkSync(filename: string) {
+        this._.unlinkSync(this._abs(filename));
+        this._notify(filename); 
+    }
     renameSync(oldFilename: string, newFilename: string) {
         this._.renameSync(this._abs(oldFilename), this._abs(newFilename));
+        this._notify(oldFilename); this._notify(newFilename); 
     }
     mkdirSync(filename: string, opts?: any) {
         this._.mkdirSync(this._abs(filename), opts);
+        this._notify(filename);
     }
 
     watch(filename: string, opts: any, listener: Volume.WatchListener) {

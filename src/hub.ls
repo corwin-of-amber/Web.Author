@@ -54,8 +54,10 @@ $ ->>
 
   if 1
     ide.project.add-recent {scheme: 'memfs', path: '/home/toxin-manual'}, , 'end'
-    for example in <[overleaf/scientific-writing-exercise overleaf/bibtex overleaf/acm-sigplan acmart-minimal texample/rotated-triangle texample/nodetutorial]>
-      ide.project.add-recent {scheme: 'memfs', path: "/examples/#{example}"}, , 'end'
+    aliases = {'tikz/gallery': 'tikz-gallery'}
+    for example in <[overleaf/scientific-writing-exercise overleaf/bibtex overleaf/acm-sigplan
+                     acmart-minimal tikz/gallery]>
+      ide.project.add-recent {scheme: 'memfs', path: "/examples/#{example}"}, aliases[example], 'end'
     if ide.config.is-first-time!
       #ide.project.add-recent {scheme: 'memfs', path: '/examples/acmart-minimal'}
       #ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/acm-sigplan'}

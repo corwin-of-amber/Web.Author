@@ -50,7 +50,8 @@ class LocalDBSync {
     async push({volume, filename}: Volume.Location) {
         await this._ready;
         var content = this._loadV({volume, filename});
-        return content ? this._store(filename, content) : undefined;
+        return content ? this._store(filename, content)
+                       : this._delete(filename);
     }
 
     async pull({volume, filename}: Volume.Location) {
@@ -78,6 +79,10 @@ class LocalDBSync {
         return this.db.get('files', filename);
     }
 
+    _delete(filename: string) {
+        return this.db.delete('files', filename);
+    }
+
     _storeV({volume, filename}: Volume.Location, content: Uint8Array | string) {
         try {
             volume.mkdirSync(volume.path.dirname(filename), {recursive: true});
@@ -91,7 +96,7 @@ class LocalDBSync {
         try {
             return volume.readFileSync(filename);
         }
-        catch (e) { console.warn('[LocalDBSync] cannot read', filename, `\n[${e}]`); return; }
+        catch (e) { return undefined; /* deleted on volume */ }
     }
 }
 

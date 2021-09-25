@@ -34,7 +34,7 @@ class FileWatcher extends EventEmitter
   handler: (origin, ev, filename) ->
     setTimeout ~>
       mtime = if origin.opts.recursive then void
-              else origin.fs.statSync(origin.filename).mtimeMs
+              else try origin.fs.statSync(origin.filename).mtimeMs catch
       console.log "%cchanged: #{filename}  #{mtime}  [#{origin.filename}]" 'color: #ccf'
       if (!mtime? || mtime != origin.mtime)
         origin.mtime = mtime

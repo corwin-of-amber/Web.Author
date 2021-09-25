@@ -31,9 +31,7 @@ export default {
                 if (ev.kind == 'file')
                     this.$emit('file:select', this.$refs.source.volume.path.join(...ev.path));
                 break;
-            case 'rename':
-                this.rename(ev);
-                break;
+            case 'rename': this.rename(ev); break;
             case 'menu':
                 this.$refs.contextMenu.open(ev.$event, ev);
                 ev.$event.preventDefault();
@@ -44,6 +42,7 @@ export default {
             switch (ev.name) {
             case 'new-file': this.create(ev); break;
             case 'rename':   this.renameStart(ev); break;
+            case 'delete':   this.delete(ev); break;
             case 'refresh':  this.$emit('action', {type: 'refresh'}); break;
             }
         },
@@ -53,7 +52,7 @@ export default {
             vol.writeFileSync(path.join(...fn), '');
             fv.create(fn);
         },
-        renameStart() {
+        renameStart(ev) {
             var sel = this.$refs.list.selection[0];
             if (sel !== undefined)
                 this.$refs.list.renameStart(sel);
@@ -62,6 +61,10 @@ export default {
             var vol = this.$refs.source.volume, path = vol.path;
             vol.renameSync(path.join(...ev.path, ev.from),
                            path.join(...ev.path, ev.to));
+        },
+        delete(ev) {
+            var vol = this.$refs.source.volume, path = vol.path;
+            vol.unlinkSync(path.join(...ev.for.path));
         },
         select(path, silent=false) {
             this.$refs.list.select(path);
