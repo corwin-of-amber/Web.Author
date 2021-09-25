@@ -43,6 +43,9 @@
         },
         "menukeys": {
             "deps": ["l3packages", "pgf"]
+        },
+        "standalone": {
+            "deps": ["iftex", "xkeyval", "tools"]
         }
     }
 }

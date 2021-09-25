@@ -140,8 +140,8 @@ class PDFLatexBuild extends EventEmitter {
         else {
             // this is basically a rudimentary placeholder
             var pkgs = ['latex', 'lm', 'bibtex'];
-            if (source.match(/\\documentclass(\[.*?\])?{acmart}/))
-                pkgs.push('acmart');
+            for (let mo of source.matchAll(/\\documentclass(?:\[.*?\])?{(.*?)}/g))
+                pkgs.push(mo[1].trim());
             for (let mo of source.matchAll(/\\usepackage(?:\[.*?\])?{(.*?)}/g)) {
                 pkgs.push(...mo[1].split(',').map(s => s.trim()));
             }

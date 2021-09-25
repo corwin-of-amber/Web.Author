@@ -2,10 +2,11 @@
 % By Noa Hoffmann and Pascal Günthner, 21.12.2020
 
 % |
-% | This one does take a while to compile. sorry. 😞
+% | This one does take a while to compile due to
+% | the Koch snowflakes. sorry. 😞
 % |
 
-\documentclass{article} 
+\documentclass{standalone} 
 %%%<
 \usepackage{tikz}
 \usepackage{verbatim}
@@ -78,16 +79,16 @@ repetitive tasks are done in "foreach" loops.
 % blue sky
 \fill[blue!30!white] (-8cm,-11cm) rectangle (8cm,10cm);
 % random snowflakes
-\foreach \i in {0.1,0.11,...,1}{
+\foreach \i in {0.1,0.12,...,1}{
   \pic [scale = \i, opacity = 0.9] at (rand*7.5, rnd*18-10.5) {snowflake};}
 % more tiny snowflakes
-\foreach \i in {0.1,0.11,...,0.5}{
+\foreach \i in {0.1,0.15,...,0.5}{
   \pic [scale = \i, opacity = 0.9] at (rand*7.5, rnd*18-10.5) {snowflake};}
 % cloud with merry christmas
 \node [cloud,aspect = 6.5, cloud puff arc = 120, cloud puffs = 12.9, fill = white,
-       color = white] at (0,7) {};
-%\node [color = red] at (0,7) {\fontsize{50}{80}
-%                              \textbf{Merry Christmas %\quad }};
+       color = white] at (0,7) {\Huge M \hspace{9.8cm}.};
+\node [color = red] at (0,7) {\fontsize{50}{80}
+                              \textit{Merry Christmas \quad }};
 % tail
 \path [draw, fill, rotate = 50] (-4,-7.5) circle (1.5 and 2.2);
 % snowhill
@@ -188,4 +189,3 @@ repetitive tasks are done in "foreach" loops.
 \fill [draw, plush, fill = white, thin] (0.7,3.1) circle (0.5);
 \end{tikzpicture}
 \end{document}
-
