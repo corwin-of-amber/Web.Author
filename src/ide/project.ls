@@ -211,10 +211,22 @@ Vue.component 'source-folder.directory', do
     refresh: ->
       if @loc
         @volume = VolumeFactory.get(@loc)
-        @files.splice 0, Infinity, ...dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE})
+        @files.splice 0, Infinity, ...sort-content(
+          dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE}))
 
 
 const FOLDER_IGNORE = new MultiMatch([/^\.git$/])
+
+sort-content = (dir-entries, order=tex-first) ->
+  for e in dir-entries
+    if e.files then sort-content e.files
+  _.sortBy dir-entries, order
+
+tex-first = ({name}) ->
+  | name is /[.]sty$/ => 0
+  | name is /[.]tex$/ => 1
+  | _ => 2
+
 
 ProjectView.content-plugins.folder.push (loc) ->
   if loc.scheme in ['file', 'memfs'] then 'source-folder.directory'

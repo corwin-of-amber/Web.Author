@@ -19,6 +19,9 @@
                 "tex-ini-files", "latexconfig", "knuth-lib", "ec"
             ]
         },
+        "geometry": {
+            "deps": ["iftex"]
+        },
         "verbatim": {
             "meta": true,
             "deps": ["tools"]

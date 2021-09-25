@@ -8,10 +8,9 @@ require! {
 
 
 class FileWatcher extends EventEmitter
-  (debounce-ms=250) ->
+  (@debounce-ms=250) ->
     super!
     @watches = []
-    @debounce-emit = _.debounce ((tag, ev) ~> @emit tag, ev), debounce-ms
     if (typeof window !== 'undefined')
       window.addEventListener('unload', @~clear)
 
@@ -21,6 +20,8 @@ class FileWatcher extends EventEmitter
     filename .= replace(/^file:\/\//, '')
     console.log "%cwatch #{filename}", 'color: #999'
     origin = {fs: _fs, filename, opts, mtime: 0}
+      ..emit = if opts.recursive then @~emit
+               else _.debounce @~emit, @debounce-ms
     bind = ~> @handler origin, ...&
     @watches.push _fs.watch(filename, opts{recursive ? false, persistent ? false}, bind)
 
@@ -34,11 +35,11 @@ class FileWatcher extends EventEmitter
   handler: (origin, ev, filename) ->
     setTimeout ~>
       mtime = if origin.opts.recursive then void
-              else try origin.fs.statSync(origin.filename).mtimeMs catch
+              else try origin.fs.statSync(origin.filename).mtimeMs catch => void
       console.log "%cchanged: #{filename}  #{mtime}  [#{origin.filename}]" 'color: #ccf'
       if (!mtime? || mtime != origin.mtime)
         origin.mtime = mtime
-        @debounce-emit 'change', {origin, filename}
+        origin.emit 'change', {origin, filename}
     , 0
 
 

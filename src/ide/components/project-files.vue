@@ -29,9 +29,9 @@ export default {
             switch (ev.type) {
             case 'select':
                 if (ev.kind == 'file')
-                    this.$emit('file:select', this.$refs.source.volume.path.join(...ev.path));
+                    this.$emit('file:select', this._volPath(ev.path));
                 break;
-            case 'rename': this.rename(ev); break;
+            case 'rename': this.rename(ev, true); break;
             case 'menu':
                 this.$refs.contextMenu.open(ev.$event, ev);
                 ev.$event.preventDefault();
@@ -51,24 +51,34 @@ export default {
                 vol = this.$refs.source.volume, path = vol.path;
             vol.writeFileSync(path.join(...fn), '');
             fv.create(fn);
+            setTimeout(() => fv.renameStart(fn), 0);
         },
         renameStart(ev) {
-            var sel = this.$refs.list.selection[0];
-            if (sel !== undefined)
-                this.$refs.list.renameStart(sel);
+            this.$refs.list.renameStart(ev.for.path);
         },
-        rename(ev) {
-            var vol = this.$refs.source.volume, path = vol.path;
-            vol.renameSync(path.join(...ev.path, ev.from),
-                           path.join(...ev.path, ev.to));
+        rename(ev, focus=false) {
+            var vol = this.$refs.source.volume, path = vol.path,
+                from = path.join(...ev.path, ev.from),
+                to   = path.join(...ev.path, ev.to);
+            vol.renameSync(from, to);
+            if (focus) this.select(to);
         },
         delete(ev) {
             var vol = this.$refs.source.volume, path = vol.path;
             vol.unlinkSync(path.join(...ev.for.path));
+            this.$refs.list.delete(ev.for.path);
         },
         select(path, silent=false) {
-            this.$refs.list.select(path);
-            if (!silent) { console.warn('[project] select', path); /** @todo */ }
+            var fv = this.$refs.list, entry = fv.lookup(path);
+            if (entry) {
+                fv.select(path);
+                if (!silent && !entry.files)
+                    this.$emit('file:select', this._volPath(path));
+            }
+        },
+        _volPath(path) {
+            return Array.isArray(path) ? 
+                this.$refs.source.volume.path.join(...path) : path;
         }
     },
     components: {FileList, ProjectContextMenu}

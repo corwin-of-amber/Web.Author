@@ -59,7 +59,7 @@
     ],
     "ignore": [
       "data",
-      "packages"
+      "packages/nanotex"
     ]
   }
 }

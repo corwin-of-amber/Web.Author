@@ -41,7 +41,7 @@ export default {
                 kind = target.hasClass('folder') ? 'folder' : 'file';
             this.action({type: 'select', path, kind});
             if ($('.v-context').is(':visible'))
-                $(document.body).click();
+                $(document.body).trigger('click');
         },
         drag(ev) {
             var target = $(ev.currentTarget),
@@ -193,6 +193,8 @@ export default {
         freshName(path, template='u#') { 
             path = promotePath(path);
             var e = this.lookup(path), name = template.replace('#', '');
+            if (!e || !e.files)
+                e = this.lookup(path = path.slice(0, path.length - 1));
             if (e) {
                 var i = 0;
                 for (;;) {
@@ -210,6 +212,17 @@ export default {
         rename(path, from, to) {
             var e = this.lookup([...path, from]);
             e.name = to;
+        },
+
+        delete(path) {
+            path = promotePath(path);
+            var d = this.lookup(path.slice(0, path.length - 1)),
+                name = path[path.length - 1];
+            if (d.files) {
+                var idx = d.files.findIndex(f => f.name === name);
+                if (idx >= 0)
+                    d.files.splice(idx, 1);
+            }
         },
 
         collapseAll() {
