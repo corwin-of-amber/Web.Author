@@ -45,6 +45,10 @@ class PDFLatexBuild extends EventEmitter {
         this._watch.on('change', () => this.makeWatch());
     }
 
+    setMain(mainTexFile: Volume.Location) {
+        this.mainTexFile = mainTexFile;
+    }
+
     async make() {
         console.log(`%cmake ${this.mainTexFile.filename}`, 'color: green');
         this.emit('started');
@@ -442,6 +446,7 @@ namespace PDFLatexPod {
             // fill in packages from the list, with no deps
             for (let pkg of list.split(/\n+/).map(s => s.trim()))
                 if (pkg) json.packages[pkg] ??= {};
+            json.packages['dev'] = {};
             return json;
         }
 

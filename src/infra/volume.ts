@@ -77,7 +77,7 @@ class SubdirectoryVolume extends Volume {
     get _() { return this.root.volume; }
     _abs(relpath: string) { return this.path.join(this.root.dir, relpath); }
 
-    _notify(filename: string) { this._watch.policy.notify(filename); }
+    _notify(filename: string) { if (this._watch.setup) this._watch.policy.notify(filename); }
 
     realpathSync(fp: string) { return fp; /** @todo */ }
 

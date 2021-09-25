@@ -80,17 +80,18 @@ class LocalDBSync {
 
     _storeV({volume, filename}: Volume.Location, content: Uint8Array | string) {
         try {
+            volume.mkdirSync(volume.path.dirname(filename), {recursive: true});
             volume.writeFileSync(filename, content);
             return true;
         }
-        catch { console.warn('[LocalDBSync] cannot write', filename); return false; }    
+        catch (e) { console.warn('[LocalDBSync] cannot write', filename, `\n[${e}]`); return false; }    
     }
 
     _loadV({volume, filename}: Volume.Location) {
         try {
             return volume.readFileSync(filename);
         }
-        catch { console.warn('[LocalDBSync] cannot read', filename); return; }
+        catch (e) { console.warn('[LocalDBSync] cannot read', filename, `\n[${e}]`); return; }
     }
 }
 
