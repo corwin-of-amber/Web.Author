@@ -33,11 +33,7 @@ class TeXEditor extends EventEmitter
       matchBrackets: true
       styleActiveLine: true
 
-    Ctrl = @Ctrl = if @@is-mac then "Cmd" else "Ctrl"
-
-    @cm.addKeyMap do
-      "#{Ctrl}-S": @~save
-      "#{Ctrl}-F": 'findPersistent'  # because non-persistent is just silly
+    @_configure-keymap!
 
     @containing-element[0].addEventListener 'blur' (ev) ->
       if ev.relatedTarget == null then ev.stopPropagation!
@@ -94,6 +90,15 @@ class TeXEditor extends EventEmitter
       if !loc.filename.startsWith('/') then loc.filename = '/' + loc.filename
     loc
 
+  _configure-keymap: ->
+    Ctrl = @Ctrl = if @@is-mac then "Cmd" else "Ctrl"
+
+    @cm.addKeyMap do
+      "#{Ctrl}-S": @~save
+      "#{Ctrl}-F": 'findPersistent'  # because non-persistent is just silly
+      "Tab": 'indentMore',
+      "Shift-Tab": 'indentLess',
+
   state:~
     -> {@loc, cursor: @cm.getCursor!}
     (v) ->
@@ -107,7 +112,7 @@ class TeXEditor extends EventEmitter
   @is-dat = (filename) ->
     filename.match(/^dat:\//)
 
- 
+
 /** Auxiliary class */
 class EventHook
   (@cm, @event-type, @handler) ->
