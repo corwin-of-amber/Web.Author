@@ -1,0 +1,8 @@
+{
+    "*": {
+        "noargs": ["-std=gnu89"]
+    },
+    "xzminidec": {
+        "output": "xzminidec.wasm"
+    }
+}
