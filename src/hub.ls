@@ -37,6 +37,11 @@ VolumeFactory.instance.schemes.set 'memfs', mfs-scheme = \
   new OnDemandFsVolumeScheme(new memfs.Volume,
                              WatchPolicy.IndividualWithRec)
 
+/** @ohno for now, these are baked-in, because volume operations must be synchronous */
+ASSETS = 
+  '/home/': '/data/toxin-manual.tar'
+  '/': '/data/examples.tar'
+
 
 $ ->>
   ide = new IDE
@@ -44,7 +49,7 @@ $ ->>
   sp = new URLSearchParams(location.search)
 
   if 1
-    await mfs-scheme.populate!
+    await mfs-scheme.populate ASSETS
     ldb = new LocalDBSync('memfsync');
     await ldb.attach(VolumeFactory.get({scheme: 'memfs', path: '/'}))
     window <<< {ldb}

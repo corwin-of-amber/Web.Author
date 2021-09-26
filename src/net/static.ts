@@ -15,17 +15,15 @@ class OnDemandFsVolumeScheme extends FsVolumeScheme {
         return super.createVolumeFromPath(p);
     }
 
-    async populate() {
-        /** @ohno for now, these are baked-in, because volume operations must be synchronous */
-        await this.packageManager.install(ASSETS);
+    async populate(assets: {[dir: string]: string}) {
+        var bundle: ResourceBundle = Object.fromEntries(
+            Object.entries(assets).map(([dir, uri]) =>
+                [dir, new Resource(uri)]
+            )
+        );
+        await this.packageManager.install(bundle);
     }
 }
-
-
-const ASSETS: ResourceBundle = {
-    '/home/': new Resource('/data/toxin-manual.tar'),
-    '/': new Resource('/data/examples.tar')
-};
 
 
 export { OnDemandFsVolumeScheme }

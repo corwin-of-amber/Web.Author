@@ -6,6 +6,8 @@
         <hr/>
         <li><a @click="action('refresh')">Refresh</a></li>
         <li><a @click="action('open...')">Open...</a></li>
+        <li><a @click="action('download:source')">Download Sources</a></li>
+        <li><a @click="action('download:built')">Download Compiled</a></li>
     </vue-context>  
 </template>
 

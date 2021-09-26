@@ -58,14 +58,12 @@ class PDFLatexBuild extends EventEmitter {
                 entry = new TextDecoder().decode(source[filename]),
                 pkgs = this._guessRequiredPackages(entry);
 
-            await this.pdflatex.prepare(pkgs);
-            try {
-                this.emit('progress', {stage: 'compile', info: {filename, done: false}})
-                var out = await this.pdflatex.compile(source, filename);
-            }
-            finally {
-                this.emit('progress', {stage: 'compile', info: {done: true}});
-            }
+            await this._stage('prepare', {}, () =>
+                this.pdflatex.prepare(pkgs)
+            );
+            var out = await this._stage('compile', {filename}, () =>
+                this.pdflatex.compile(source, filename)
+            );
             this.emit('intermediate', {                    
                 pdf: out.pdf && PDFLatexPod.CompiledPDF.from(out.pdf),
                 log: out.log && PDFLatexPod.CompiledAsset.from(out.log)
@@ -75,8 +73,7 @@ class PDFLatexBuild extends EventEmitter {
                 var latexmk = this._latexmk('pdflatex', out, volume);
                 
                 if (latexmk.needBibtex()) {
-                    try {
-                        this.emit('progress', {stage: 'bibtex', info: {done: false}});
+                    await this._stage('bibtex', {}, async () => {
                         var bibout = await this.pdflatex.utils.bibtex.compile(out.job);
                         this._latexmk('bibtex', bibout);
                         out = await this.pdflatex.compile(source, filename);
@@ -84,13 +81,12 @@ class PDFLatexBuild extends EventEmitter {
                         if (latexmk.needLatex()) {
                             out = await this.pdflatex.compile(source, filename);
                         }
-                    }
-                    finally {
-                        this.emit('progress', {stage: 'bibtex', info: {done: true}});
-                    }
+                    });
                 }
                 else if (latexmk.needLatex()) {
-                    out = await this.pdflatex.compile(source, filename);
+                    out = await this._stage('recompile', {filename}, () =>
+                        this.pdflatex.compile(source, filename)
+                    );
                 }
             }
             
@@ -120,10 +116,24 @@ class PDFLatexBuild extends EventEmitter {
         this._watch.single(filename, {fs: volume});
     }
 
+    unwatch() {
+        this._watch.clear();
+    }
+
     async makeWatch() {
         var res = await this.make();
         this.watch();
         return res;
+    }
+
+    async _stage<I extends {}, T>(name: string, info: I, op: () => Promise<T>) {
+        try {
+            this.emit('progress', {stage: name, info: {...info, done: false}});
+            return await op();
+        }
+        finally {
+            this.emit('progress', {stage: name, info: {...info, done: true}});
+        }
     }
 
     _collect(volume: Volume) {

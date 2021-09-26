@@ -1,7 +1,10 @@
 import { openDB, IDBPDatabase } from 'idb';
+import fflate from 'fflate';
 import { Volume } from '../infra/volume';
 // @ts-ignore
 import { FileWatcher } from '../infra/fs-watch.ls';
+// @ts-ignore
+import { globAll } from '../infra/fs-traverse.ls';
 
 
 class LocalDBSync {
@@ -101,4 +104,35 @@ class LocalDBSync {
 }
 
 
-export { LocalDBSync }
+class VolumeArchive {
+    volume: Volume
+
+    constructor(volume: Volume) {
+        this.volume = volume;
+    }
+
+    toZip() {
+        var entries = [...globAll('/**', {type: 'file', fs: this.volume})]
+            .map(fn => [fn, this.volume.readFileSync(fn)]);
+        return fflate.zipSync(Object.fromEntries(entries));
+    }
+
+    toZipBlob() {
+        return new Blob([this.toZip()], {type: 'application/zip'});
+    }
+
+    downloadZip(filename: string = 'untitled.zip') {
+        VolumeArchive.download(this.toZipBlob(), filename);
+    }
+
+    static download(data: Blob | Uint8Array, filename: string = 'data') {
+        if (data instanceof Uint8Array) data = new Blob([data]);
+        var a = document.createElement('a');
+        a.setAttribute('href', URL.createObjectURL(data));
+        a.setAttribute('download', filename);
+        a.click();
+    }
+}
+
+
+export { LocalDBSync, VolumeArchive }

@@ -2,7 +2,7 @@ node_require = global.require ? ->
 fs = node_require 'fs'
 require! {
   path
-  events: {EventEmitter}
+  events: { EventEmitter }
   lodash: _
   'vue': Vue
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
@@ -13,6 +13,7 @@ require! {
   '../infra/file-browse.ls': { FileDialog }
   '../typeset/wasi-pdflatex': { PDFLatexBuild: WASI_PDFLatexBuild }
   '../typeset/latexmk.ls': { LatexmkBuild }
+  '../net/local': { VolumeArchive }
   './problems.ls': { safe }
 }
 
@@ -35,7 +36,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     @file-dialog = new FileDialog(/*select-directory*/true)
 
     @on 'build:started' ~> @vue.build-status = 'in-progress'
-    @on 'build:finished' ~> @vue.build-status = it.outcome; @update-log it
+    @on 'build:finished' ~> @vue.build-status = it.outcome; @update-built it
 
   volume:~
     -> @vue.$refs.files.$refs.source.volume
@@ -45,6 +46,8 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     | 'open' => @open item
     | 'open...' => @open-dialog!
     | 'refresh' => @refresh!
+    | 'download:source' => @download-source!
+    | 'download:built'  => @download-built!
 
   has-fs: -> !!fs
 
@@ -81,8 +84,13 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     @_builder.make-watch!
 
   unbuild: ->
-    if @_builder? then @_builder = void
+    @_builder?unwatch!
+    @_builder = void
+    @_built = void
     @vue.build-status = void
+
+  update-built: (build-result) ->
+    @_built = build-result; @update-log build-result
 
   update-log: (build-result) ->
     if (log = build-result.log ? build-result.error?log)?
@@ -107,11 +115,17 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
   lookup-recent: (loc) -> @recent.find(-> it.loc === loc)
 
+  download-source: ->
+    new VolumeArchive(@volume).downloadZip("#{@current.name}.zip")
+
+  download-built: ->
+    VolumeArchive.download @_built.pdf.content, "#{@current.name}.pdf"
+
   state:~
-    -> {loc: @current?loc, @recent}
+    -> {current: @current{loc, name}, @recent}
     (v) ->
       if v.recent? then @recent = v.recent
-      if v.loc? then safe ~> @open v.loc
+      if v.current? then safe ~> @open v.current
 
   @content-plugins = {folder: []}
 
@@ -183,6 +197,7 @@ class TeXProject
   @promote = (loc) ->
     if loc instanceof TeXProject then return loc
 
+    name = loc.name
     loc = loc.loc ? loc   # huh
 
     if typeof loc == 'string'
@@ -190,7 +205,7 @@ class TeXProject
       loc = {scheme: 'file', path}
 
     if loc.scheme?
-      new TeXProject(loc)
+      new TeXProject(loc, name)
     else
       throw new Error("invalid project specifier '#{uri}'");
 
