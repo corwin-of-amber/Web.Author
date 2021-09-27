@@ -1,10 +1,11 @@
 <template>
-    <context-menu ref="l">
+    <context-menu ref="l" @action="action">
         <item v-for="item in items" :key="keyOf(item)"
-            @action="action('open', {item})">{{item.name}}</item>
+            @action="action({type: 'open', item})">{{item.name}}</item>
         <hr/>
-        <item name="refresh">Refresh</item>
+        <item name="new">New Project</item>
         <item name="open...">Open...</item>
+        <item name="refresh">Refresh</item>
         <item name="download:source">Download Sources</item>
         <item name="download:built">Download Compiled</item>
     </context-menu>
@@ -28,9 +29,7 @@ export default {
             var box = this.$el.parentElement.getBoundingClientRect();
             return {clientX: box.left, clientY: box.bottom};
         },
-        action(type, attr) {
-            this.$emit('action', {type, ...attr});
-        }
+        action(ev) { this.$emit('action', ev); }
     },
     components: { ContextMenu, item: ContextMenu.Item }
 }

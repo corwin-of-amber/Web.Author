@@ -62,6 +62,7 @@ class IDE
       @viewer?open item.loc
     else
       @editor?open item.loc
+      if item.focus then @editor.cm.focus!
 
   synctex-forward: ->
     {loc, cm} = @editor

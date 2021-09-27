@@ -44,6 +44,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   action: (ev) ->
     console.log ev
     switch ev.type
+    | 'new' => @create-new!
     | 'open' => @open ev.item
     | 'open...' => @open-dialog!
     | 'refresh' => @refresh!
@@ -52,6 +53,18 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     | 'download:built'  => @download-built!
 
   has-fs: -> !!fs
+
+  create-new: ->
+    proj-dir = VolumeFactory.get {scheme: 'memfs', path: "/proj"}
+      ..mkdirSync '/', {+recursive}
+      existing = ..readdirSync('/')
+    i = 0
+    while (d = "toxin-#{i}") in existing => i++
+    TeXProject.create {scheme: 'memfs', path: "/proj/#{d}"}
+      ..name = 'new-project'
+      ..volume.writeFileSync 'main.tex', ''
+      @open ..
+      @emit 'file:select' {loc: ..get-file('main.tex'), +focus}
 
   open: (project) ->
     @unbuild!
@@ -150,7 +163,7 @@ class TeXProject
     -> VolumeFactory.get(@loc)
 
   create: ->
-    @volume.mkdirSync @loc.path, recursive: true
+    @volume.mkdirSync '/', recursive: true
 
   get-main-pdf-path: ->
     @_find-pdf @path  # @todo use loc
@@ -253,5 +266,5 @@ ProjectView.content-plugins.folder.push (loc) ->
   if loc.scheme in ['file', 'memfs'] then 'source-folder.directory'
 
 
-
+window <<< {dir-tree-sync}
 export ProjectView, TeXProject
