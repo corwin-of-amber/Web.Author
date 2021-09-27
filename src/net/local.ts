@@ -53,14 +53,14 @@ class LocalDBSync {
     async push({volume, filename}: Volume.Location) {
         await this._ready;
         var content = this._loadV({volume, filename});
-        return content ? this._store(filename, content)
-                       : this._delete(filename);
+        return content !== undefined ? this._store(filename, content)
+                                     : this._delete(filename);
     }
 
     async pull({volume, filename}: Volume.Location) {
         await this._ready;
         var content = await this._load(filename);
-        if (content) this._storeV({volume, filename}, content);
+        if (content !== undefined) this._storeV({volume, filename}, content);
     }
 
     async pullAll(into: Volume) {
@@ -78,7 +78,7 @@ class LocalDBSync {
         return this.db.put('files', content, filename);
     }
 
-    _load(filename: string): Promise<string | Uint8Array> {
+    _load(filename: string): Promise<Uint8Array | string> {
         return this.db.get('files', filename);
     }
 

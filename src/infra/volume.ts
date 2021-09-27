@@ -77,7 +77,7 @@ class SubdirectoryVolume extends Volume {
     get _() { return this.root.volume; }
     _abs(relpath: string) { return this.path.join(this.root.dir, relpath); }
 
-    _notify(filename: string) { if (this._watch.setup) this._watch.policy.notify(filename); }
+    _notify(filename: string) { this._watchPolicy.notify(filename); }
 
     realpathSync(fp: string) { return fp; /** @todo */ }
 
@@ -115,11 +115,15 @@ class SubdirectoryVolume extends Volume {
     }
 
     watch(filename: string, opts: any, listener: Volume.WatchListener) {
+        return this._watchPolicy.watch(filename, opts, listener);
+    }
+
+    get _watchPolicy() {
         if (!this._watch.setup) {
             this._watch.policy.setup(this);
             this._watch.setup = true;
         }
-        return this._watch.policy.watch(filename, opts, listener);
+        return this._watch.policy;
     }
 
     externSync(filename: string) {
