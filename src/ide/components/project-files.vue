@@ -39,7 +39,7 @@ export default {
             }
         },
         onmenuaction(ev) {
-            switch (ev.name) {
+            switch (ev.type) {
             case 'new-file': this.create(ev); break;
             case 'rename':   this.renameStart(ev); break;
             case 'delete':   this.delete(ev); break;

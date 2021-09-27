@@ -1,19 +1,19 @@
 <template>
-    <vue-context ref="l">
-        <li v-for="item in items" :key="keyOf(item)">
-            <a @click="action('open', {item})">{{item.name}}</a>
-        </li>
+    <context-menu ref="l">
+        <item v-for="item in items" :key="keyOf(item)"
+            @action="action('open', {item})">{{item.name}}</item>
         <hr/>
-        <li><a @click="action('refresh')">Refresh</a></li>
-        <li><a @click="action('open...')">Open...</a></li>
-        <li><a @click="action('download:source')">Download Sources</a></li>
-        <li><a @click="action('download:built')">Download Compiled</a></li>
-    </vue-context>  
+        <item name="refresh">Refresh</item>
+        <item name="open...">Open...</item>
+        <item name="download:source">Download Sources</item>
+        <item name="download:built">Download Compiled</item>
+    </context-menu>
 </template>
 
 <script>
-import { VueContext } from 'vue-context';
-import 'vue-context/dist/css/vue-context.css';
+import ContextMenu
+    from '../../../packages/context-menu/context-menu.vue';
+
 
 export default {
     props: ['items'],
@@ -22,11 +22,8 @@ export default {
             return item.loc ? `${item.loc.scheme}:${item.loc.path}`
                             : item.name;
         },
-        toggle() {
-            if (!this.$refs.l.show)
-                this.$refs.l.open(this.position());
-            else this.$refs.l.close();
-        },
+        open() { this.$refs.l.open(this.position()); },
+        toggle() { this.$refs.l.toggle(this.position()); },
         position() {
             var box = this.$el.parentElement.getBoundingClientRect();
             return {clientX: box.left, clientY: box.bottom};
@@ -35,7 +32,7 @@ export default {
             this.$emit('action', {type, ...attr});
         }
     },
-    components: {VueContext}
+    components: { ContextMenu, item: ContextMenu.Item }
 }
 </script>
 

@@ -40,7 +40,7 @@
     "synctex-js": "^1.0.0",
     "tempy": "^0.2.1",
     "vue": "^2.6.10",
-    "vue-context": "^4.1.1",
+    "vue-context-menu": "^2.0.6",
     "xz-extract": "^0.1.0",
     "xz-pipe": "^0.0.3"
   },

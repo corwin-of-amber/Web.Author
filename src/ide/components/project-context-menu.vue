@@ -1,22 +1,23 @@
 <template>
-    <vue-context ref="m">
-        <li><a name="new-file" @click="action">New File</a></li>
-        <li><a name="rename" @click="action">Rename</a></li>
-        <li><a name="delete" @click="action">Delete</a></li>
+    <context-menu ref="m" @action="action">
+        <item name="new-file">New File</item>
+        <item name="rename">Rename</item>
+        <item name="delete">Delete</item>
         <hr>
-        <li><a name="refresh" @click="action">Refresh</a></li>
-    </vue-context>  
+        <item name="refresh">Refresh</item>
+    </context-menu>
 </template>
 
 <script>
-import { VueContext } from 'vue-context';
-import 'vue-context/dist/css/vue-context.css';
+import ContextMenu
+    from '../../../packages/context-menu/context-menu.vue';
+
 
 export default {
     methods: {
-        open(ev, for_) { this.for = for_; this.$refs.m.open(ev); },
-        action(ev) { this.$emit('action', {name: ev.currentTarget.name, for: this.for}); }
+        open(ev, action) { this.$refs.m.open(ev, action); },
+        action(ev) { this.$emit('action', ev); }
     },
-    components: {VueContext}
+    components: { ContextMenu, item: ContextMenu.Item }
 }
 </script>

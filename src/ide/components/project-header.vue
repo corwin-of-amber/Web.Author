@@ -31,7 +31,7 @@ export default {
     },
     methods: {
         toggle() { this.$refs.status.toggle(); },
-        menu() { this.$refs.list.toggle(); },
+        menu() { this.$refs.list.open(); },
         renameStart() { this.$refs.name.edit() },
         rename(newName) { this.action({type: 'rename', name: newName}); },
         action(ev) { this.$emit('action', ev) }
