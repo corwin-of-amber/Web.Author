@@ -35,7 +35,7 @@
         },
         "tikz": {
             "meta": true,
-            "deps": ["pgf"]
+            "deps": ["pgf", "pgf-blur"]
         },
         "pgf": {
             "deps": ["xstring", "etoolbox", "xcolor", "relsize", "kvoptions", "ltxcmds", "kvsetkeys",
