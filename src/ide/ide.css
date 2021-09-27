@@ -91,12 +91,22 @@ div.gutter.gutter-horizontal {
     cursor: pointer;
 }
 
-.project-header div.bar > span {
+.project-header div.bar > .name {
     flex-grow: 1;
     margin: 2px 0 2px 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    outline: none;
+}
+
+.project-header div.bar.editing {
+    padding-right: 5px;
+}
+
+.project-header div.bar.editing > .name {
+    padding-right: 2px;
+    text-overflow: initial;
 }
 
 .project-header button.badge {
@@ -119,6 +129,20 @@ div.gutter.gutter-horizontal {
 }
 .project-header button.hammer.in-progress {
     color: #ffbc02;
+}
+
+.project-header button.pencil {
+    font-size: 110%;
+    margin-top: 0.2em;
+    line-height: 1px;
+    padding: 0;
+    margin-left: -0.3em;
+    margin-right: -0.2em;
+    opacity: 0.5;
+}
+
+.project-header button.pencil:hover {
+    opacity: 0.9;
 }
 
 .project-header button.p2p.disconnected {

@@ -41,11 +41,13 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   volume:~
     -> @vue.$refs.files.$refs.source.volume
 
-  action: ({type, item}) ->
-    switch type
-    | 'open' => @open item
+  action: (ev) ->
+    console.log ev
+    switch ev.type
+    | 'open' => @open ev.item
     | 'open...' => @open-dialog!
     | 'refresh' => @refresh!
+    | 'rename' => @rename-to ev.name
     | 'download:source' => @download-source!
     | 'download:built'  => @download-built!
 
@@ -71,6 +73,10 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     @open dir
 
   refresh: -> @vue.$refs.files.refresh!
+
+  rename-to: (name) ->
+    @current.name = name
+    @lookup-recent(@current.loc)?name = name
 
   build: ->>
     if !@_builder?
