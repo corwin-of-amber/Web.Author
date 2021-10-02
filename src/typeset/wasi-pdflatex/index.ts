@@ -145,10 +145,10 @@ class PDFLatexBuild extends EventEmitter {
     }
 
     _guessRequiredPackages(source: string) {
-        if ((<any>window)?.DEV && !localStorage['toxin-dist']) return ['dev'];  // for faster dev cycles
+        if (localStorage['toxin-dist-dev']) return ['dev'];  // for faster dev cycles
         else {
-            // this is basically a rudimentary placeholder
-            var pkgs = ['latex', 'lm', 'bibtex'];
+            // this is kind of a best effort
+            var pkgs = ['latex', 'bibtex'];
             for (let mo of source.matchAll(/\\documentclass(?:\[.*?\])?{(.*?)}/g))
                 pkgs.push(mo[1].trim());
             for (let mo of source.matchAll(/\\usepackage(?:\[.*?\])?{(.*?)}/g)) {

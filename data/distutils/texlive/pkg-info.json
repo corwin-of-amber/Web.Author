@@ -1,5 +1,12 @@
 {
     "packages": {
+        "latex": {
+            "deps": [
+                "amsfonts", "cite", "modes", "metafont", "l3kernel", "cm", "amsmath",
+                "hyphen-base", "pdftex", "etex", "latex-fonts", "amscls", "l3backend", "plain",
+                "tex-ini-files", "latexconfig", "knuth-lib", "ec"
+            ]
+        },
         "acmart": {
             "deps": [
                 "xkeyval", "xstring", "iftex", "microtype", "etoolbox", "booktabs", "refcount",
@@ -9,14 +16,7 @@
                 "kvdefinekeys", "hycolor", "letltxmacro", "auxhook", "etexcmds", "url", "bitset",
                 "bigintcalc", "rerunfilecheck", "uniquecounter", "graphics", "graphics-cfg",
                 "graphics-def", "xcolor", "geometry", "ncctools", "cmap", "caption", "float",
-                "comment", "fancyhdr", "gettitlestring", "preprint"
-            ]
-        },
-        "latex": {
-            "deps": [
-                "amsfonts", "cite", "modes", "metafont", "l3kernel", "cm", "amsmath",
-                "hyphen-base", "pdftex", "etex", "latex-fonts", "amscls", "l3backend", "plain",
-                "tex-ini-files", "latexconfig", "knuth-lib", "ec"
+                "comment", "fancyhdr", "gettitlestring", "preprint", "libertine", "inconsolata", "newtx"
             ]
         },
         "geometry": {
@@ -49,6 +49,19 @@
         },
         "standalone": {
             "deps": ["iftex", "xkeyval", "tools"]
+        },
+        "lmodern": {
+            "meta": true,
+            "deps": ["lm"]
+        },
+        "libertine": {
+            "deps": ["fontaxes"]
+        },
+        "inconsolata": {
+            "deps": ["upquote"]
+        },
+        "newtx": {
+            "deps": ["iftex", "etoolbox", "kastrup", "xkeyval"]
         }
     }
 }
