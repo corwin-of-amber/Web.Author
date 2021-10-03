@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "main": "build/kremlin/index.html",
   "chromium-args": "--disable-background-timer-throttling",
+  "browser": {
+    "mass-confusion": true,
+    "jsdom": {},
+    "worker_threads": {},
+    "memfs": "node_modules/memfs",
+    "memfs/lib/volume": "node_modules/memfs/lib/volume.js",
+    "memfs/lib/node": "node_modules/memfs/lib/node.js"
+  },
   "scripts": {
     "start": "nw .&",
     "build": "kremlin index.html",
@@ -17,7 +25,7 @@
   "dependencies": {
     "automerge": "^0.12.1",
     "automerge-slots": "github:corwin-of-amber/automerge-slots",
-    "buffer": "^4.9.2",
+    "buffer": "^6.0.3",
     "child-process-promise": "^2.2.1",
     "codemirror": "^5.48.0",
     "commander": "^7.2.0",
@@ -29,7 +37,7 @@
     "line-stream": "^1.0.0",
     "lit": "^2.0.0-rc.2",
     "lodash": "^4.17.15",
-    "memfs": "^3.0.4",
+    "memfs": "file:packages/memfs",
     "minimatch": "^3.0.4",
     "mysql": "^2.18.1",
     "node-fetch": "^2.6.1",

@@ -26,14 +26,14 @@ class IDEConfig
       viewer: ide.viewer?state
     @save!
 
-  restore-session: (ide) ->
+  restore-session: (ide, what = '*') ->
     if (win-sz = @config?window?size)?
       window.resizeTo win-sz.width, win-sz.height
     if (pane-szs = @config?panes?sizes)? && ide.layout.split
       ide.layout.split.set-sizes pane-szs
-    if (pconf = @config?panes?project)? && ide.project
+    if (pconf = @config?panes?project)? && ide.project && what == '*'
       ide.project.state = pconf
-    if (econf = @config?panes?editor)? && ide.editor
+    if (econf = @config?panes?editor)? && ide.editor && what == '*'
       ide.editor.state = econf
     if (vconf = @config?panes?viewer)? && ide.viewer
       ide.viewer.state = vconf

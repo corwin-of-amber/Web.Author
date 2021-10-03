@@ -1,9 +1,8 @@
 /* Kremlin is a bit incomplete at the moment */
-if typeof Buffer == 'undefined'
+if typeof window != 'undefined'
   window.Buffer = require('buffer').Buffer
-if !process.nextTick?
-  process <<< require('process')
-  #process.nextTick = (f, ...args) -> f(...args) # risky!!
+  window.process = require('process')
+  #window.process.nextTick = (f, ...args) -> f(...args) # risky!!
 
 
 require! {
@@ -18,7 +17,6 @@ require! {
   './viewer/wordpress/project.ls': { WordPressProject }
   './ide/index.ls': { IDE }
   './net/mysql': { MySQLProject }
-  #'./net/p2p.ls':    {AuthorP2P}
   './net/static': { OnDemandFsVolumeScheme }
   './net/local': { LocalDBSync }
 }
@@ -45,8 +43,10 @@ ASSETS =
 
 $ ->>
   ide = new IDE
+    $('body').append ..layout.el
 
   sp = new URLSearchParams(location.search)
+  opts = {}
 
   if 1
     await mfs-scheme.populate ASSETS
@@ -54,20 +54,23 @@ $ ->>
     await ldb.attach(VolumeFactory.get({scheme: 'memfs', path: '/'}))
     window <<< {ldb}
 
-  $('body').append ide.layout.el
-  ide.start!
+  if (p2p-workspace = sp.get('p2p'))?
+    require! './net/p2p.ls': { AuthorP2P }
+    p2p = new AuthorP2P(CLIENT_OPTS)
+      if p2p-workspace then ..join that
+    opts.restore = '+'  # don't reopen last project; instead, p2p project is opened later
+    window <<< {p2p}
+
+  ide.start opts
 
   if 1
     ide.project.add-recent {scheme: 'memfs', path: '/home/toxin-manual'}, , 'end'
     aliases = {'tikz/gallery': 'tikz-gallery'}
     for example in <[overleaf/scientific-writing-exercise overleaf/bibtex overleaf/acm-sigplan
                      acmart-minimal tikz/gallery]>
-      ide.project.add-recent {scheme: 'memfs', path: "/examples/#{example}"}, aliases[example], 'end'
+      ide.project.add-recent {scheme: 'memfs', path: "/examples/#{example}"}, \
+                             aliases[example], 'end'
     if ide.config.is-first-time!
-      #ide.project.add-recent {scheme: 'memfs', path: '/examples/acmart-minimal'}
-      #ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/acm-sigplan'}
-      #ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/bibtex'}
-      #ide.project.add-recent {scheme: 'memfs', path: '/examples/overleaf/scientific-writing-exercise'}
       ide.project.open-recent sp.get('project') ? 'scientific-writing-exercise'
       ide.help!
 
@@ -83,14 +86,14 @@ $ ->>
   if !window.DEV
     window.addEventListener 'beforeunload', ide~store
 
-  if 0
-    p2p = new AuthorP2P(CLIENT_OPTS)
-      ide.project.attach ..
-      do ->> p2p.project = await p2p.open-project 'd1'
-        ide.project.open ..
+  if p2p
+    do ->> p2p.project = await p2p.open-project 'root'
+      {volume, filename} = ..get-file('main.tex')
+      volume.writeFileSync(filename, '\\documentclass{article}\n')
+      ide.project.open ..
+      if 0
         ..getPdf!on 'change' viewer~open
         ide.editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
-      window.addEventListener 'beforeunload' ..~close
 
   if 0
     ide.select-preset 'html'
@@ -106,7 +109,7 @@ $ ->>
 
   # this is for development: break some dangling references when reloading the page
   if window.DEV
-    window.addEventListener 'beforeunload' ->
+    window.addEventListener 'unload' ->
       Date::com$cognitect$transit$equals = \
       Date::com$cognitect$transit$hashCode = null
       for own prop of window

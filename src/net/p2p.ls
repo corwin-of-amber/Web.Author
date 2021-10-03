@@ -1,15 +1,16 @@
 node_require = global.require ? -> {}
 require! {
   path
-  events: {EventEmitter}
+  events: { EventEmitter }
   lodash: _
-  'vue': Vue
-  'automerge-slots': {SlotBase}
-  'dat-p2p-crowd/src/net/client': {DocumentClient}
-  'dat-p2p-crowd/src/ui/syncpad': {SyncPad}
-  'dat-p2p-crowd/src/addons/fs-sync': {DirectorySync, FileSync, FileShare}
-  '../ide/project.ls': {ProjectView, TeXProject}
-  '../editor/edit-items.ls': {EditItem}
+  vue: Vue
+  codemirror: CodeMirror
+  'automerge-slots': { SlotBase }
+  'dat-p2p-crowd/src/net/docs': { DocumentClient }
+  'dat-p2p-crowd/src/ui/syncpad': { SyncPad }
+  'dat-p2p-crowd/src/addons/fs-sync': { DirectorySync, FileSync, FileShare }
+  '../ide/project.ls': { ProjectView, TeXProject }
+  '../editor/edit-items.ls': { FileEdit }
 }
 
 
@@ -17,20 +18,35 @@ require! {
 class AuthorP2P extends DocumentClient
   (opts) ->
     @ <<<< new DocumentClient(opts)   # ES2015-LiveScript interoperability issue :/
+    @@hosts.set '*', @sync
+    window?addEventListener 'beforeunload' @~close
 
   open-project: (docId) ->>
-    new CrowdProject @sync.path(docId), @
-      @on 'shout' -> ..upstream?download-src!
+    new CrowdProject @sync.path(docId), {host: '*', path: [docId]}, @
+    #  @on 'shout' -> ..upstream?download-src!
+
+  @hosts = new Map
+
+  @resolve = ({host, path}) ->
+    h = @hosts.get(host)
+    if !h then throw new Error("unfamiliar P2P host '#{host}'")
+    h.path(...path)
 
 
-class CrowdProject
-  (slot, @client) -> 
+class CrowdProject extends TeXProject
+  (slot, @base-uri, @client) ->
+    super {scheme: 'memfs', path: '/tmp/p2p'}
+    @create!
     @slots =
       root: slot
-      src: slot.path(['src'])
-      pdf: slot.path(['out', 'pdf'])
+      #src: slot.path(['src'])
+      #pdf: slot.path(['out', 'pdf'])
 
   path:~ -> @slots.src
+
+  get-file: (filename) ->
+    super(filename)
+      ..p2p-uri = {@base-uri.host, path: @base-uri.path ++ ['src', filename]}
 
   get-pdf: -> new CrowdFile @slots.pdf, @client
 
@@ -113,14 +129,22 @@ class WatchSlot extends EventEmitter
       @slot.unregisterHandler @_registered
 
 
-class SyncPadEdit extends EditItem
-  (@slot) ->
+class SyncPadEdit extends FileEdit
+  ->
+    super ...&
+    @slot = AuthorP2P.resolve(@loc.p2p-uri)
 
-  enter: (cm) ->>
+  load: (cm) ->>
+    @waiting cm
     @pad = new SyncPad(cm, @slot)
-      await ..ready ; super cm
+      await ..ready ; @doc = cm.getDoc!
+    @rev.generation = @doc.changeGeneration!
+    @rev.timestamp = @_timestamp!
 
   leave: (cm) -> @pad.destroy! ; super cm
+
+  waiting: (cm) ->
+    cm.swapDoc @make-doc(cm, "opening synchronous document...")
 
 
 Vue.component 'source-folder.automerge', do
@@ -163,8 +187,8 @@ Vue.component 'source-folder.automerge', do
 
 
 ProjectView.content-plugins.folder.push (loc) ->
-  # @todo check `loc.scheme` instead; currently this is always false
-  if loc instanceof SlotBase then 'source-folder.automerge'
+  # @todo currently this is always false
+  if loc.scheme == 'dat' then 'source-folder.automerge'
 
 
 

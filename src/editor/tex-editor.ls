@@ -13,7 +13,7 @@ require! {
     'codemirror/addon/selection/mark-selection'
     'codemirror/addon/edit/matchbrackets'
     'codemirror/addon/selection/active-line'
-    './edit-items.ls': { VisitedFiles, FileEdit, SyncPadEdit }
+    './edit-items.ls': { VisitedFiles, FileEdit }
     '../ide/problems.ls': { safe }
 }
 
@@ -43,23 +43,22 @@ class TeXEditor extends EventEmitter
 
   open: (locator) ->>
     locator = @_normalize-loc locator
-    if locator.volume           => await @open-file locator
-    #else if _.isObject(locator) => @open-syncpad locator
+    if locator.p2p-uri      => await @open-syncpad locator
+    else if locator.volume  => await @open-file locator
     else
       throw new Error "invalid document locator: '#{locator}'"
     @loc = locator
 
   open-file: (locator) ->
     @_pre-load!
-    locator = @_normalize-loc locator
     @visited-files.enter @cm, locator, -> new FileEdit(locator)
     .then ~> @emit 'open', {type: 'file', loc: locator, uri: locator.filename}
 
-  open-syncpad: (slot) ->
+  open-syncpad: (locator) ->
+    require! '../net/p2p.ls': { SyncPadEdit }
     @_pre-load!
-    locator = @_normalize-loc locator
-    @visited-files.enter @cm, slot.uri, -> new SyncPadEdit(slot)
-    .then ~> @emit 'open', {type: 'syncpad', slot.uri, slot}
+    @visited-files.enter @cm, locator, -> new SyncPadEdit(locator)
+    .then ~> @emit 'open', {type: 'syncpad', loc: locator}
 
   _pre-load: !->
     if @loc? then @visited-files.leave @cm, @loc
@@ -86,7 +85,7 @@ class TeXEditor extends EventEmitter
 
   _normalize-loc: (loc) ->
     if loc.volume?path
-      loc = {loc.volume, filename: loc.volume.path.normalize loc.filename}
+      loc = {...loc, loc.volume, filename: loc.volume.path.normalize loc.filename}
       if !loc.filename.startsWith('/') then loc.filename = '/' + loc.filename
     loc
 

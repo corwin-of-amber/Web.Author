@@ -27,7 +27,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
     @vue = new Vue project-view-component <<<
       methods:
-        select: ~> @emit 'file:select', loc: {@volume, filename: it}
+        select: ~> @emit 'file:select', loc: @current.get-file(it)
         action: ~> @action it
         build: ~> @build!
     .$mount!
@@ -173,7 +173,7 @@ class TeXProject
     if !(filename = @transient-config?main ? @get-config!?main)?
       glob-all(['*.tex', '**/*.tex'], {exclude: @@IGNORE, cwd: '', fs: volume})
         filename = [...(..)].find ~> @_is-document({volume, filename: it})
-    filename && {volume, filename}
+    filename && @get-file filename
 
   get-file: (filename) ->
     volume = @volume

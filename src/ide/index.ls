@@ -12,7 +12,7 @@ class IDE
     @config = new IDEConfig
     @app-title = document.title ? 'ToXin'
   
-  start: (mode = 'tex') ->
+  start: ({mode ? 'tex', restore ? '*'} = {}) ->
     @project = @layout.create-project!
     @editor = @layout.create-editor!
     @layout.create-viewer!
@@ -22,7 +22,7 @@ class IDE
 
     @editor.cm.focus!
     @bind-events!
-    @restore!
+    @restore restore
 
   select-preset: (mode) ->
     @viewer?destroy!
@@ -52,7 +52,7 @@ class IDE
       "Esc": ~> @viewer.synctex?blur!; @_track?destroy!; @home!
 
   store: -> @config.store @
-  restore: -> @config.restore-session @
+  restore: (what) -> @config.restore-session @, what
 
   file-of-project: (filename) ->
     @project.current.get-file(filename)

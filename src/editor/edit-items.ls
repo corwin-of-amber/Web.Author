@@ -57,11 +57,12 @@ class FileEdit extends EditItem
 
   leave: (cm) -> @unwatch! ; super cm
 
+  make-doc: (cm, text, filename = @loc.filename) ->
+    content-type = detect-content-type(filename) || cm.getOption('mode')
+    new CodeMirror.Doc(text, content-type, , detect-line-ends(text))
+
   load: (cm) ->>
-    txt = await @_read!
-    content-type = detect-content-type(@loc.filename) || cm.getOption('mode')
-    @doc = new CodeMirror.Doc(txt, content-type, , \
-                              detect-line-ends(txt))
+    @doc = @make-doc(cm, await @_read!)
     @rev.generation = @doc.changeGeneration!
     @rev.timestamp = @_timestamp!
 
