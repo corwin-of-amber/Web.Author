@@ -2,6 +2,7 @@ node_require = global.require ? -> {}
 require! {
   path
   events: { EventEmitter }
+  assert
   lodash: _
   vue: Vue
   codemirror: CodeMirror
@@ -18,14 +19,30 @@ require! {
 class AuthorP2P extends DocumentClient
   (opts) ->
     @ <<<< new DocumentClient(opts)   # ES2015-LiveScript interoperability issue :/
-    @@hosts.set '*', @sync
+    @slots =
+      project-list: @sync.path('root', 'projects')
+    @@register '*', @sync
     window?addEventListener 'beforeunload' @~close
+
+  list-projects: ->>
+    await (@_park ?= @slots.project-list.path(0).park!)  # wait for at least one project
+    @slots.project-list.get!
 
   open-project: (docId) ->>
     new CrowdProject @sync.path(docId), {host: '*', path: [docId]}, @
     #  @on 'shout' -> ..upstream?download-src!
 
+  close: ->
+    @_park?cancel!; super!
+
+  /**
+   * Global host registry
+   */
+
   @hosts = new Map
+
+  @register = (host, docs-root) ->
+    @hosts.set host, docs-root
 
   @resolve = ({host, path}) ->
     h = @hosts.get(host)
@@ -34,50 +51,30 @@ class AuthorP2P extends DocumentClient
 
 
 class CrowdProject extends TeXProject
+  /**
+   * @param slot an automerge-slots object
+   * @param base-uri a P2P URI, an object of the form {host: '..', path: [...]}
+   * @param client the AuthorP2P instance
+   */
   (slot, @base-uri, @client) ->
     super {scheme: 'memfs', path: '/tmp/p2p'}
     @create!
     @slots =
       root: slot
-      #src: slot.path(['src'])
-      #pdf: slot.path(['out', 'pdf'])
-
-  path:~ -> @slots.src
+      src: slot.path('src')
 
   get-file: (filename) ->
     super(filename)
-      ..p2p-uri = {@base-uri.host, path: @base-uri.path ++ ['src', filename]}
+      if !@is-local(..)
+        ..p2p-uri = {@base-uri.host, path: @base-uri.path ++ ['src', filename]}
 
-  get-pdf: -> new CrowdFile @slots.pdf, @client
+  is-local: (loc) ->
+    loc.filename.match(/^\/?out\//)  # build outputs are always local
 
-  share: (tex-project='/tmp/toxin') ->
-    @sync tex-project
-      ..upload!
-
-  sync: (tex-project='/tmp/toxin') ->
-    if _.isString(tex-project)
-      tex-project = new TeXProject(tex-project)
-
-    @upstream = new @@Upstream @client.crowd, do
-      pdf: new FileSync(@slots.pdf, tex-project.get-main-pdf-path!)
-      src: new DirectorySync(@slots.src, tex-project.path)
-
-  class @Upstream
-    (@crowd, {@pdf, @src}) ->
-
-    upload: ->
-      @upload-src! ; @upload-build!
-
-    upload-src: ->
-      @src.populate '*.tex'
-
-    upload-build: ->>
-      await @pdf.update @crowd
-        @watch = ..watch debounce: 2000
-    
-    download-src: ->
-      @src.save!
-
+  /** Stores the contents of all files to the underlying memfs */
+  sync: ->
+    new DirectorySync(null, '/', @volume)
+      ..save [{filename, content} for filename, content of @slots.src.get!]
 
 
 class CrowdFile extends EventEmitter
@@ -136,12 +133,17 @@ class SyncPadEdit extends FileEdit
 
   load: (cm) ->>
     @waiting cm
+    assert !@pad
     @pad = new SyncPad(cm, @slot)
-      await ..ready ; @doc = cm.getDoc!
+      await ..ready ; if !@pad? then return # cancelled; bail
+      @doc = cm.getDoc!
     @rev.generation = @doc.changeGeneration!
     @rev.timestamp = @_timestamp!
 
-  leave: (cm) -> @pad.destroy! ; super cm
+  leave: (cm) -> @pad?destroy! ; @pad = null ; super cm
+
+  watch: ->    /* don't! SyncPad should take care of changes */
+  unwatch: ->
 
   waiting: (cm) ->
     cm.swapDoc @make-doc(cm, "opening synchronous document...")

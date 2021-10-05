@@ -87,13 +87,11 @@ $ ->>
     window.addEventListener 'beforeunload', ide~store
 
   if p2p
-    do ->> p2p.project = await p2p.open-project 'root'
-      {volume, filename} = ..get-file('main.tex')
-      volume.writeFileSync(filename, '\\documentclass{article}\n')
-      ide.project.open ..
-      if 0
-        ..getPdf!on 'change' viewer~open
-        ide.editor.on 'request-save' -> ..upstream?download-src! ; p2p.shout!
+    ide.interim-message "connecting to P2P workspace... 📡"
+    do ->> await p2p.list-projects!
+      p2p.project = await p2p.open-project ..0
+        ide.project.open ..
+        ide.file-select loc: ..get-file('main.tex')
 
   if 0
     ide.select-preset 'html'

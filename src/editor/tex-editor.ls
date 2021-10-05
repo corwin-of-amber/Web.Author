@@ -42,21 +42,23 @@ class TeXEditor extends EventEmitter
     @visited-files = new VisitedFiles
 
   open: (locator) ->>
+    @_pre-load!
     locator = @_normalize-loc locator
-    if locator.p2p-uri      => await @open-syncpad locator
-    else if locator.volume  => await @open-file locator
-    else
-      throw new Error "invalid document locator: '#{locator}'"
     @loc = locator
+    try
+      if locator.p2p-uri      => await @open-syncpad locator
+      else if locator.volume  => await @open-file locator
+      else
+        throw new Error "invalid document locator: '#{locator}'"
+    catch e
+      @loc = null ; throw e
 
   open-file: (locator) ->
-    @_pre-load!
     @visited-files.enter @cm, locator, -> new FileEdit(locator)
     .then ~> @emit 'open', {type: 'file', loc: locator, uri: locator.filename}
 
   open-syncpad: (locator) ->
     require! '../net/p2p.ls': { SyncPadEdit }
-    @_pre-load!
     @visited-files.enter @cm, locator, -> new SyncPadEdit(locator)
     .then ~> @emit 'open', {type: 'syncpad', loc: locator}
 

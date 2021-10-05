@@ -92,6 +92,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     @lookup-recent(@current.loc)?name = name
 
   build: ->>
+    @current.sync?!
     if !@_builder?
       @_builder = @current.builder()
         ..on 'started' ~> @emit 'build:started' it

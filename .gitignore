@@ -16,6 +16,7 @@ bower_components
 /dist
 /npm-link
 /build
+/tmp
 .DS_Store
 .vercel
 _npmlink

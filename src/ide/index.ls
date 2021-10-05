@@ -1,5 +1,5 @@
 require! {
-  'codemirror': { keyName }
+  'codemirror': { keyName }:CodeMirror
   './layout.ls': { IDELayout, ProgressWidget }
   './config.ls': { IDEConfig }
   '../viewer/pdf-viewer.ls': { PDFViewer }
@@ -98,6 +98,9 @@ class IDE
     @_back-to = @viewer.state
     await @viewer.open new URL("/data/toxin-manual/out/main.pdf", window.location)
     @viewer.fit!
+  
+  interim-message: (msg-text) ->
+    @editor.cm.swapDoc new CodeMirror.Doc(msg-text)
 
 
 export IDE
