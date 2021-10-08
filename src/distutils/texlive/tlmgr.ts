@@ -41,7 +41,7 @@ namespace Tlmgr {
         deps?: string[]
     };
 
-    export const PKG_DB_URI = '/data/distutils/texlive/pkg-info.json';
+    export const PKG_DB_URI = '/packages/nanotex/data/pkg-info.json';
 }
 
 

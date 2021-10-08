@@ -8,7 +8,9 @@ DLCACHE=node_modules/vendor-cache
 
 sed "s/<!-- base .* -->/$BASE_TAG/" build/kremlin/index.html > index.html
 
-[ -e dist/vendor.tar.gz ] && tar xzvf dist/vendor.tar.gz
+for fn in vendor vendor-config ; do
+    [ -e dist/$fn.tar.gz ] && tar xzvf dist/$fn.tar.gz
+done
 
 mkdir -p $DL
 
