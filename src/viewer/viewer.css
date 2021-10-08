@@ -1,5 +1,6 @@
 
-.synctex-overlay {
+.synctex-overlay,
+.highlight-overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -15,6 +16,12 @@ rect.cursor {
     fill: rgba(0, 0, 255, 0.1);
     stroke-width: 4px;
     stroke: rgba(0, 0, 255, 0.06);
+}
+
+rect.mark {
+    fill: rgba(255, 255, 0, 0.1);
+    stroke-width: 4px;
+    stroke: rgba(255, 255, 0, 0.3);
 }
 
 rect.debug-trace {

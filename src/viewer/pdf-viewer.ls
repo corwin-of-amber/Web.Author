@@ -12,6 +12,7 @@ require! {
     '../infra/ui-pan-zoom': { Zoom }
     '../ide/problems.ls': { safe }
     './synctex.ls': { SyncTeX }
+    './overlay.ls': { TextSearchOverlay }
 }
 
 require './viewer.css'
@@ -34,6 +35,13 @@ class PDFViewerCore extends EventEmitter
     @zoom = 1.5
     @resolution = 2
 
+    @text-overlay = new TextSearchOverlay
+      @on 'open' (pdf) ~> ..pdf = pdf
+      @on 'displayed' (page) ~>
+        ..cover page.canvas, @zoom * @resolution
+        ..highlight-matches @selected-page
+      @on 'resizing' (canvas) ~> ..snap canvas
+
     @watcher = new FileWatcher
       ..on 'change' non-reentrant ~>>
         await global-tasks.wait! ; await @reload!
@@ -48,6 +56,8 @@ class PDFViewerCore extends EventEmitter
       locator = {volume: null, filename: URL.createObjectURL(locator)}
     else if locator instanceof URL
       locator = {volume: null, filename: locator.href}
+    else if typeof locator == 'string'
+      locator = {volume: null, filename: locator}
 
     @loc = locator
     uri = @_to-uri(@loc)
@@ -60,6 +70,7 @@ class PDFViewerCore extends EventEmitter
         @watcher.single @loc.filename, fs: @loc.volume
       else
         @watcher.clear!
+    @emit 'open', @pdf
     @selected-page = Math.min(page, @pdf.num-pages)
     @refresh!
     @
