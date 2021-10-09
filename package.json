@@ -7,9 +7,9 @@
     "mass-confusion": true,
     "jsdom": {},
     "worker_threads": {},
-    "memfs": "node_modules/memfs",
-    "memfs/lib/volume": "node_modules/memfs/lib/volume.js",
-    "memfs/lib/node": "node_modules/memfs/lib/node.js"
+    "memfs": "node_modules/@corwin.amber/memfs",
+    "memfs/lib/volume": "node_modules/@corwin.amber/memfs/lib/volume.js",
+    "memfs/lib/node": "node_modules/@corwin.amber/memfs/lib/node.js"
   },
   "scripts": {
     "start": "nw .&",
@@ -23,8 +23,9 @@
     "tlprobe": "src/distutils/texlive/tlprobe.js"
   },
   "dependencies": {
-    "automerge": "^0.12.1",
-    "automerge-slots": "github:corwin-of-amber/automerge-slots",
+    "@corwin.amber/memfs": "file:packages/memfs/corwin.amber-memfs-3.3.1.tgz",
+    "automerge": "^0.14.2",
+    "automerge-slots": "file:../Web.P2P.Dat/subsidiaries/automerge-slots",
     "buffer": "^6.0.3",
     "child-process-promise": "^2.2.1",
     "codemirror": "^5.48.0",
@@ -37,7 +38,6 @@
     "line-stream": "^1.0.0",
     "lit": "^2.0.0-rc.2",
     "lodash": "^4.17.15",
-    "memfs": "file:packages/memfs",
     "minimatch": "^3.0.4",
     "mysql": "^2.18.1",
     "node-fetch": "^2.6.1",
@@ -49,6 +49,7 @@
     "tempy": "^0.2.1",
     "vue": "^2.6.10",
     "vue-context-menu": "^2.0.6",
+    "wasi-kernel": "^0.1.5",
     "xz-extract": "^0.1.0",
     "xz-pipe": "^0.0.3"
   },
