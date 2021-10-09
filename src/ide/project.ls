@@ -127,12 +127,15 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     (v) -> @_recent = @vue.projects = v
 
   add-recent: (loc, name, where_ = 'start') ->
-    if ! @lookup-recent loc
+    if p = @lookup-recent loc
+      name && p.name = name ; p.loc <<< loc  # update record
+    else
       name ?= path.basename(loc.path)
       if where_ == 'start' then @recent.unshift {name, loc}
                            else @recent.push {name, loc}
 
-  lookup-recent: (loc) -> @recent.find(-> it.loc === loc)
+  lookup-recent: (loc) ->
+    @recent.find(-> it.loc{scheme, path} === loc{scheme, path})
 
   download-source: ->
     new VolumeArchive(@volume).downloadZip("#{@current.name}.zip")

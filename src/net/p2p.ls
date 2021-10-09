@@ -98,7 +98,7 @@ class CrowdProject extends TeXProject
   @create = (host, slot) ->
     slot.change (<<< do
       name: 'new-p2p'
-      src: {'main.tex': new FirepadShare}
+      src: {'main.tex': FirepadShare.fromText(P2P_DEFAULT_CONTENT)}
       age: new automerge.Counter
     )
     new CrowdProject slot, {host, path: [slot.docId]}
@@ -238,6 +238,18 @@ Vue.component 'source-folder.automerge', do
 
 ProjectView.content-plugins.folder.push (loc) ->
   if loc.scheme == 'dat' then 'source-folder.automerge'
+
+
+const P2P_DEFAULT_CONTENT = '''
+\\documentclass{article}
+
+\\begin{document}
+
+\\section*{P2P}
+
+This is a collaboratively edited document.
+
+\\end{document}'''
 
 
 nested-files = (filenames) ->
