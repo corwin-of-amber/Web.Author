@@ -72,9 +72,6 @@ class SyncTeX extends EventEmitter
     max-page = Math.max(...candidates.map((.page)))
     candidates = candidates.filter((.page == max-page))
 
-    #@overlay.empty!.append @highlight
-    #@_block-trace candidates.map((.block))
-
     if candidates.length
       {page: candidates[0].page, block: @_block-union candidates.map((.block))}
 

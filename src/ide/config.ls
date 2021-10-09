@@ -31,10 +31,10 @@ class IDEConfig
       window.resizeTo win-sz.width, win-sz.height
     if (pane-szs = @config?panes?sizes)? && ide.layout.split
       ide.layout.split.set-sizes pane-szs
-    if (pconf = @config?panes?project)? && ide.project && what == '*'
-      ide.project.state = pconf
-    if (econf = @config?panes?editor)? && ide.editor && what == '*'
-      ide.editor.state = econf
+    if (pconf = @config?panes?project)? && ide.project
+      ide.project.state = pconf <<< if what != '*' then {current: void}
+    if (econf = @config?panes?editor)? && ide.editor
+      ide.editor.state = econf <<< if what != '*' then {loc: void}
     if (vconf = @config?panes?viewer)? && ide.viewer
       ide.viewer.state = vconf
 

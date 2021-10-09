@@ -34,6 +34,7 @@ VolumeFactory.instance.schemes.set 'file', \
 VolumeFactory.instance.schemes.set 'memfs', mfs-scheme = \
   new OnDemandFsVolumeScheme(new memfs.Volume,
                              WatchPolicy.IndividualWithRec)
+VolumeFactory.instance.schemes.set 'dat', mfs-scheme
 
 /** @ohno for now, these are baked-in, because volume operations must be synchronous */
 ASSETS = 
@@ -74,9 +75,15 @@ $ ->>
       ide.project.open-recent sp.get('project') ? 'scientific-writing-exercise'
       ide.help!
 
+  _last-pdf-proj = void
+
   update-pdf = ->
     if it.pdf?
-      ide.viewer.open it.pdf.toBlob!, ide.viewer.selected-page  # @todo go to page 1 if not the same project
+      # Stay on the same page if on the same project, otherwise go to page 1
+      ide.viewer.open it.pdf.toBlob!, \
+            if _last-pdf-proj === ide.project.current.loc \
+            then ide.viewer.selected-page else 1
+      _last-pdf-proj := ide.project.current.loc
       if it.pdf.synctex?
         ide.viewer.synctex-open it.pdf.synctex.content, {base-dir: '/home'}  # @oops
 

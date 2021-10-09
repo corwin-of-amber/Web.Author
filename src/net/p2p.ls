@@ -11,7 +11,7 @@ require! {
   'dat-p2p-crowd/src/ui/syncpad': { SyncPad, FirepadShare }
   'dat-p2p-crowd/src/addons/fs-sync': { DirectorySync, FileSync, FileShare }
   '../ide/project.ls': { ProjectView, TeXProject }
-  '../editor/edit-items.ls': { FileEdit }
+  '../editor/edit-items.ls': { FileEdit, EditCancelled }
 }
 
 
@@ -77,9 +77,9 @@ class CrowdProject extends TeXProject
     @slots.age.registerHandler -> console.warn it
 
   get-file: (filename) ->
-    super(filename)
+    @_normalize-loc super(filename)
       if !@is-local(..)
-        ..p2p-uri = {@base-uri.host, path: @base-uri.path ++ ['src', filename]}
+        ..p2p-uri = {@base-uri.host, path: @base-uri.path ++ ['src', ..filename]}
 
   is-local: (loc) ->
     loc.filename.match(/^\/?out\//)  # build outputs are always local
@@ -88,6 +88,12 @@ class CrowdProject extends TeXProject
   sync: ->
     new DirectorySync(null, '/', @volume)
       ..save [{filename, content} for filename, content of @slots.src.get!]
+  
+  _normalize-loc: (loc) ->     /** @oops DRY wrt `TeXEditor#_normalize-loc` */
+    if loc.volume?path
+      loc = {...loc, loc.volume, filename: loc.volume.path.normalize loc.filename}
+      if loc.filename.startsWith('/') then loc.filename .= replace(/^\/+/, '')  /** @oops even more: this behavior is reversed */
+    loc
 
   @create = (host, slot) ->
     slot.change (<<< do
@@ -156,7 +162,7 @@ class SyncPadEdit extends FileEdit
     @waiting cm
     assert !@pad
     @pad = new SyncPad(cm, @slot)
-      try await ..ready catch => return # cancelled; bail
+      try await ..ready catch => throw new EditCancelled
       @doc = cm.getDoc!
     @rev.generation = @doc.changeGeneration!
     @rev.timestamp = @_timestamp!
@@ -180,7 +186,7 @@ Vue.component 'source-folder.automerge', do
     it('source-folder.directory', {ref: 'drive', props: {@loc}})
 
   mounted: ->
-    @$watch 'loc' @~refresh
+    @$watch 'loc' ~> @refresh! ; @attach!
     , {+immediate}
 
   methods:
@@ -196,33 +202,38 @@ Vue.component 'source-folder.automerge', do
         v = ~> @$refs.drive.volume
         kick = ~> @age.change (.increment!)
         change-src = (f) ~> @src.change f ; kick!
-        @volume =
+        @volume ?=
           path:~ -> v!path
-          writeFileSync: (fn) ~> v!writeFileSync ...&
-            console.warn 'writeFileSync', fn
-            .. ; change-src (.[fn] ?= new FirepadShare)
-          renameSync: (from-fn, to-fn) ~> v!renameSync ...&
-            .. ; change-src ->
+          writeFileSync: (fn) ~> (try v!writeFileSync ...& catch)
+            .. ; if !@is-local(fn) then change-src (.[fn] ?= new FirepadShare)
+          unlinkSync: (fn) ~> (try v!unlinkSync ...& catch)
+            .. ; if !@is-local(fn) then change-src -> delete it[fn]
+          renameSync: (from-fn, to-fn) ~> (try v!renameSync ...& catch)
+            .. ; if !@is-local(to-fn) then change-src ->
               if it[from-fn] then
-                it[to-fn] = FirepadShare.from(it[from-fn]).clone!  # cannot reassign object in automerge :(
+                it[to-fn] = FirepadShare.from(that).clone!  # cannot reassign object in automerge :(
                 delete it[from-fn]
+              else
+                it[to-fn] ?= new FirepadShare
 
 
-    
+    is-local: (filename) ->
+      filename.match(/^\/?out\//)    /** @oops DRY wrt `CrowdProject#is-local` */
+
     filter-local: (files) ->
-      files.filter (.name == 'out')  /** @oops DRY wrt `CrowdProject#is-local` */
+      files.filter (.name == 'out')  /** @oops and again */
 
-    register: (slot) ->
-      slot.registerHandler h = ~> @update it
-      h slot.get!
+    attach: ->
+      @unregister!
+      if @loc && @age then @register @age, @~refresh
+
+    register: (slot, h) ->
+      slot.registerHandler h
       @_registered = {slot, h}
     unregister: ->
       if @_registered?
         {slot, h} = @_registered
         slot.unregisterHandler h
-    update: (file-entries=[]) !->
-      file-entries.map (-> {name: it.filename})
-        @files.splice 0, Infinity, ... ..
 
 
 ProjectView.content-plugins.folder.push (loc) ->

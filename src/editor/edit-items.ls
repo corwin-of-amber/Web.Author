@@ -46,8 +46,10 @@ class FileEdit extends EditItem
   (@loc) -> super! ; @rev = {}
   
   enter: (cm) ->>
-    if !@doc? || @changed-on-disk! then await @load cm
-    if !@doc? then return  # load cancelled
+    try
+      if !@doc? || @changed-on-disk! then await @load cm
+    catch e
+      if e instanceof EditCancelled then return else throw e
     await super cm
     @watch cm
 
@@ -94,6 +96,9 @@ class FileEdit extends EditItem
       @enter cm
 
 
+class EditCancelled
+
+
 detect-line-ends = (txt) ->
   eols = _.groupBy(txt.match(/\r\n?|\n/g), -> it)
   _.maxBy(Object.keys(eols), -> eols[it].length) ? '\n'
@@ -105,4 +110,4 @@ detect-content-type = (filename) ->
   else undefined
 
 
-export VisitedFiles, EditItem, FileEdit
+export VisitedFiles, EditItem, FileEdit, EditCancelled

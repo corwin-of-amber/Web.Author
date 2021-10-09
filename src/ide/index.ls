@@ -80,9 +80,10 @@ class IDE
         widget = if it.info.download && it.info.download.downloaded > 1e6
           then ProgressWidget(" #{Math.floor(it.info.download?downloaded / 1e6)}MB")
         switch it.stage
-        | 'install' => ..show text: "installing #{it.info.uri ? it.info.path}", widget: widget
-        | 'compile' => ..show text: "compiling #{it.info.filename}"
-        | 'bibtex'  => ..show text: "running bibtex & recompiling..."
+        | 'install'   => ..show text: "installing #{it.info.uri ? it.info.path}", widget: widget
+        | 'compile'   => ..show text: "compiling #{it.info.filename}"
+        | 'recompile' => ..show text: "recompiling #{it.info.filename}"
+        | 'bibtex'    => ..show text: "running bibtex & recompiling..."
   
   build-finished: !->
       if it.outcome == 'error'
