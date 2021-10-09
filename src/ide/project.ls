@@ -38,8 +38,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     @on 'build:started' ~> @vue.build-status = 'in-progress'
     @on 'build:finished' ~> @vue.build-status = it.outcome; @update-built it
 
-  volume:~
-    -> @vue.$refs.files.$refs.source.volume
+  volume:~ -> @current?volume
 
   action: (ev) ->
     console.log ev

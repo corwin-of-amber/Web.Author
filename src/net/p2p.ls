@@ -6,9 +6,9 @@ require! {
   lodash: _
   vue: Vue
   codemirror: CodeMirror
-  'automerge-slots': { SlotBase }
+  automerge
   'dat-p2p-crowd/src/net/docs': { DocumentClient }
-  'dat-p2p-crowd/src/ui/syncpad': { SyncPad }
+  'dat-p2p-crowd/src/ui/syncpad': { SyncPad, FirepadShare }
   'dat-p2p-crowd/src/addons/fs-sync': { DirectorySync, FileSync, FileShare }
   '../ide/project.ls': { ProjectView, TeXProject }
   '../editor/edit-items.ls': { FileEdit }
@@ -21,7 +21,8 @@ class AuthorP2P extends DocumentClient
     @ <<<< new DocumentClient(opts)   # ES2015-LiveScript interoperability issue :/
     @slots =
       project-list: @sync.path('root', 'projects')
-    @@register '*', @sync
+    @host = opts?hostname ? '*'
+    @@register @host, @sync
     window?addEventListener 'beforeunload' @~close
 
   list-projects: ->>
@@ -29,8 +30,18 @@ class AuthorP2P extends DocumentClient
     @slots.project-list.get!
 
   open-project: (docId) ->>
-    new CrowdProject @sync.path(docId), {host: '*', path: [docId]}, @
+    await (slot = @sync.path(docId)).park!
+    new CrowdProject slot, {@host, path: [docId]}, @
     #  @on 'shout' -> ..upstream?download-src!
+
+  create-project: ->
+    CrowdProject.create @host, @sync.create!
+      @add-project ..
+
+  add-project: (project) !->
+    [..._, id] = project.base-uri.path ; assert !_.length
+    @slots.project-list
+      if ..get! then ..change (.push id) else ..set [id]
 
   close: ->
     @_park?cancel!; super!
@@ -54,14 +65,16 @@ class CrowdProject extends TeXProject
   /**
    * @param slot an automerge-slots object
    * @param base-uri a P2P URI, an object of the form {host: '..', path: [...]}
-   * @param client the AuthorP2P instance
    */
-  (slot, @base-uri, @client) ->
-    super {scheme: 'memfs', path: '/tmp/p2p'}
-    @create!
+  (slot, @base-uri) ->
+    super {scheme: 'dat', path: '/tmp/p2p', base-uri}
+    @create!  # create a local directory
     @slots =
       root: slot
       src: slot.path('src')
+      age: slot.path('age')
+
+    @slots.age.registerHandler -> console.warn it
 
   get-file: (filename) ->
     super(filename)
@@ -75,6 +88,14 @@ class CrowdProject extends TeXProject
   sync: ->
     new DirectorySync(null, '/', @volume)
       ..save [{filename, content} for filename, content of @slots.src.get!]
+
+  @create = (host, slot) ->
+    slot.change (<<< do
+      name: 'new-p2p'
+      src: {'main.tex': new FirepadShare}
+      age: new automerge.Counter
+    )
+    new CrowdProject slot, {host, path: [slot.docId]}
 
 
 class CrowdFile extends EventEmitter
@@ -135,45 +156,61 @@ class SyncPadEdit extends FileEdit
     @waiting cm
     assert !@pad
     @pad = new SyncPad(cm, @slot)
-      await ..ready ; if !@pad? then return # cancelled; bail
+      try await ..ready catch => return # cancelled; bail
       @doc = cm.getDoc!
     @rev.generation = @doc.changeGeneration!
     @rev.timestamp = @_timestamp!
 
-  leave: (cm) -> @pad?destroy! ; @pad = null ; super cm
+  leave: (cm) -> super cm ; @pad?destroy! ; @pad = null
 
   watch: ->    /* don't! SyncPad should take care of changes */
   unwatch: ->
+
+  changed-on-disk: -> true  # @todo
+  _timestamp: -> 0
 
   waiting: (cm) ->
     cm.swapDoc @make-doc(cm, "opening synchronous document...")
 
 
 Vue.component 'source-folder.automerge', do
-  props: ['path']
+  props: ['loc']
   data: -> files: []
-  template: '<span/>'
+  render: -> # the drive stores local copies of files in memfs
+    it('source-folder.directory', {ref: 'drive', props: {@loc}})
 
   mounted: ->
-    @$watch 'path' (slot) ~>
-      @unregister! ; if slot? then @register slot
+    @$watch 'loc' @~refresh
     , {+immediate}
 
   methods:
-    get-path-of: (path-els) ->
-      l = @path.get!
-      subpath =
-        for el in path-els
-          if !l then break
-          index = l.findIndex (-> it.filename == el)
-            l = l[..]
-      l && @path.path(subpath ++ ['content'])
-        ..uri = @uri-of(path-els)
+    refresh: ->
+      @$refs.drive.refresh!
+      if @loc
+        AuthorP2P.resolve(@loc.base-uri)
+          @src = ..path('src') ; @age = ..path('age')
+        dfiles = @filter-local(@$refs.drive.files ? [])
+        rfiles = nested-files(Object.keys(@src.get())) ? []
+        @files.splice 0, Infinity, ...combine-nested-files(dfiles, rfiles)
+        # Create a proxy Volume to interact with the file-list
+        v = ~> @$refs.drive.volume
+        kick = ~> @age.change (.increment!)
+        change-src = (f) ~> @src.change f ; kick!
+        @volume =
+          path:~ -> v!path
+          writeFileSync: (fn) ~> v!writeFileSync ...&
+            console.warn 'writeFileSync', fn
+            .. ; change-src (.[fn] ?= new FirepadShare)
+          renameSync: (from-fn, to-fn) ~> v!renameSync ...&
+            .. ; change-src ->
+              if it[from-fn] then
+                it[to-fn] = FirepadShare.from(it[from-fn]).clone!  # cannot reassign object in automerge :(
+                delete it[from-fn]
 
-    uri-of: (path-els) ->
-      doc-id = @path.docSlot.docId
-      path = @path._path ++ path-els
-      "dat://*/#{docId}/#{path.join('/')}"
+
+    
+    filter-local: (files) ->
+      files.filter (.name == 'out')  /** @oops DRY wrt `CrowdProject#is-local` */
 
     register: (slot) ->
       slot.registerHandler h = ~> @update it
@@ -189,9 +226,30 @@ Vue.component 'source-folder.automerge', do
 
 
 ProjectView.content-plugins.folder.push (loc) ->
-  # @todo currently this is always false
   if loc.scheme == 'dat' then 'source-folder.automerge'
 
+
+nested-files = (filenames) ->
+  o = nested(filenames.map((.split('/'))))
+  aux = (o) ->
+    if _.isEmpty(o) then void
+    else [{name: k, files: aux(v)} for k, v of o]
+  aux(o)
+
+nested = (paths) -> {}
+  for path in paths
+    at = ..
+    for path => at = at.{}[..]
+
+combine-nested-files = (...arrs) ->
+  if arrs.length == 0 then return void
+  [{name, files: combine-nested-files(...v.map((?files)).filter((?length)))} \
+   for name, v of outer-join((.name), ...arrs)]
+
+outer-join = (by-f, ...arrs) -> {}
+  for a, i in arrs
+    for el in a
+      ..[][by-f(el)][i] = el
 
 
 export AuthorP2P, SyncPadEdit

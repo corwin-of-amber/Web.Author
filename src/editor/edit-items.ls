@@ -13,7 +13,7 @@ class VisitedFiles
   get: (key, gen) ->
     if (rec = @info.get(key))? then rec
     else gen(key)
-      @info.set key, ..
+      .. && @info.set key, ..
 
   enter: (cm, key, gen) ->> await (e = @get key, gen).enter cm ; e
   leave: (cm, key) ->       @get key, (->) ?.leave cm
@@ -47,7 +47,8 @@ class FileEdit extends EditItem
   
   enter: (cm) ->>
     if !@doc? || @changed-on-disk! then await @load cm
-    super cm
+    if !@doc? then return  # load cancelled
+    await super cm
     @watch cm
 
   save: (cm) ->>

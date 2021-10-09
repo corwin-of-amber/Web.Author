@@ -40,9 +40,10 @@ class TeXEditor extends EventEmitter
     , {+capture}
 
     @visited-files = new VisitedFiles
+    @_open-reent = 0
 
   open: (locator) ->>
-    @_pre-load!
+    @_pre-load! ; reent = ++@_open-reent
     locator = @_normalize-loc locator
     @loc = locator
     try
@@ -51,7 +52,8 @@ class TeXEditor extends EventEmitter
       else
         throw new Error "invalid document locator: '#{locator}'"
     catch e
-      @loc = null ; throw e
+      if reent == @_open-reent then @loc = null  # @oops another `open` may have started in the meantime
+      throw e
 
   open-file: (locator) ->
     @visited-files.enter @cm, locator, -> new FileEdit(locator)
