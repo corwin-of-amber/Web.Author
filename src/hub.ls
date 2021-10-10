@@ -94,7 +94,8 @@ $ ->>
     window.addEventListener 'beforeunload', ide~store
 
   if p2p
-    ide.interim-message "connecting to P2P workspace... 📡"
+    ide.interim-message "connecting to P2P workspace... 📡" do
+      "Start A New Project Here": -> p2p.create-project!
     do ->> await p2p.list-projects!
       p2p.project = await p2p.open-project ..0
         ide.project.open ..

@@ -160,6 +160,15 @@ div.gutter.gutter-horizontal {
     margin-top: 0;
 }
 
+.project-files > ul.file-list {
+    min-height: 100%;  /* for drop */
+}
+
+.project-files ul.file-list.draghov,
+.project-files ul.file-list.draghov * {
+    background: #88f;
+}
+
 button:focus, button:active {
     outline: none;
 }
@@ -178,4 +187,8 @@ div.ide-bar-status {
 
 div.ide-bar-status.hidden {
     display: none;
+}
+
+div.ide-interim-actions {
+    padding: 1em;
 }

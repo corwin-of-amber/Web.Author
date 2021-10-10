@@ -1,6 +1,6 @@
 require! {
-  'codemirror': { keyName }:CodeMirror
-  './layout.ls': { IDELayout, ProgressWidget }
+  codemirror: { keyName }:CodeMirror
+  './layout.ls': { IDELayout, ProgressWidget, ActionsWidget }
   './config.ls': { IDEConfig }
   '../viewer/pdf-viewer.ls': { PDFViewer }
   '../viewer/html-viewer': { HTMLViewer }
@@ -48,6 +48,7 @@ class IDE
     Ctrl = @editor.Ctrl
     global-keymap =
       "#{Ctrl}-Enter": @~synctex-forward
+      "Shift-#{Ctrl}-F": @~multisearch
       "F1": @~help
       "Esc": @~bail
 
@@ -114,8 +115,10 @@ class IDE
     @_track?destroy!
     @home!
 
-  interim-message: (msg-text) ->
+  interim-message: (msg-text, actions) ->
     @editor.cm.swapDoc new CodeMirror.Doc(msg-text)
+    if actions
+      @editor.cm.addLineWidget 0, ActionsWidget(actions).0
 
 
 export IDE

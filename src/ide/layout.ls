@@ -85,4 +85,11 @@ ProgressWidget = ->
   $ '<span>' .addClass 'progress' .text it
 
 
-export IDELayout, StatusBar, ProgressWidget
+ActionsWidget = (actions) ->
+  $ '<div>' .addClass 'ide-interim-actions'
+    for let caption, op of actions
+      ..append <| b = $ '<button>' .text caption .on 'click' ->
+        b.prop 'disabled', true; setTimeout op, 1
+
+
+export IDELayout, StatusBar, ProgressWidget, ActionsWidget
