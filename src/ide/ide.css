@@ -170,7 +170,7 @@ div.ide-bar-status {
     bottom: 0;
     z-index: 9;
 
-    background: #ddda;
+    background: #dddb;
     padding: .1em .7em .1em 1.5em;
     border-top-left-radius: .5em;
     backdrop-filter: blur(2px);

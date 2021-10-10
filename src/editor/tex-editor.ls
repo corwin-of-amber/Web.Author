@@ -4,6 +4,7 @@ require! {
     assert
     events: {EventEmitter}
     lodash: _
+    jquery: $
     codemirror: CodeMirror
     'codemirror/mode/stex/stex'
     'codemirror/mode/htmlmixed/htmlmixed'
@@ -41,6 +42,9 @@ class TeXEditor extends EventEmitter
 
     @visited-files = new VisitedFiles
     @_open-reent = 0
+
+    @dialog = new DialogMixin(@)
+    @search = new SearchMixin(@)
 
   open: (locator) ->>
     @_pre-load! ; reent = ++@_open-reent
@@ -114,6 +118,44 @@ class TeXEditor extends EventEmitter
 
   @is-dat = (filename) ->
     filename.match(/^dat:\//)
+
+
+class DialogMixin
+  (@_) ->
+  cm:~ -> @_.cm
+  containing-element:~ -> @_.containing-element
+
+  open: (height) ->
+    @active?close!
+    # Allow scrolling up if dialog covers the first few lines of text,
+    # like in Atom
+    @cm.getScrollerElement!
+      ..scrollTop += height; ..style.paddingTop = "#{height}px";
+      cleanup = ~>
+        ..scrollTop -= height; ..style.paddingTop = ""
+        @active = void
+
+    @active = new @@Dialog <<< do
+      $el: $('<div>').addClass('ide-editor-dialog').css(height: "#{height}px") \
+                     .appendTo(@containing-element)
+      close: -> @$el.remove! ; cleanup! ; @emit 'close'
+
+  class @Dialog extends EventEmitter
+
+
+class SearchMixin
+  (@_) ->
+  dialog:~ -> @_.dialog
+
+  start: ->
+    @dialog.open @@DIALOG_HEIGHT
+      ..controls = $('<div>').addClass('ide-editor-dialog-content')
+        ..append $('<span>').addClass('🔎').text('🔎')
+        ..append ..box = $('<input>').addClass('search-box')
+      ..$el.append ..controls
+      ..controls.box.focus!on 'input' -> ..emit 'input', ..controls.box.val!
+  
+  @DIALOG_HEIGHT = 40
 
 
 /** Auxiliary class */

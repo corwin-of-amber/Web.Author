@@ -46,3 +46,22 @@
     box-shadow: inset 0px 0px 1px 0px black;
     padding-bottom: 2px;  /* this is typeface-dependent... */
 }
+
+.ide-editor-dialog {
+    position: absolute;
+    z-index: 9; /* above cm gutter */
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #fffc;
+    backdrop-filter: blur(3px);
+}
+
+.ide-editor-dialog-content {
+    position: absolute;
+    top: 50%;  /* center vertically */
+    transform: translateY(-50%);
+    margin: 0;
+    line-height: 0;
+    padding-left: 1em;    
+}

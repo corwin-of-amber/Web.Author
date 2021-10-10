@@ -49,7 +49,7 @@ class IDE
     global-keymap =
       "#{Ctrl}-Enter": @~synctex-forward
       "F1": @~help
-      "Esc": ~> @viewer.synctex?blur!; @_track?destroy!; @home!
+      "Esc": @~bail
 
   store: -> @config.store @
   restore: (what) -> @config.restore-session @, what
@@ -72,6 +72,14 @@ class IDE
       one-shot!; @_track?destroy!; @_stay = @editor.stay-flag!
     else
       @_track = @editor.track-line one-shot
+
+  /** starts a search in the editor and highlights matches in the PDF, so cool */
+  multisearch: ->
+    @editor.search.start!
+      ..on 'input' ~> @viewer.textOverlay
+        if it then ..searchAndHighlightNaive it, @viewer.selected-page
+        else ..clear!
+      ..on 'close' ~> @viewer.textOverlay.clear!
 
   build-progress: !->
     @layout.bars.status
@@ -100,6 +108,12 @@ class IDE
     await @viewer.open new URL("/data/toxin-manual/out/main.pdf", window.location)
     @viewer.fit!
   
+  bail: ->  # escape all ongoing UI activities
+    @viewer.synctex?blur!
+    @editor.dialog?active?close!
+    @_track?destroy!
+    @home!
+
   interim-message: (msg-text) ->
     @editor.cm.swapDoc new CodeMirror.Doc(msg-text)
 
