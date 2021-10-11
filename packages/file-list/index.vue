@@ -81,7 +81,8 @@ export default {
             var dt = ev.dataTransfer;
             console.log([...dt.files]);
             for (let fl of [...dt.files]) {
-                this.action({type: 'create', path: [fl.name], kind: 'file', content: fl});
+                var to_path = this._path.concat([fl.name]);
+                this.action({type: 'create', path: to_path, kind: 'file', content: fl});
             }
             ev.stopPropagation();
             ev.preventDefault();

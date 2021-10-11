@@ -120,7 +120,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     if loc.volume == @volume
       @current.visit loc
       @lookup-recent(@current.loc)?last-file = {type, loc.filename}
-      @vue.$refs.files.select(loc.filename, silent)
+      @vue.$refs.files.select loc.filename, {silent}
 
   recent:~
     -> @_recent

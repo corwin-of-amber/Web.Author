@@ -31,7 +31,8 @@ export default {
                 if (ev.kind == 'file')
                     this.$emit('file:select', this._volPath(ev.path));
                 break;
-            case 'rename': this.rename(ev, true); break;
+            case 'create': this.create(ev, {focus: true}); break;
+            case 'rename': this.rename(ev, {focus: true}); break;
             case 'menu':
                 this.$refs.contextMenu.open(ev.$event, ev);
                 ev.$event.preventDefault();
@@ -40,23 +41,27 @@ export default {
         },
         onmenuaction(ev) {
             switch (ev.type) {
-            case 'new-file': this.create(ev); break;
+            case 'new-file': this.create(ev, {promptName: true}); break;
             case 'rename':   this.renameStart(ev); break;
             case 'delete':   this.delete(ev); break;
             case 'refresh':  this.$emit('action', {type: 'refresh'}); break;
             }
         },
-        create(ev) {
-            var fv = this.$refs.list, fn = fv.freshName(ev.for?.path || [], 'new-file#.tex'),
-                vol = this.$refs.source.volume, path = vol.path;
-            vol.writeFileSync(path.join(...fn), '');
+        /** May be called either from a context menu action or a dropped file */
+        async create(ev, {promptName, focus} = {}) {
+            var fv = this.$refs.list,
+                fn = ev.path ?? fv.freshName(ev.for?.path ?? [], 'new-file#.tex'),
+                vol = this.$refs.source.volume, path = vol.path,
+                content = await this._fileContent(ev.content ?? '');
+            vol.writeFileSync(path.join(...fn), content);
             fv.create(fn);
-            setTimeout(() => fv.renameStart(fn), 0);
+            if (focus) this.select(fn);
+            if (promptName) setTimeout(() => fv.renameStart(fn), 0);
         },
         renameStart(ev) {
             this.$refs.list.renameStart(ev.for.path);
         },
-        rename(ev, focus=false) {
+        rename(ev, {focus} = {}) {
             var vol = this.$refs.source.volume, path = vol.path,
                 from = path.join(...ev.path, ev.from),
                 to   = path.join(...ev.path, ev.to);
@@ -68,7 +73,7 @@ export default {
             vol.unlinkSync(path.join(...ev.for.path));
             this.$refs.list.delete(ev.for.path);
         },
-        select(path, silent=false) {
+        select(path, {silent} = {}) {
             var fv = this.$refs.list, entry = fv.lookup(path);
             if (entry) {
                 fv.select(path);
@@ -79,6 +84,10 @@ export default {
         _volPath(path) {
             return Array.isArray(path) ? 
                 this.$refs.source.volume.path.join(...path) : path;
+        },
+        async _fileContent(content) {
+            return content instanceof Blob ?
+                new Uint8Array(await content.arrayBuffer()) : content;
         }
     },
     components: {FileList, ProjectContextMenu}
