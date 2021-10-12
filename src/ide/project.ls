@@ -195,7 +195,7 @@ class TeXProject
     main-tex = @get-main-tex-file!
     if !main-tex then throw new Error('main TeX file not found in project')
     if @loc.scheme == 'file'   # that's one way to decide about it
-      new LatexmkBuild main-tex.filename, @path
+      new LatexmkBuild main-tex, @path
     else
       new WASI_PDFLatexBuild main-tex
 

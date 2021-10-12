@@ -1,7 +1,9 @@
 /* Kremlin is a bit incomplete at the moment */
 if typeof window != 'undefined'
   window.Buffer = require('buffer').Buffer
+  _env = if typeof process != 'undefined' then process.env
   window.process = require('process')
+  if _env then window.process.env = _env
   #window.process.nextTick = (f, ...args) -> f(...args) # risky!!
 
 
@@ -108,7 +110,8 @@ $ ->>
       ..theme = new WordPressTheme('data/floc2022/template-page.html')
       ..on 'rendered' ({content}) -> ide.viewer.open content
 
-    wp.build('workshops.wp')
+    wp.build('about.wp')
+    ide.project.open {scheme: \file, path: wp.baseDir}
     window <<< {wp}
 
   window <<< {ide}

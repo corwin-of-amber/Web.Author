@@ -1,7 +1,7 @@
 node_require = global.require ? (->)
   fs = .. 'fs'
   util = .. 'util'
-  child-process-promise = .. 'child-process-promise'
+  promisify-child-process = .. 'promisify-child-process'
 require! {
     path,
     events: {EventEmitter}
@@ -17,14 +17,11 @@ job = (f) -> ->
 
 
 class LatexmkBuild extends EventEmitter
-  (@main-tex-fn, @base-dir) ->
+  (@main-tex-file, @base-dir) ->
     super!
-    @base-dir ?= path.dirname(@main-tex-fn)
-    if @main-tex-fn.startsWith('/')
-      @main-tex-fn = path.relative(@base-dir, @main-tex-fn)
+    @set-main @main-tex-file
     
     @out-dir = 'out'
-    @src-dir = path.dirname(@main-tex-fn)
 
     @latexmk = 'latexmk'
     @latexmk-flags = <[ -pdf -f ]>
@@ -38,14 +35,20 @@ class LatexmkBuild extends EventEmitter
     @_watch = new FileWatcher
       ..on 'change' @~make-watch
 
+  set-main: (@main-tex-file) ->
+    @main-tex-fn = @main-tex-file.filename
+    @base-dir ?= path.dirname(@main-tex-fn)
+    if @main-tex-fn.startsWith('/')
+      @main-tex-fn = path.relative(@base-dir, @main-tex-fn)
+    @src-dir = path.dirname(@main-tex-fn)
+
   make: job non-reentrant ->>
     console.log "%cmake #{@base-dir} #{@main-tex-fn}", 'color: green'
     @emit 'started'
-    await @_yield! # this is needed because child_process locks Vue updates somehow?
+    await @_yield! # @hmm this is needed because child_process delays Vue updates somehow?
     try
-      rc = await \
-        child-process-promise.spawn @latexmk, @_args!, \
-          shell: true, cwd: @base-dir, env: @_env!, stdio: 'ignore' #, capture: <[ stderr ]>
+      rc = await promisify-child-process.spawn @latexmk, @_args!, \
+          shell: true, cwd: @base-dir, env: @_env!, encoding: 'utf-8'
       console.log 'build complete', rc
       @emit 'finished', {outcome: 'ok'}
     catch
@@ -71,6 +74,8 @@ class LatexmkBuild extends EventEmitter
       await @make! ; fns = @get-input-filenames! ? []
     @_watch.multiple (``[...fns]``).map(~> path.join(@base-dir, it))
 
+  unwatch: -> @_watch.clear!
+
   make-watch: ->> await @make! ; @watch!
 
   /**
@@ -83,7 +88,7 @@ class LatexmkBuild extends EventEmitter
       for line in fs.readFileSync(fls-fn, 'utf-8').split(/[\n\r]+/)
         if (mo = /^INPUT ([^\/].*)/.exec(line))?  then input.add mo.1
         if (mo = /^OUTPUT ([^\/].*)/.exec(line))? then output.add mo.1
-      input = set-filter input, -> !it.endsWith('.bbl')  # hack
+      input = set-filter input, -> !it.endsWith('.bbl')  # @oops hack
       set-remove-all input, output
 
 

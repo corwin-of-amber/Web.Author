@@ -95,10 +95,12 @@ class IDE
         | 'bibtex'    => ..show text: "running bibtex & recompiling..."
   
   build-finished: !->
-      if it.outcome == 'error'
-        type = it.error?$type ? it.error?name
-        @layout.bars.status.show text: 'build failed.' + \
-          (if type in ['ChildProcessError', 'BuildError'] then '' else ' (internal error!)')
+    if it.outcome == 'error'
+      type = it.error?$type ? it.error?name
+      @layout.bars.status.show text: 'build failed.' + \
+        (if type in ['ChildProcessError', 'BuildError'] then '' else ' (internal error!)')
+    else
+      @layout.bars.status.hide 50
 
   home: ->
     if @_back-to

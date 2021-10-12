@@ -1,6 +1,6 @@
 require! {
   fs, path, tempy
-  'child-process-promise': child-process-promise
+  'promisify-child-process': promisify-child-process
 }
 
 
@@ -14,10 +14,10 @@ class EmbedPdf
     ->
       if @_promise? then return @_promise
       @output-filename = @mktemp!
-      @_promise = child-process-promise.spawn('gs',
+      @_promise = promisify-child-process.spawn('gs',
           ['-q', '-dNOPAUSE', '-dBATCH', '-sDEVICE=pngalpha', '-r600x600',
            "-sOutputFile=#{@output-filename}", @input-filename],
-          {capture: <[ stdout stderr ]>})
+          {encoding: 'utf-8'})
       .then (result) ~>
         @_gs-result = result
         new Blob([fs.readFileSync(@output-filename)])
@@ -39,10 +39,10 @@ class EmbedPdfLatex
       @output-dir = @mktemp!
       @jobname = 'pdfembed'
       @output-filename = path.join(@output-dir, "#{@jobname}.pdf")
-      @_promise = child-process-promise.spawn('pdflatex',
+      @_promise = promisify-child-process.spawn('pdflatex',
           ['-file-line-error', '-interaction', 'nonstopmode', '-output-dir',
           @output-dir, '-jobname', @jobname, @input-filename],
-          {capture: <[ stdout stderr ]>})
+          {encoding: 'utf-8'})
       .then (result) ~>
         @_pdflatex-result = result
         @_embed-pdf = new EmbedPdf(@output-filename)
