@@ -66,11 +66,13 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
       @emit 'file:select' {loc: ..get-file('main.tex'), +focus}
 
   open: (project) ->
+    @_watch?clear!
     @unbuild!
     last-file = project.last-file
     project = TeXProject.promote(project)
     @current = project
-      @vue.loc = ..loc; @vue.name = ..name
+      @vue <<< {..loc, ..name, opts: ..get-folder-opts!}
+      @_watch = ..watch-config!on 'change' ~> @vue.opts = ..get-folder-opts!
       @add-recent ..loc
       @emit 'open', project: ..
       doc = if last-file then ..get-file(last-file.filename) else ..get-main-tex-file!
@@ -187,9 +189,15 @@ class TeXProject
     volume = VolumeFactory.get(@loc)
     [...glob-all(['toxin.json', 'project.json'], {cwd: '', fs: volume})]
     .map ~>
-      try      JSON.parse(volume.readFileSync(it))
+      try      JSON.parse(volume.readFileSync(it)) <<< {file: @get-file(it)}
       catch => void
-    .find -> it
+    .find ~> it
+
+  get-folder-opts: ->
+    if @get-config! then that{ignore}
+
+  watch-config: -> new FileWatcher
+    if @get-config! then console.log that; ..add that.file.filename, fs: that.file.volume
 
   builder: ->
     main-tex = @get-main-tex-file!
@@ -239,20 +247,22 @@ class TeXProject
 
 
 Vue.component 'source-folder.directory', do
-  props: ['loc']
+  props: ['loc', 'opts']
   data: -> files: []
   render: -> document.createElement('span')   # dummy element
   mounted: ->
-    @$watch 'loc' @~refresh, {+immediate}
+    #@$watch 'loc' @~refresh, {+immediate}
+    @$watch (-> @{loc,opts}), @~refresh, {+immediate}
   methods:
     refresh: ->
       if @loc
         @volume = VolumeFactory.get(@loc)
-        @files.splice 0, Infinity, ...sort-content(
-          dir-tree-sync('', {fs: @volume, exclude: FOLDER_IGNORE}))
+        exclude = FOLDER_IGNORE ++ (@opts?ignore ? [])
+        dir-tree-sync('', {fs: @volume, exclude}) |> sort-content
+          @files.splice 0, Infinity, ... ..
 
 
-const FOLDER_IGNORE = new MultiMatch([/^\.git$/])
+const FOLDER_IGNORE = [/^\.git$/]
 
 sort-content = (dir-entries, order=tex-first) ->
   for e in dir-entries

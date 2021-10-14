@@ -1,7 +1,7 @@
 <template>
     <div class="project-files" @contextmenu.prevent="$refs.contextMenu.open">
         <file-list ref="list" :files="files" @action="act"/>
-        <component :is="sourceType" ref="source" :loc="loc"></component>
+        <component :is="sourceType" ref="source" :loc="loc" :opts="opts"></component>
         <project-context-menu ref="contextMenu" @action="onmenuaction"/>
     </div>  
 </template>
@@ -12,7 +12,7 @@ import FileList from '../../../packages/file-list/index.vue';
 import ProjectContextMenu from './project-context-menu.vue';
 
 export default {
-    props: ['loc'],
+    props: ['loc', 'opts'],
     data: () => ({files: []}),
     computed: {
         sourceType() { return this.loc && ProjectView.detectFolderSource(this.loc); }
