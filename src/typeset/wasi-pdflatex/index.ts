@@ -55,8 +55,7 @@ class PDFLatexBuild extends EventEmitter {
         try {
             var {volume, filename} = this.mainTexFile,
                 source = this._collect(volume),
-                entry = new TextDecoder().decode(source[filename]),
-                pkgs = this._guessRequiredPackages(entry);
+                pkgs = this._guessRequiredPackages(source);
 
             await this._stage('prepare', {}, () =>
                 this.pdflatex.prepare(pkgs)
@@ -71,7 +70,6 @@ class PDFLatexBuild extends EventEmitter {
 
             if (out.log) {
                 var latexmk = this._latexmk('pdflatex', out, volume);
-                
                 if (latexmk.needBibtex()) {
                     await this._stage('bibtex', {}, async () => {
                         var bibout = await this.pdflatex.utils.bibtex.compile(out.job);
@@ -136,7 +134,7 @@ class PDFLatexBuild extends EventEmitter {
         }
     }
 
-    _collect(volume: Volume) {
+    _collect(volume: Volume): PDFLatexBuild.SourceFiles {
         return Object.fromEntries(
             [...globAll(['**'], {type: 'file', exclude: ['out', '**/.*'],
                                  cwd: '', fs: volume})].map((fn: string) =>
@@ -144,17 +142,27 @@ class PDFLatexBuild extends EventEmitter {
         );
     }
 
-    _guessRequiredPackages(source: string) {
+    _guessRequiredPackages(source: PDFLatexBuild.SourceFiles) {
         if (localStorage['toxin-dist-dev']) return ['dev'];  // for faster dev cycles
         else {
-            // this is kind of a best effort
             var pkgs = ['latex', 'bibtex'];
-            for (let mo of source.matchAll(/\\documentclass(?:\[.*?\])?{(.*?)}/g))
-                pkgs.push(mo[1].trim());
-            for (let mo of source.matchAll(/\\usepackage(?:\[.*?\])?{(.*?)}/g)) {
-                pkgs.push(...mo[1].split(',').map(s => s.trim()));
+            for (let [fn, content] of Object.entries(source)) {
+                if (fn.match(/[.](tex|ltx|sty)$/)) {
+                    pkgs.push(...this._extractImports(
+                        new TextDecoder().decode(content)));
+                }
             }
             return pkgs;
+        }
+    }
+
+    *_extractImports(source: string): Generator<string, void> {
+        // this is kind of a "best effort"
+        for (let mo of source.matchAll(/\\documentclass(?:\[.*?\])?{(.*?)}/g))
+            yield mo[1].trim();
+        for (let mo of source.matchAll(/\\usepackage(?:\[.*?\])?{(.*?)}/g)) {
+            for (let s of mo[1].split(','))
+                yield s.trim();
         }
     }
 
@@ -168,6 +176,10 @@ class PDFLatexBuild extends EventEmitter {
             
         return latexmk;
     }
+}
+
+namespace PDFLatexBuild {
+    export type SourceFiles = {[fn: string]: Uint8Array};
 }
 
 
@@ -252,7 +264,7 @@ class PDFLatexPod {
     _installed = new Set<string>()
 
     mainTex: string = '/home/doc.tex'
-    opts = {outdir: 'out', synctex: 1}
+    opts = {outdir: 'out', synctex: 1, interaction: 'nonstopmode'}
 
     utils: {bibtex: BibTexPod}
 
@@ -299,7 +311,8 @@ class PDFLatexPod {
         this.core.fs.mkdirSync(path.resolve(wd, this.opts.outdir), {recursive: true});
         var flags = [
             `-output-directory=${this.opts.outdir}`,
-            `-synctex=${this.opts.synctex}`
+            `-synctex=${this.opts.synctex}`,
+            `-interaction=${this.opts.interaction}`
         ]
         return this.core.start('/bin/tex/pdftex.wasm',
             ['pdflatex', ...flags, fn], {PATH: '/bin', PWD: wd});

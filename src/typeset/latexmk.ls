@@ -116,12 +116,14 @@ class LatexmkClone
         missing: egrep(/\nNo file (.+\.bbl)\.\n/g).map(-> it.1)
         used: egrep(/\(([^()]+\.bbl)\)/g).map(-> it.1)
       @flags.crossrefs = !!log.match(/Rerun to get cross-references right\./)
+      @flags.biblatex = !!log.match(/Package biblatex Info:/)
     | 'bibtex' =>
       @bib =
         used: egrep(/\nDatabase file #\d+: (.+)/g).map(-> it.1)
     console.log @bbl
 
   need-bibtex: ->
+    if @flags.biblatex then return false  /** @todo need to implement a `need-biblatex` as well */
     # not 100% certain about this. what if the list of `.bib` files has changed?
     if @bbl.missing.length then true
     else if @bbl.used.length && !@bib.used.length then true
