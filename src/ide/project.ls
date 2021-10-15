@@ -176,7 +176,7 @@ class TeXProject
   get-main-tex-file: ->
     volume = @volume
     if !(filename = @transient-config?main ? @get-config!?main)?
-      glob-all(['*.tex', '**/*.tex'], {exclude: @@IGNORE, cwd: '', fs: volume})
+      glob-all(['*.tex', '**/*.tex'], {exclude: @_ignored, cwd: '', fs: volume})
         filename = [...(..)].find ~> @_is-document({volume, filename: it})
     filename && @get-file filename
 
@@ -186,8 +186,8 @@ class TeXProject
     return {volume, filename}
 
   get-config: ->
-    volume = VolumeFactory.get(@loc)
-    [...glob-all(['toxin.json', 'project.json'], {cwd: '', fs: volume})]
+    volume = @volume
+    [...glob-all(['toxin.json', 'project.json'], {cwd: '', fs: volume, -recursive})]
     .map ~>
       try      JSON.parse(volume.readFileSync(it)) <<< {file: @get-file(it)}
       catch => void
@@ -197,7 +197,7 @@ class TeXProject
     if @get-config! then that{ignore}
 
   watch-config: -> new FileWatcher
-    if @get-config! then console.log that; ..add that.file.filename, fs: that.file.volume
+    if @get-config! then ..add that.file.filename, fs: that.file.volume
 
   builder: ->
     main-tex = @get-main-tex-file!
@@ -212,8 +212,8 @@ class TeXProject
       @transient-config.main = @volume.path.relative('/', loc.filename)
 
   _find-pdf: (root-dir) ->
-    fns = glob-all.sync(Array.from(['out/*.pdf', '*.pdf' ++ @@IGNORE]),
-                        {cwd: root-dir})
+    fns = [...glob-all(['out/*.pdf', '*.pdf'],  /** @todo  out/*.pdf is currently defunct due to fs-traverse broken semantics */
+                       {exclude: @_ignored, cwd: '', fs: @volume})]
     main-tex = @get-main-tex-file!
     pdf-matches = -> path.basename(main-tex).startsWith(path.basename(it).replace(/pdf$/, ''))
     if main-tex? && (fn = fns.find(pdf-matches)) then ;
@@ -223,6 +223,8 @@ class TeXProject
   _is-document: ({volume, filename}) ->
     try      volume.readFileSync(filename, 'utf-8').match(/\\documentclass\s*[[{]/)
     catch => false
+
+  _ignored:~ -> @@IGNORE ++ (@get-config!?ignore ? [])
 
   @promote = (loc) ->
     if loc instanceof TeXProject then return loc
@@ -242,7 +244,7 @@ class TeXProject
   @create = (loc) -> new TeXProject(loc)
     ..create!
 
-  @IGNORE = ['_*/**', '.*/**']  # for glob-all
+  @IGNORE = ['_*', '.*']  # for fs-traverse.glob-all
 
 
 
@@ -262,7 +264,7 @@ Vue.component 'source-folder.directory', do
           @files.splice 0, Infinity, ... ..
 
 
-const FOLDER_IGNORE = [/^\.git$/]
+const FOLDER_IGNORE = ['.git']  # for fs-traverse.glob-all
 
 sort-content = (dir-entries, order=tex-first) ->
   for e in dir-entries

@@ -33,18 +33,18 @@ dir-tree-sync = (dir, opts) ->
   prune = MultiMatch.promote(opts.exclude)
   dir-tree-core(opts.fs, opts.path, dir, prune)
 
-traverse-core = (fs, path, dir, cwd, prune=MultiMatch.NONE) !->*
+traverse-core = (fs, path, dir, cwd, prune=MultiMatch.NONE, rec=true) !->*
   fulldir = path.resolve('/', cwd, dir)
   for file in fs.readdirSync(fulldir).filter(-> !prune.exec(it))
     subpath = path.join(dir, file)
     subfullpath = path.resolve('/', cwd, subpath)
     substat = fs.statSync(subfullpath)
     yield {path: subpath, fullpath: subfullpath, stat: substat}
-    if substat.isDirectory!
-      yield from traverse-core(fs, path, subpath, cwd, prune)
+    if rec && substat.isDirectory!
+      yield from traverse-core(fs, path, subpath, cwd, prune, rec)
 
 traverse-frontend = (patterns, opts={}) !->*
-  opts = {exclude: [], cwd: '', fs, ...opts}
+  opts = {exclude: [], cwd: '', fs, recursive: true, ...opts}
   if !opts.path then opts.path = opts.fs.path ? path
 
   mm = MultiMatch.promote(patterns)
@@ -54,7 +54,7 @@ traverse-frontend = (patterns, opts={}) !->*
     | 'file' => (-> !it.stat.isDirectory!)
     | 'dir' => (-> it.stat.isDirectory!)
 
-  ii = traverse-core(opts.fs, opts.path, '', opts.cwd, prune)
+  ii = traverse-core(opts.fs, opts.path, '', opts.cwd, prune, opts.recursive)
   while !(cur = ii.next!).done
     entry = cur.value
     if check-type(entry) && mm.exec(entry.path) then yield entry
