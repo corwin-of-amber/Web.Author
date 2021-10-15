@@ -204,8 +204,10 @@ Vue.component 'source-folder.automerge', do
         change-src = (f) ~> @src.change f ; kick!
         @volume ?=
           path:~ -> v!path
-          writeFileSync: (fn) ~> (try v!writeFileSync ...& catch)
-            .. ; if !@is-local(fn) then change-src (.[fn] ?= new FirepadShare)
+          writeFileSync: (fn, content) ~> (try v!writeFileSync ...& catch)
+            .. ; if !@is-local(fn) then change-src ~>
+              if content then it[fn] = @import-file({fn, content})
+              else it[fn] ?= new FirepadShare
           unlinkSync: (fn) ~> (try v!unlinkSync ...& catch)
             .. ; if !@is-local(fn) then change-src -> delete it[fn]
           renameSync: (from-fn, to-fn) ~> (try v!renameSync ...& catch)
@@ -222,6 +224,13 @@ Vue.component 'source-folder.automerge', do
 
     filter-local: (files) ->
       files.filter (.name == 'out')  /** @oops and again */
+
+    import-file: ({fn, content}) ->
+      /** @todo check that this really is a text file */
+      if content instanceof Uint8Array
+        content = new TextDecoder!decode(content)
+      /**/ assert typeof content == 'string' /**/
+      FirepadShare.fromText(content)
 
     attach: ->
       @unregister!
