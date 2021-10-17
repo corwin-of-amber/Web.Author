@@ -347,11 +347,15 @@ class PDFLatexPod {
 
 class XzResource extends Resource {
     async blob(progress?: (p: DownloadProgress) => void) {
-        var compressed = await (await super.blob(progress)).arrayBuffer(),
+        var compressed = await (
+                await this._cache.from(this.uri, progress) ??
+                this._cache.into(this.uri, await super.blob(progress))).arrayBuffer(),
             decompressed = await XzResource.unpackSync(new Uint8Array(compressed));
 
         return new Blob([decompressed]);
     }
+
+    get _cache() { return XzResource._xz_cache ??= new ResourceCache('tlarchive'); }
 
     /** unpacking is synchronous; `async` is only needed for fetching the `.wasm` */
     static async unpackSync(ui8a: Uint8Array) {
@@ -366,8 +370,42 @@ class XzResource extends Resource {
             buf[2].length ? new TextDecoder().decode(concat(buf[2])) : 'unknown error');
     }
 
+    static _xz_cache: ResourceCache
     /** @note reusing the ExecCore itself doesn't work, somehow (wasi-kernel bug?) */
     static _wasm_cache = new Map<string, Promise<WebAssembly.Module>>();
+}
+
+/**
+ * Stores some downloaded archives for later use.
+ * This allows better control than relying on the browser's HTTP(S) cache.
+ * @todo cache should be cleared at some point.
+ * @todo probably should be moved to basin-shell.
+ */
+class ResourceCache {
+    _cache: Promise<Cache>
+
+    constructor(cacheName: string) {
+        this._cache = caches.open(cacheName);
+    }
+
+    async from(uri: string, progress: (p: DownloadProgress) => void) {
+        var entry = await (await this._cache).match(uri);
+        if (entry) progress({uri, total: 1, downloaded: 1}); /* dummy entry */
+        return entry;
+    }
+
+    into(uri: string, blob: Blob) {
+        if (this._isCacheable)
+            (async () => (await this._cache).put(uri, new Response(blob)))();
+        return blob;
+    }
+
+    async clear() {
+        var c = await this._cache;
+        for (let k of await c.keys()) c.delete(k);
+    }
+
+    _isCacheable() { return ['http', 'https'].includes(location.protocol); }
 }
 
 
