@@ -64,6 +64,9 @@ $ ->>
     opts.restore = '+'  # don't reopen last project; instead, p2p project is opened later
     window <<< {p2p}
 
+  if sp.has('wp')
+    opts.mode = 'html'
+
   ide.start opts
 
   if 1
@@ -103,8 +106,7 @@ $ ->>
         ide.project.open ..
         ide.file-select loc: ..get-file('main.tex')
 
-  if 0
-    ide.select-preset 'html'
+  if sp.has('wp')
     wp = new WordPressProject('/Users/corwin/var/tmp/floc2022-author', {wp_posts: 'wp_xsm8ru_posts'},
                               JSON.parse(fs.readFileSync('data/floc2022/connect-info.json', 'utf-8')))
       ..theme = new WordPressTheme('data/floc2022/template-page.html')

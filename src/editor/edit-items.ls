@@ -27,6 +27,8 @@ class LocationMap
   set: (loc, value) ->
     if !(sub = @map.get(loc.volume)) then @map.set loc.volume, sub = new Map
     sub.set loc.filename, value
+  delete: (loc) ->
+    if (sub = @map.get(loc.volume)) then sub.delete(loc.filename)
 
 
 class EditItem

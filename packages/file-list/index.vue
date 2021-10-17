@@ -100,7 +100,7 @@ export default {
         },
 
         menu(ev) {
-            this.onclick(ev);
+            if ($(ev.currentTarget).is('li')) this.onclick(ev);
             var target = $(ev.currentTarget),
                 item_name = target.attr('data-name'), path, kind;
             if (item_name) {

@@ -8,7 +8,7 @@ require! {
   codemirror: CodeMirror
   automerge
   'dat-p2p-crowd/src/net/docs': { DocumentClient }
-  'dat-p2p-crowd/src/ui/syncpad': { SyncPad, FirepadShare }
+  'dat-p2p-crowd/src/addons/syncpad': { SyncPad, FirepadShare }
   'dat-p2p-crowd/src/addons/fs-sync': { DirectorySync, FileSync, FileShare }
   '../ide/project.ls': { ProjectView, TeXProject }
   '../editor/edit-items.ls': { FileEdit, EditCancelled }
@@ -189,9 +189,11 @@ Vue.component 'source-folder.automerge', do
     @$watch 'loc' ~> @refresh! ; @attach!
     , {+immediate}
 
+  unmounted: -> @unregister!
+
   methods:
     refresh: ->
-      @$refs.drive.refresh!
+      @$refs.drive?refresh!
       if @loc
         AuthorP2P.resolve(@loc.base-uri)
           @src = ..path('src') ; @age = ..path('age')

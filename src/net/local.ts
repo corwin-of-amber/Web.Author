@@ -74,6 +74,18 @@ class LocalDBSync {
         }
     }
 
+    async wipe(subdir: string) {
+        await this._ready;
+        var t = this.db.transaction('files', 'readwrite'),
+            c = await t.store.openCursor(),
+            prefix = subdir.replace(/([^/])$/, '$1/');
+        while (c) {
+            if (typeof c.key === 'string' && c.key.startsWith(prefix))
+                c.delete();
+            c = await c.continue();
+        }
+    }
+
     _store(filename: string, content: Uint8Array | string) {
         return this.db.put('files', content, filename);
     }
