@@ -9,8 +9,8 @@ require! {
     'codemirror/mode/stex/stex'
     'codemirror/mode/htmlmixed/htmlmixed'
     'codemirror/addon/dialog/dialog'
-    'codemirror/addon/search/searchcursor'
-    'codemirror/addon/search/search'
+#    'codemirror/addon/search/searchcursor'
+#    'codemirror/addon/search/search'
     'codemirror/addon/selection/mark-selection'
     'codemirror/addon/edit/matchbrackets'
     'codemirror/addon/selection/active-line'
@@ -45,6 +45,7 @@ class TeXEditor extends EventEmitter
 
     @dialog = new DialogMixin(@)
     @search = new SearchMixin(@)
+    @jumps = new JumpToMixin(@)
 
   open: (locator) ->>
     @_pre-load! ; reent = ++@_open-reent
@@ -102,7 +103,7 @@ class TeXEditor extends EventEmitter
 
     @cm.addKeyMap do
       "#{Ctrl}-S": @~save
-      "#{Ctrl}-F": 'findPersistent'  # because non-persistent is just silly
+      #"#{Ctrl}-F": 'findPersistent'  # because non-persistent is just silly
       "Tab": 'indentMore',
       "Shift-Tab": 'indentLess',
 
@@ -138,6 +139,7 @@ class DialogMixin
     @active = new @@Dialog <<< do
       $el: $('<div>').addClass('ide-editor-dialog').css(height: "#{height}px") \
                      .appendTo(@containing-element)
+      height: height
       close: -> @$el.remove! ; cleanup! ; @emit 'close'
 
   class @Dialog extends EventEmitter
@@ -145,7 +147,9 @@ class DialogMixin
 
 class SearchMixin
   (@_) ->
+  cm:~ -> @_.cm
   dialog:~ -> @_.dialog
+  jumps:~ -> @_.jumps
 
   start: ->
     @dialog.open @@DIALOG_HEIGHT
@@ -153,9 +157,84 @@ class SearchMixin
         ..append $('<span>').addClass('🔎').text('🔎')
         ..append ..box = $('<input>').addClass('search-box')
       ..$el.append ..controls
-      ..controls.box.focus!on 'input' -> ..emit 'input', ..controls.box.val!
+      ..controls.box.on 'input' (-> ..emit 'input', ..controls.box.val!)
+        ..on 'focus' ~> @origin-pos = @cm.getCursor!
+        ..focus!
+      ..on 'input' ~> @show it
   
+  show: (query) !->
+    @hide!
+    @query = @@Query.promote(query)
+      @results = @_matches ..
+    @cm.addOverlay @overlay = new @@Overlay(@query)
+    @focus-fwd!
+
+  hide: !-> if @overlay then @cm.removeOverlay that
+
+  focus-fwd: (pos = @origin-pos ? @cm.getCursor!) ->
+    idx = @cm.indexFromPos(pos)
+    @results.find(-> it.index >= idx)
+      .. && @jumps.focus-around ..
+
+  _matches: (query) -> query.all(@cm.getValue!).map (mo) ~>
+    at = (offset) ~> @cm.posFromIndex(mo.index + offset)
+    {mo.index, from: at(0), to: at(mo.0.length)}
+
+  class @Query
+    (spec, flags = "") ->
+      @re = if typeof spec == 'string' then @@_re-escape spec, "g#{flags}"
+            else assert spec instanceof RegExp; spec 
+      if !@re.global
+        @re = new RegExp(@re.source, @re.ignoreCase ? "gi" : "g");
+
+    all: (s, start = 0) -> [...s.matchAll(@re)]
+
+    forward: (s, start = 0) ->
+      @re.lastIndex = start
+      @re.exec(s)
+
+    @promote = -> if it instanceof @ then it else new @(it)
+
+    @_re-escape = (s, flags) ->
+      new RegExp(s.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), flags)
+
+
+  class @Overlay
+    (@query) -> @token = @~_token
+    _token: (stream) !->
+      if (mo = @query.forward(stream.string, stream.pos))?
+        if mo.index == stream.pos
+          stream.pos += mo[0].length || 1; return "searching"
+        else
+          stream.pos = mo.index
+      else
+        stream.skipToEnd!
+
+
   @DIALOG_HEIGHT = 40
+
+
+class JumpToMixin
+  (@_) ->
+  cm:~ -> @_.cm
+  dialog:~ -> @_.dialog
+
+  focus-around: (pos, clearance = @@DEFAULT_CLEARANCE) ->
+    if pos.from? && pos.to? then @cm.setSelection pos.from, pos.to
+    else @cm.setCursor pos
+    @make-clearance clearance
+
+  make-clearance: (clearance = @@DEFAULT_CLEARANCE) ->
+    scroll-info = @cm.getScrollInfo!
+    cursor = @cm.cursorCoords!
+      if @dialog.active then ..top -= that.height
+    adj-top = clearance.y - cursor.top
+    adj-bot = cursor.bottom - (scroll-info.clientHeight - clearance.y)
+    @cm.getScrollerElement!
+      if adj-top > 0 then       ..scrollTop -= adj-top
+      else if adj-bot > 0 then  ..scrollTop += Math.min(adj-bot, -adj-top)
+
+  @DEFAULT_CLEARANCE = {y: 80}
 
 
 /** Auxiliary class */
@@ -188,4 +267,4 @@ class StayFlag extends EventHook
 
 
 
-export TeXEditor
+export TeXEditor, DialogMixin, SearchMixin, JumpToMixin
