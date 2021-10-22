@@ -9,8 +9,6 @@ require! {
     'codemirror/mode/stex/stex'
     'codemirror/mode/htmlmixed/htmlmixed'
     'codemirror/addon/dialog/dialog'
-#    'codemirror/addon/search/searchcursor'
-#    'codemirror/addon/search/search'
     'codemirror/addon/selection/mark-selection'
     'codemirror/addon/edit/matchbrackets'
     'codemirror/addon/selection/active-line'
@@ -103,7 +101,6 @@ class TeXEditor extends EventEmitter
 
     @cm.addKeyMap do
       "#{Ctrl}-S": @~save
-      #"#{Ctrl}-F": 'findPersistent'  # because non-persistent is just silly
       "Tab": 'indentMore',
       "Shift-Tab": 'indentLess',
 
@@ -128,7 +125,7 @@ class DialogMixin
 
   open: (height) ->
     @active?close!
-    # Allow scrolling up if dialog covers the first few lines of text,
+    # Allow scrolling up when dialog covers the first few lines of text,
     # like in Atom
     @cm.getScrollerElement!
       ..scrollTop += height; ..style.paddingTop = "#{height}px";
@@ -136,17 +133,23 @@ class DialogMixin
         ..scrollTop -= height; ..style.paddingTop = ""
         @active = void
 
-    @active = new @@Dialog <<< do
+    @active = new @@Dialog(@cm) <<< do
       $el: $('<div>').addClass('ide-editor-dialog').css(height: "#{height}px") \
                      .appendTo(@containing-element)
       height: height
-      close: -> @$el.remove! ; cleanup! ; @emit 'close'
+      close: ->
+        if @$el.find(':focus') then @cm.focus!
+        @$el.remove! ; cleanup! ; @emit 'close'
 
   class @Dialog extends EventEmitter
+    (@cm) ->
 
 
 class SearchMixin
   (@_) ->
+    @keymap =
+      Down: @~focus-fwd
+      Up: @~focus-bwd
   cm:~ -> @_.cm
   dialog:~ -> @_.dialog
   jumps:~ -> @_.jumps
@@ -156,24 +159,35 @@ class SearchMixin
       ..controls = $('<div>').addClass('ide-editor-dialog-content')
         ..append $('<span>').addClass('🔎').text('🔎')
         ..append ..box = $('<input>').addClass('search-box')
+        ..append ..nav-up = $('<button>').addClass('search-nav-up')
+        ..append ..nav-down = $('<button>').addClass('search-nav-down')
       ..$el.append ..controls
       ..controls.box.on 'input' (-> ..emit 'input', ..controls.box.val!)
+        ..on 'keydown' ~> @keymap[CodeMirror.keyName(it)]?! && it.preventDefault!
         ..on 'focus' ~> @origin-pos = @cm.getCursor!
         ..focus!
+      ..controls.nav-up.on 'click' ~> @focus-bwd!
+      ..controls.nav-down.on 'click' ~> @focus-fwd!
       ..on 'input' ~> @show it
+      ..on 'close' ~> @hide!
   
   show: (query) !->
     @hide!
     @query = @@Query.promote(query)
       @results = @_matches ..
     @cm.addOverlay @overlay = new @@Overlay(@query)
-    @focus-fwd!
+    @focus-fwd @origin-pos
 
   hide: !-> if @overlay then @cm.removeOverlay that
 
-  focus-fwd: (pos = @origin-pos ? @cm.getCursor!) ->
+  focus-fwd: (pos = @cm.getCursor!) ->
     idx = @cm.indexFromPos(pos)
     @results.find(-> it.index >= idx)
+      .. && @jumps.focus-around ..
+
+  focus-bwd: (pos = @cm.getCursor('from')) ->
+    idx = @cm.indexFromPos(pos)
+    [...@results].reverse!find(-> it.index < idx)
       .. && @jumps.focus-around ..
 
   _matches: (query) -> query.all(@cm.getValue!).map (mo) ~>
@@ -183,13 +197,14 @@ class SearchMixin
   class @Query
     (spec, flags = "") ->
       @re = if typeof spec == 'string' then @@_re-escape spec, "g#{flags}"
-            else assert spec instanceof RegExp; spec 
+            else assert spec instanceof RegExp; spec
+      @nullable = !!@re.exec('')
       if !@re.global
         @re = new RegExp(@re.source, @re.ignoreCase ? "gi" : "g");
 
-    all: (s, start = 0) -> [...s.matchAll(@re)]
+    all: (s, start = 0) -> if @nullable then [] else [...s.matchAll(@re)]
 
-    forward: (s, start = 0) ->
+    forward: (s, start = 0) -> if !@nullable
       @re.lastIndex = start
       @re.exec(s)
 
@@ -222,7 +237,8 @@ class JumpToMixin
   focus-around: (pos, clearance = @@DEFAULT_CLEARANCE) ->
     if pos.from? && pos.to? then @cm.setSelection pos.from, pos.to
     else @cm.setCursor pos
-    @make-clearance clearance
+    # Need to let CodeMirror reposition the cursor first
+    requestAnimationFrame ~> @make-clearance clearance
 
   make-clearance: (clearance = @@DEFAULT_CLEARANCE) ->
     scroll-info = @cm.getScrollInfo!

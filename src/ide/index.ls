@@ -48,7 +48,7 @@ class IDE
     Ctrl = @editor.Ctrl
     global-keymap =
       "#{Ctrl}-Enter": @~synctex-forward
-      "Shift-#{Ctrl}-F": @~multisearch
+      "#{Ctrl}-F": @~multisearch
       "F1": @~help
       "Esc": @~bail
 
@@ -77,7 +77,7 @@ class IDE
   /** starts a search in the editor and highlights matches in the PDF, so cool */
   multisearch: ->
     @editor.search.start!
-      ..on 'input' ~> @viewer.textOverlay
+      ..on 'input' ~> if @viewer.pdf? then @viewer.textOverlay
         if it then ..searchAndHighlightNaive it, @viewer.selected-page
         else ..clear!
       ..on 'close' ~> @viewer.textOverlay.clear!

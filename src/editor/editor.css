@@ -69,3 +69,17 @@
 .ide-editor-dialog input {
     margin-left: 0.5em;
 }
+
+.ide-editor-dialog .search-nav-up,
+.ide-editor-dialog .search-nav-down {
+    width: 16px;
+    height: 16px;
+    background-repeat: no-repeat;
+    border: none;
+}
+.ide-editor-dialog .search-nav-up {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10"> <polygon points="0,10 16,10 8,0"/> </svg>');
+}
+.ide-editor-dialog .search-nav-down {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10"> <polygon points="0,0 16,0 8,10"/> </svg>');
+}

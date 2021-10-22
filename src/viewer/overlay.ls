@@ -32,7 +32,7 @@ class TextHighlightOverlay extends Overlay
   _item-bbox: (item) ->
     t = item.transform
     @styles?[item.fontName]
-      hrat = if .. then 1 - ..descent / ..ascent else 1
+      hrat = if ..?ascent then 1 - ..descent / ..ascent else 1
     @_from-bottom({x: t[4], y: t[5], item.width, item.height})
       ..height *= hrat
 
@@ -51,7 +51,7 @@ class PDFTextContent
 class TextSearchOverlay extends TextHighlightOverlay
   (@pdf) -> super {}
 
-  populate: ->>
+  populate: ->> if @pdf
     @content = new PDFTextContent(@pdf, @styles)
       await .._ready
 
@@ -66,7 +66,7 @@ class TextSearchOverlay extends TextHighlightOverlay
   search-and-highlight-naive: (text, page) ->>
     @highlight-matches page, await @search-naive(text)
 
-  search-naive: (text) ->>
+  search-naive: (text) ->> if @pdf
     await @content?_ready ? @populate!
     @matches = [{page: +i, ...@_match-naive(item, text)} \
                 for i, page of @content.pages for item in page.items] \
