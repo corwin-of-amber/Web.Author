@@ -1,6 +1,7 @@
 require! { 
   events: { EventEmitter }
   jquery: $
+  '../infra/text-search.ls': text-search
 }
 
 
@@ -49,11 +50,11 @@ class PDFTextContent
 
 
 class TextSearchOverlay extends TextHighlightOverlay
-  (@pdf) -> super {}
+  (@pdf) -> super {}; @age = 0
 
-  populate: ->> if @pdf
+  populate: -> if @pdf
     @content = new PDFTextContent(@pdf, @styles)
-      await .._ready
+      return .._ready
 
   mark-matched: (matched) ->
     @make-rect! .addClass 'mark' .attr @_matched-bbox(matched)
@@ -64,7 +65,10 @@ class TextSearchOverlay extends TextHighlightOverlay
       if matched.page == page then @mark-matched matched
 
   search-and-highlight-naive: (text, page) ->>
-    @highlight-matches page, await @search-naive(text)
+    age = ++@age
+    results = await @search-naive(text)
+    if age == @age
+      @highlight-matches page, results
 
   search-naive: (text) ->> if @pdf
     await @content?_ready ? @populate!
@@ -73,8 +77,9 @@ class TextSearchOverlay extends TextHighlightOverlay
                .filter((.item?))
 
   _match-naive: (item, substr) ->
-    index = item.str.indexOf(substr)
-    if index > -1 then {item, mo: [substr] <<< {index}}
+    re = text-search.Query.promote(substr, 'i').re
+    mo = re.exec(item.str)
+    if mo then {item, mo}
 
   _matched-bbox: ({item, mo}) ->
     bbox = @_item-bbox(item)

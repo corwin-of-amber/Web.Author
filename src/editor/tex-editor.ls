@@ -12,6 +12,7 @@ require! {
     'codemirror/addon/selection/mark-selection'
     'codemirror/addon/edit/matchbrackets'
     'codemirror/addon/selection/active-line'
+    '../infra/text-search.ls': text-search
     './edit-items.ls': { VisitedFiles, FileEdit }
     '../ide/problems.ls': { safe }
 }
@@ -147,6 +148,7 @@ class DialogMixin
 
 class SearchMixin
   (@_) ->
+    @flags = 'i'
     @keymap =
       Down: @~focus-fwd
       Up: @~focus-bwd
@@ -159,8 +161,8 @@ class SearchMixin
       ..controls = $('<div>').addClass('ide-editor-dialog-content')
         ..append $('<span>').addClass('🔎').text('🔎')
         ..append ..box = $('<input>').addClass('search-box')
-        ..append ..nav-up = $('<button>').addClass('search-nav-up')
-        ..append ..nav-down = $('<button>').addClass('search-nav-down')
+        ..append ..nav-down = $('<button>').addClass('▼')
+        ..append ..nav-up = $('<button>').addClass('▲')
       ..$el.append ..controls
       ..controls.box.on 'input' (-> ..emit 'input', ..controls.box.val!)
         ..on 'keydown' ~> @keymap[CodeMirror.keyName(it)]?! && it.preventDefault!
@@ -173,7 +175,7 @@ class SearchMixin
   
   show: (query) !->
     @hide!
-    @query = @@Query.promote(query)
+    @query = @@Query.promote(query, @flags)
       @results = @_matches ..
     @cm.addOverlay @overlay = new @@Overlay(@query)
     @focus-fwd @origin-pos
@@ -194,25 +196,7 @@ class SearchMixin
     at = (offset) ~> @cm.posFromIndex(mo.index + offset)
     {mo.index, from: at(0), to: at(mo.0.length)}
 
-  class @Query
-    (spec, flags = "") ->
-      @re = if typeof spec == 'string' then @@_re-escape spec, "g#{flags}"
-            else assert spec instanceof RegExp; spec
-      @nullable = !!@re.exec('')
-      if !@re.global
-        @re = new RegExp(@re.source, @re.ignoreCase ? "gi" : "g");
-
-    all: (s, start = 0) -> if @nullable then [] else [...s.matchAll(@re)]
-
-    forward: (s, start = 0) -> if !@nullable
-      @re.lastIndex = start
-      @re.exec(s)
-
-    @promote = -> if it instanceof @ then it else new @(it)
-
-    @_re-escape = (s, flags) ->
-      new RegExp(s.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), flags)
-
+  @Query = text-search.Query
 
   class @Overlay
     (@query) -> @token = @~_token

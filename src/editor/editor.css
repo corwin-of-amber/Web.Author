@@ -70,16 +70,26 @@
     margin-left: 0.5em;
 }
 
-.ide-editor-dialog .search-nav-up,
-.ide-editor-dialog .search-nav-down {
-    width: 16px;
-    height: 16px;
+.ide-editor-dialog .▲,
+.ide-editor-dialog .▼ {
+    width: 14px;
+    height: 9px;
     background-repeat: no-repeat;
+    background-size: contain;
     border: none;
+    background-color: transparent;
+    opacity: 0.5;
+    cursor: pointer;
 }
-.ide-editor-dialog .search-nav-up {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10"> <polygon points="0,10 16,10 8,0"/> </svg>');
+.ide-editor-dialog .▲:hover,
+.ide-editor-dialog .▼:hover {
+    opacity: 0.9;
 }
-.ide-editor-dialog .search-nav-down {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10"> <polygon points="0,0 16,0 8,10"/> </svg>');
+.ide-editor-dialog .▲ {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="8"> <polygon points="0,8 8,0 16,8 13,8 8,3 3,8"/> </svg>');
+    margin-left: 0.1em;
+}
+.ide-editor-dialog .▼ {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="8"> <polygon points="0,0 8,8 16,0 13,0 8,5 3,0"/> </svg>');
+    margin-left: 0.5em;
 }
