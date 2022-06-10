@@ -5,13 +5,10 @@ require! {
     events: {EventEmitter}
     lodash: _
     jquery: $
-    codemirror: CodeMirror
-    'codemirror/mode/stex/stex'
-    'codemirror/mode/htmlmixed/htmlmixed'
-    'codemirror/addon/dialog/dialog'
-    'codemirror/addon/selection/mark-selection'
-    'codemirror/addon/edit/matchbrackets'
-    'codemirror/addon/selection/active-line'
+    'codemirror': { basicSetup }
+    '@codemirror/view': { EditorView, keymap }
+    '@codemirror/state': { EditorState, EditorSelection }
+    '@codemirror/commands': { defaultKeymap }
     '../infra/text-search.ls': text-search
     './edit-items.ls': { VisitedFiles, FileEdit }
     '../ide/problems.ls': { safe }
@@ -25,13 +22,10 @@ require './editor.css'
 
 class TeXEditor extends EventEmitter
   (@containing-element) ->
-    @cm = new CodeMirror @containing-element?0, do
-      mode: 'stex'
-      lineWrapping: true
-      lineNumbers: true
-      styleSelectedText: true
-      matchBrackets: true
-      styleActiveLine: true
+    @cm = new EditorView do
+      state: EditorState.create do
+        extensions: [basicSetup]
+      parent: @containing-element?0
 
     @_configure-keymap!
 
@@ -84,8 +78,8 @@ class TeXEditor extends EventEmitter
     if !@loc || !(loc.volume == @loc.volume && loc.filename == @loc.filename)
       await @open loc
     if line?
-      @cm.setCursor {line, ch: ch ? 0}
-      @cm.scrollIntoView null, 150
+      set-cursor @cm, {line, ch: ch ? 0}
+      #@cm.scrollIntoView null, 150
     if focus then requestAnimationFrame ~> @cm.focus!
 
   track-line: (on-move) -> new LineTracking(@cm, on-move)
@@ -100,13 +94,13 @@ class TeXEditor extends EventEmitter
   _configure-keymap: ->
     Ctrl = @Ctrl = if @@is-mac then "Cmd" else "Ctrl"
 
-    @cm.addKeyMap do
-      "#{Ctrl}-S": @~save
-      "Tab": 'indentMore',
-      "Shift-Tab": 'indentLess',
+    #@cm.addKeyMap do
+    #  "#{Ctrl}-S": @~save
+    #  "Tab": 'indentMore',
+    #  "Shift-Tab": 'indentLess',
 
   state:~
-    -> {@loc, cursor: @cm.getCursor!}
+    -> {@loc, cursor: get-cursor @cm}
     (v) ->
       safe ~> v.loc && @jump-to v.loc, v.cursor, false
 
@@ -211,6 +205,25 @@ class SearchMixin
 
 
   @DIALOG_HEIGHT = 40
+
+
+set-cursor = (cm, pos) ->
+  if typeof pos != 'number' then pos = pos-to-offset(cm, pos)
+  cm.dispatch cm.state.update do
+    selection: EditorSelection.create([EditorSelection.cursor(pos)])
+    scrollIntoView: true
+  cm.dispatch cm.state.update do
+    scrollIntoView: true
+
+get-cursor = (cm) ->
+  offset-to-pos cm, cm.state.selection.asSingle().ranges[0].from
+
+pos-to-offset = (cm, pos) ->
+  cm.state.doc.line(pos.line).from + pos.ch
+
+offset-to-pos = (cm, offset) ->
+  line = cm.state.doc.lineAt(offset)
+  {line: line.number, ch: offset - line.from}
 
 
 class JumpToMixin

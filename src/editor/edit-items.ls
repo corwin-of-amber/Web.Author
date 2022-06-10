@@ -1,8 +1,12 @@
 require! {
     assert
     lodash: _
-    codemirror: CodeMirror
-    '../infra/fs-watch.ls': {FileWatcher}
+    'codemirror': { basicSetup }
+    '@codemirror/state': { EditorState, EditorSelection }
+    '@codemirror/language': { StreamLanguage }
+    '@codemirror/legacy-modes/mode/stex': { stex }
+    '../infra/fs-watch.ls': { FileWatcher }
+    './editor-base': { setup }
 }
 
 
@@ -33,15 +37,30 @@ class LocationMap
 
 class EditItem
   enter: (cm) ->>
-    if @doc?                => cm.swapDoc @doc
-    if (sel = @selections)? => cm.setSelections sel
-    if (scroll = @scroll)?  => cm.scrollTo scroll.left, scroll.top
+    if @doc?                => cm.setState @doc
+    if (sel = @selections)? => @_set-selections cm, sel
+    if (scroll = @scroll)?  => @_set-scroll cm, scroll
+    else @_reset-scroll cm
 
   leave: (cm) -> @checkpoint cm
 
   checkpoint: (cm) ->
-    @selections = cm.listSelections!
-    @scroll = cm.getScrollInfo!
+    @selections = @_get-selections(cm)
+    @scroll = @_get-scroll(cm)
+
+  _set-selections: (cm, sel) ->
+    cm.dispatch(cm.state.update({selection: EditorSelection.fromJSON(sel)}))
+  
+  _get-selections: (cm) -> cm.state.selection.toJSON!
+
+  _set-scroll: (cm, scroll) ->
+    g = -> cm.scrollDOM.scrollTop = scroll.top
+    # and again once the DOM has settled
+    g!; requestAnimationFrame g
+
+  _get-scroll: (cm) -> s = cm.scrollDOM; {top: s.scrollTop, left: s.scrollLeft}
+
+  _reset-scroll: (cm) -> s = cm.scrollDOM; s.scrollTop = s.scrollLeft = 0
 
 
 class FileEdit extends EditItem
@@ -56,19 +75,23 @@ class FileEdit extends EditItem
     @watch cm
 
   save: (cm) ->>
-    assert.equal cm.getDoc!, @doc
+    assert.equal cm.state, @doc
     @unwatch! ; await @_write! ; @watch cm
     @rev.generation = @doc.changeGeneration!
 
   leave: (cm) -> @unwatch! ; super cm
 
   make-doc: (cm, text, filename = @loc.filename) ->
+    /** @todo do something with content-type (choose language) */
+    /** @todo detect line endings in doc */
     content-type = detect-content-type(filename) || cm.getOption('mode')
-    new CodeMirror.Doc(text, content-type, , detect-line-ends(text))
+    EditorState.create do
+      doc: text
+      extensions: [setup, new StreamLanguage(stex)]
 
   load: (cm) ->>
     @doc = @make-doc(cm, await @_read!)
-    @rev.generation = @doc.changeGeneration!
+    @rev.generation = 0 #@doc.changeGeneration!
     @rev.timestamp = @_timestamp!
 
   _read: ->>  # @todo async?

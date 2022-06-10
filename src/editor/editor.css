@@ -1,20 +1,29 @@
 /* Editor Pane */
 
-#ide-pane-editor .CodeMirror-lines {
-    padding-bottom: 75vh !important;
+#ide-pane-editor .cm-editor {
+    height: 100%;
+    background-color: #f4f4f0;
 }
 
-#ide-pane-editor .CodeMirror-cursor {  /* fancy cursor*/
-    min-width: 2px;
-    background: linear-gradient(90deg, #666, transparent);
-    border-left-color: #999;
+#ide-pane-editor .cm-scroller {
+    line-height: 1.25;
 }
 
-#ide-pane-editor .CodeMirror-activeline {
+#ide-pane-editor .cm-activeLine {
+    background-color: white;
     outline: 1px solid #888;
 }
-#ide-pane-editor .CodeMirror-activeline-background {
-    background: #fff8;
+
+#ide-pane-editor .cm-gutters {
+    padding-bottom: 75vh;
+    height: unset !important;
+}
+
+#ide-pane-editor .cm-cursor {  /* fancy cursor*/
+    min-width: 3px;
+    background: linear-gradient(90deg, #999, transparent);
+    border: none;
+    border-left: 1px solid #888;
 }
 
 #ide-pane-editor .CodeMirror-dialog {

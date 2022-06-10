@@ -23,11 +23,16 @@
     "tlprobe": "src/distutils/texlive/tlprobe.js"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/legacy-modes": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
     "@corwin.amber/memfs": "file:packages/memfs/corwin.amber-memfs-3.3.1.tgz",
     "automerge": "^0.14.2",
     "automerge-slots": "file:../Web.P2P.Dat/subsidiaries/automerge-slots",
     "buffer": "^6.0.3",
-    "codemirror": "^5.48.0",
+    "codemirror": "^6.0.0",
     "commander": "^7.2.0",
     "fflate": "^0.7.1",
     "find": "^0.2.9",

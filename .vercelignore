@@ -2,7 +2,7 @@ src
 bin
 _build
 *.app
-/packages/nanotex
+/packages
 /data/floc2022
 /data/p2p
 /build/kremlin/worker
