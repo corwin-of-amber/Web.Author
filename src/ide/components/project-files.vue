@@ -49,13 +49,14 @@ export default {
         },
         /** May be called either from a context menu action or a dropped file */
         async create(ev, {promptName, focus} = {}) {
+            if (focus) this._defer(() => this.select(fn)); // has to take place before `await` :(
+
             var fv = this.$refs.list,
                 fn = ev.path ?? fv.freshName(ev.for?.path ?? [], 'new-file#.tex'),
                 vol = this.$refs.source.volume, path = vol.path,
                 content = await this._fileContent(ev.content ?? '');
             vol.writeFileSync(path.join(...fn), content);
             fv.create(fn);
-            if (focus) this.select(fn);
             if (promptName) setTimeout(() => fv.renameStart(fn), 0);
         },
         renameStart(ev) {
@@ -88,6 +89,13 @@ export default {
         async _fileContent(content) {
             return content instanceof Blob ?
                 new Uint8Array(await content.arrayBuffer()) : content;
+        },
+        _defer(op) {
+            if (!this._deferred)
+                Promise.resolve().then(() => {
+                    this._deferred(); this._deferred = null; 
+                });
+            this._deferred = op;
         }
     },
     components: {FileList, ProjectContextMenu}
