@@ -39,8 +39,8 @@ class EditItem
   enter: (cm) ->>
     if @doc?                => cm.setState @doc
     if (sel = @selections)? => @_set-selections cm, sel
-    if (scroll = @scroll)?  => @_set-scroll cm, scroll
-    else if scroll != null  => @_reset-scroll cm
+    if (scroll = @scroll)?  => cm.scroll-to scroll
+    else if scroll != null  => cm.scroll-to top: 0, left: 0
 
   leave: (cm) -> @checkpoint cm
 
@@ -52,16 +52,6 @@ class EditItem
     cm.dispatch {selection: EditorSelection.fromJSON(sel)}
   
   _get-selections: (cm) -> cm.state.selection.toJSON!
-
-  _set-scroll: (cm, scroll) ->
-    doc = cm.state.doc
-    g = -> doc == cm.state.doc && cm.scrollDOM.scrollTop = scroll.top
-    # and again once the DOM has settled
-    g!; requestAnimationFrame g
-
-  _get-scroll: (cm) -> s = cm.scrollDOM; {top: s.scrollTop, left: s.scrollLeft}
-
-  _reset-scroll: (cm) -> s = cm.scrollDOM; s.scrollTop = s.scrollLeft = 0
 
 
 class FileEdit extends EditItem

@@ -10,26 +10,23 @@ require! {
     '@codemirror/commands': { defaultKeymap }
     '../infra/keymap': { KeyMap }
     '../infra/text-search.ls': text-search
-    './editor-base': { setup, events }
+    './editor-base': { setup, events, EditorViewWithBenefits }
     './edit-items.ls': { VisitedFiles, FileEdit }
     '../ide/problems.ls': { safe }
 }
 
-require 'codemirror/lib/codemirror.css'
-require 'codemirror/addon/dialog/dialog.css'
 require './editor.css'
 
 
 
 class TeXEditor extends EventEmitter
   (@containing-element) ->
-    @cm = new EditorView do
+    @cm = new EditorViewWithBenefits do
       state: EditorState.create do
         extensions: [setup]
       parent: @containing-element?0
 
     @_configure-keymap!
-    window <<<< {events}
 
     @containing-element[0].addEventListener 'blur' (ev) ->
       if ev.relatedTarget == null then ev.stopPropagation!
@@ -81,7 +78,7 @@ class TeXEditor extends EventEmitter
       await @open loc, {scroll: null}
     /* @oops still need to wait; because open might have been in progress when this was called */
     requestAnimationFrame ~>
-      if line? then set-cursor @cm, {line, ch: ch ? 0}
+      if line? then @cm.set-cursor {line, ch: ch ? 0}
       if focus then @cm.focus!
 
   track-line: (on-move) -> new LineTracking(@cm, on-move)
@@ -99,10 +96,10 @@ class TeXEditor extends EventEmitter
     .attach @containing-element.0
 
   pos:~
-    -> {@loc, at: get-cursor @cm}
+    -> {@loc, at: @cm.get-cursor!}
 
   state:~
-    -> {@loc, cursor: get-cursor @cm}
+    -> {@loc, cursor: @cm.get-cursor!}
     (v) ->
       safe ~> v.loc && @jump-to v.loc, v.cursor, false
 
@@ -122,7 +119,7 @@ class DialogMixin
     @active?close!
     # Allow scrolling up when dialog covers the first few lines of text,
     # like in Atom
-    @cm.getScrollerElement!
+    @cm.scrollDOM
       ..scrollTop += height; ..style.paddingTop = "#{height}px";
       cleanup = ~>
         ..scrollTop -= height; ..style.paddingTop = ""
@@ -176,17 +173,17 @@ class SearchMixin
 
   hide: !-> if @overlay then @cm.removeOverlay that
 
-  focus-fwd: (pos = @cm.getCursor!) ->
-    idx = @cm.indexFromPos(pos)
-    @results.find(-> it.index >= idx)
+  focus-fwd: (pos = @cm.get-cursor-offset!) ->
+    if typeof pos != 'number' then pos = @cm.pos-to-offset(pos)
+    @results.find(-> it.index >= pos)
       .. && @jumps.focus-around ..
 
-  focus-bwd: (pos = @cm.getCursor('from')) ->
-    idx = @cm.indexFromPos(pos)
-    [...@results].reverse!find(-> it.index < idx)
+  focus-bwd: (pos = @cm.get-cursor-offset('from')) ->  /* @todo 'from' is currently ignored */
+    if typeof pos != 'number' then pos = @cm.pos-to-offset(pos)
+    [...@results].reverse!find(-> it.index < pos)
       .. && @jumps.focus-around ..
 
-  _matches: (query) -> query.all(@cm.getValue!).map (mo) ~>
+  _matches: (query) -> query.all(@cm.sliceDoc!).map (mo) ~>
     at = (offset) ~> @cm.posFromIndex(mo.index + offset)
     {mo.index, from: at(0), to: at(mo.0.length)}
 
@@ -205,23 +202,6 @@ class SearchMixin
 
 
   @DIALOG_HEIGHT = 40
-
-
-set-cursor = (cm, pos) ->
-  if typeof pos != 'number' then pos = pos-to-offset(cm, pos)
-  cm.dispatch cm.state.update do
-    selection: EditorSelection.create([EditorSelection.cursor(pos)])
-    effects: EditorView.scrollIntoView pos, y: 'center'
-
-get-cursor = (cm) ->
-  offset-to-pos cm, cm.state.selection.asSingle().ranges[0].from
-
-pos-to-offset = (cm, pos) ->
-  cm.state.doc.line(pos.line).from + pos.ch
-
-offset-to-pos = (cm, offset) ->
-  line = cm.state.doc.lineAt(offset)
-  {line: line.number, ch: offset - line.from}
 
 
 class JumpToMixin
