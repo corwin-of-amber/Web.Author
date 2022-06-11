@@ -39,6 +39,10 @@ class EditorViewWithBenefits extends EditorView {
         return this.state.selection.asSingle().ranges[0][w];
     }
 
+    getCursor(w?: 'head' | 'from' | 'to') {
+        return this.offsetToPos(this.getCursorOffset(w));
+    }
+
     posToOffset(pos: LineCh): number {
         return this.state.doc.line(pos.line).from + pos.ch;
     }
