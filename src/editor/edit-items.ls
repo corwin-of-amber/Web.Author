@@ -6,7 +6,7 @@ require! {
     '@codemirror/language': { StreamLanguage }
     '@codemirror/legacy-modes/mode/stex': { stex }
     '../infra/fs-watch.ls': { FileWatcher }
-    './editor-base': { setup }
+    './editor-base': { setup, changeGeneration }
 }
 
 
@@ -40,7 +40,7 @@ class EditItem
     if @doc?                => cm.setState @doc
     if (sel = @selections)? => @_set-selections cm, sel
     if (scroll = @scroll)?  => @_set-scroll cm, scroll
-    else @_reset-scroll cm
+    else if scroll != null  => @_reset-scroll cm
 
   leave: (cm) -> @checkpoint cm
 
@@ -49,12 +49,13 @@ class EditItem
     @scroll = @_get-scroll(cm)
 
   _set-selections: (cm, sel) ->
-    cm.dispatch(cm.state.update({selection: EditorSelection.fromJSON(sel)}))
+    cm.dispatch {selection: EditorSelection.fromJSON(sel)}
   
   _get-selections: (cm) -> cm.state.selection.toJSON!
 
   _set-scroll: (cm, scroll) ->
-    g = -> cm.scrollDOM.scrollTop = scroll.top
+    doc = cm.state.doc
+    g = -> doc == cm.state.doc && cm.scrollDOM.scrollTop = scroll.top
     # and again once the DOM has settled
     g!; requestAnimationFrame g
 
@@ -75,30 +76,30 @@ class FileEdit extends EditItem
     @watch cm
 
   save: (cm) ->>
-    assert.equal cm.state, @doc
+    assert.equal cm.state.doc, @doc.doc
     @unwatch! ; await @_write! ; @watch cm
-    @rev.generation = @doc.changeGeneration!
+    @rev.generation = @doc.field(changeGeneration)
 
   leave: (cm) -> @unwatch! ; super cm
 
   make-doc: (cm, text, filename = @loc.filename) ->
     /** @todo do something with content-type (choose language) */
     /** @todo detect line endings in doc */
-    content-type = detect-content-type(filename) || cm.getOption('mode')
+    content-type = detect-content-type(filename) || 'plain'
     EditorState.create do
       doc: text
       extensions: [setup, new StreamLanguage(stex)]
 
   load: (cm) ->>
     @doc = @make-doc(cm, await @_read!)
-    @rev.generation = 0 #@doc.changeGeneration!
+    @rev.generation = @doc.field(changeGeneration)
     @rev.timestamp = @_timestamp!
 
   _read: ->>  # @todo async?
     @loc.volume.readFileSync(@loc.filename, 'utf-8')
 
   _write: ->>  # @todo async?
-    @loc.volume.writeFileSync @loc.filename, @doc.getValue!
+    @loc.volume.writeFileSync @loc.filename, @doc.sliceDoc!
 
   _timestamp: -> @loc.volume.statSync(@loc.filename).mtimeMs
 

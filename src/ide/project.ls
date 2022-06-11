@@ -1,7 +1,5 @@
-node_require = global.require ? ->
-fs = node_require 'fs'
 require! {
-  path
+  fs, path, os
   events: { EventEmitter }
   lodash: _
   'vue': Vue
@@ -233,7 +231,7 @@ class TeXProject
     loc = loc.loc ? loc   # huh
 
     if typeof loc == 'string'
-      path = loc.replace(/^file:\/\//, '').replace(/^~/, process.env['HOME'])
+      path = loc.replace(/^file:\/\//, '').replace(/^~/, os.homedir())
       loc = {scheme: 'file', path}
 
     if loc.scheme?

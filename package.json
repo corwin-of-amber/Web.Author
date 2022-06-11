@@ -54,6 +54,7 @@
     "tempy": "^0.2.1",
     "vue": "^2.6.10",
     "vue-context-menu": "^2.0.6",
+    "w3c-keyname": "^2.2.4",
     "wasi-kernel": "^0.1.6",
     "xz-extract": "^0.1.0",
     "xz-pipe": "^0.0.3"

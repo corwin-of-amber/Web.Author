@@ -1,5 +1,5 @@
 require! {
-  codemirror: { keyName }:CodeMirror
+  '../infra/keymap': { KeyMap }
   './layout.ls': { IDELayout, ProgressWidget, ActionsWidget }
   './config.ls': { IDEConfig }
   '../viewer/pdf-viewer.ls': { PDFViewer }
@@ -40,17 +40,19 @@ class IDE
     @project.on 'build:finished' ~> @build-finished it
     @editor.on 'open' ~> @project.select it.loc, {it.type, +silent}
     @viewer.on 'synctex-goto' ~> if @editor
-      @editor.jump-to @file-of-project(it.file.path), line: it.line - 1
+      @editor.jump-to @file-of-project(it.file.path), it
 
     # - Global keyboard events -
-    document.body.addEventListener 'keydown' -> global-keymap[keyName(it)]?!
+    new KeyMap do
+      "Mod-Enter": @~synctex-forward
+    .attach document.body
+    #document.body.addEventListener 'keydown' -> global-keymap[keyName(it)]?!
 
-    Ctrl = @editor.Ctrl
-    global-keymap =
-      "#{Ctrl}-Enter": @~synctex-forward
-      "#{Ctrl}-F": @~multisearch
-      "F1": @~help
-      "Esc": @~bail
+    #global-keymap =
+    #  "#{Ctrl}-Enter": @~synctex-forward
+    #  "#{Ctrl}-F": @~multisearch
+    #  "F1": @~help
+    #  "Esc": @~bail
 
   store: -> @config.store @
   restore: (what) -> @config.restore-session @, what
@@ -65,10 +67,10 @@ class IDE
       @editor?open item.loc
       if item.focus then @editor.cm.focus!
 
-  synctex-forward: ->
-    {loc, cm} = @editor
+  synctex-forward: !->
+    {loc, at} = @editor.pos
     one-shot = ~>
-      @viewer.synctex-forward {loc.filename, line: cm.getCursor!line + 1}
+      @viewer.synctex-forward {loc.filename, at.line}
     if !@_stay?value
       one-shot!; @_track?destroy!; @_stay = @editor.stay-flag!
     else
@@ -118,9 +120,11 @@ class IDE
     @home!
 
   interim-message: (msg-text, actions) ->
+    console.warn '@todo port to CodeMirror 6'
+    /*
     @editor.cm.swapDoc new CodeMirror.Doc(msg-text)
     if actions
-      @editor.cm.addLineWidget 0, ActionsWidget(actions).0
+      @editor.cm.addLineWidget 0, ActionsWidget(actions).0*/
 
 
 export IDE

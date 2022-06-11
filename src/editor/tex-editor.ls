@@ -5,11 +5,12 @@ require! {
     events: {EventEmitter}
     lodash: _
     jquery: $
-    'codemirror': { basicSetup }
     '@codemirror/view': { EditorView, keymap }
     '@codemirror/state': { EditorState, EditorSelection }
     '@codemirror/commands': { defaultKeymap }
+    '../infra/keymap': { KeyMap }
     '../infra/text-search.ls': text-search
+    './editor-base': { setup, events }
     './edit-items.ls': { VisitedFiles, FileEdit }
     '../ide/problems.ls': { safe }
 }
@@ -24,10 +25,11 @@ class TeXEditor extends EventEmitter
   (@containing-element) ->
     @cm = new EditorView do
       state: EditorState.create do
-        extensions: [basicSetup]
+        extensions: [setup]
       parent: @containing-element?0
 
     @_configure-keymap!
+    window <<<< {events}
 
     @containing-element[0].addEventListener 'blur' (ev) ->
       if ev.relatedTarget == null then ev.stopPropagation!
@@ -40,26 +42,26 @@ class TeXEditor extends EventEmitter
     @search = new SearchMixin(@)
     @jumps = new JumpToMixin(@)
 
-  open: (locator) ->>
+  open: (locator, props={}) ->>
     @_pre-load! ; reent = ++@_open-reent
     locator = @_normalize-loc locator
     @loc = locator
     try
-      if locator.p2p-uri      => await @open-syncpad locator
-      else if locator.volume  => await @open-file locator
+      if locator.p2p-uri      => await @open-syncpad locator, props
+      else if locator.volume  => await @open-file locator, props
       else
         throw new Error "invalid document locator: '#{locator}'"
     catch e
       if reent == @_open-reent then @loc = null  # @oops another `open` may have started in the meantime
       throw e
 
-  open-file: (locator) ->
-    @visited-files.enter @cm, locator, -> new FileEdit(locator)
+  open-file: (locator, props={}) ->
+    @visited-files.enter @cm, locator, -> new FileEdit(locator) <<< props
     .then ~> @emit 'open', {type: 'file', loc: locator, uri: locator.filename}
 
-  open-syncpad: (locator) ->
+  open-syncpad: (locator, props={}) ->
     require! '../net/p2p.ls': { SyncPadEdit }
-    @visited-files.enter @cm, locator, -> new SyncPadEdit(locator)
+    @visited-files.enter @cm, locator, -> new SyncPadEdit(locator) <<< props
     .then ~> @emit 'open', {type: 'syncpad', loc: locator}
 
   _pre-load: !->
@@ -76,11 +78,11 @@ class TeXEditor extends EventEmitter
   jump-to: (loc, {line, ch}={}, focus=true) ->>
     loc = @_normalize-loc loc
     if !@loc || !(loc.volume == @loc.volume && loc.filename == @loc.filename)
-      await @open loc
-    if line?
-      set-cursor @cm, {line, ch: ch ? 0}
-      #@cm.scrollIntoView null, 150
-    if focus then requestAnimationFrame ~> @cm.focus!
+      await @open loc, {scroll: null}
+    /* @oops still need to wait; because open might have been in progress when this was called */
+    requestAnimationFrame ~>
+      if line? then set-cursor @cm, {line, ch: ch ? 0}
+      if focus then @cm.focus!
 
   track-line: (on-move) -> new LineTracking(@cm, on-move)
   stay-flag: -> new StayFlag(@cm)
@@ -92,19 +94,17 @@ class TeXEditor extends EventEmitter
     loc
 
   _configure-keymap: ->
-    Ctrl = @Ctrl = if @@is-mac then "Cmd" else "Ctrl"
+    new KeyMap do
+      "Mod-S": @~save
+    .attach @containing-element.0
 
-    #@cm.addKeyMap do
-    #  "#{Ctrl}-S": @~save
-    #  "Tab": 'indentMore',
-    #  "Shift-Tab": 'indentLess',
+  pos:~
+    -> {@loc, at: get-cursor @cm}
 
   state:~
     -> {@loc, cursor: get-cursor @cm}
     (v) ->
       safe ~> v.loc && @jump-to v.loc, v.cursor, false
-
-  @is-mac = navigator.appVersion is /Mac/
 
   @is-local-file = (filename) ->
     !filename.match(/^[^/]+:\//)
@@ -211,9 +211,7 @@ set-cursor = (cm, pos) ->
   if typeof pos != 'number' then pos = pos-to-offset(cm, pos)
   cm.dispatch cm.state.update do
     selection: EditorSelection.create([EditorSelection.cursor(pos)])
-    scrollIntoView: true
-  cm.dispatch cm.state.update do
-    scrollIntoView: true
+    effects: EditorView.scrollIntoView pos, y: 'center'
 
 get-cursor = (cm) ->
   offset-to-pos cm, cm.state.selection.asSingle().ranges[0].from
@@ -252,16 +250,20 @@ class JumpToMixin
 
 /** Auxiliary class */
 class EventHook
-  (@cm, @event-type, @handler) ->
-    @cm.on @event-type, @handler
+  (@emitter, @event-type, @handler) ->
+    @emitter.on @event-type, @handler
   destroy: ->
-    @cm.off @event-type, @handler
+    @emitter.off @event-type, @handler
 
+/** Adapter for CodeMirror 6 events */
+class CMEventHook extends EventHook
+  (@cm, event-type, handler) ->
+    super cm.state.field(events), event-type, handler
 
 /**
  * Notifies whenever the current line changes.
  */
-class LineTracking extends EventHook
+class LineTracking extends CMEventHook
   (cm, on-move) ->
     at-line = cm.getCursor!line
     super cm, 'cursorActivity', ~>
@@ -272,7 +274,7 @@ class LineTracking extends EventHook
 /**
  * This flag is `true` as long as the cursor was not moved.
  */
-class StayFlag extends EventHook
+class StayFlag extends CMEventHook
   (cm) ->
     @value = true
     super cm, 'cursorActivity', ~>
