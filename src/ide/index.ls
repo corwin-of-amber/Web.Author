@@ -45,14 +45,10 @@ class IDE
     # - Global keyboard events -
     new KeyMap do
       "Mod-Enter": @~synctex-forward
+      "Mod-F": @~multisearch
+      "F1": @~help
+      "Escape": @~bail
     .attach document.body
-    #document.body.addEventListener 'keydown' -> global-keymap[keyName(it)]?!
-
-    #global-keymap =
-    #  "#{Ctrl}-Enter": @~synctex-forward
-    #  "#{Ctrl}-F": @~multisearch
-    #  "F1": @~help
-    #  "Esc": @~bail
 
   store: -> @config.store @
   restore: (what) -> @config.restore-session @, what
@@ -68,8 +64,8 @@ class IDE
       if item.focus then @editor.cm.focus!
 
   synctex-forward: !->
-    {loc, at} = @editor.pos
     one-shot = ~>
+      {loc, at} = @editor.pos
       @viewer.synctex-forward {loc.filename, at.line}
     if !@_stay?value
       one-shot!; @_track?destroy!; @_stay = @editor.stay-flag!

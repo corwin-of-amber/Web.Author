@@ -14,7 +14,11 @@ const changeGeneration = StateField.define<number>({
 
 const events = StateField.define<EventEmitter>({
     create(state) { return new EventEmitter; },
-    update(value, tr) { console.log(tr); return value; }
+    update(value, tr) {
+        if (tr.newSelection !== tr.startState.selection)
+            defer(() => value.emit('cursorActivity', tr));
+        return value;
+    }
 });
 
 const setup: Extension[] = [
@@ -67,6 +71,8 @@ class EditorViewWithBenefits extends EditorView {
 
 
 type LineCh = {line: number, ch: number};
+
+function defer<T>(op: () => T) { Promise.resolve().then(op); }
 
 
 export { setup, changeGeneration, events, EditorViewWithBenefits, LineCh }
