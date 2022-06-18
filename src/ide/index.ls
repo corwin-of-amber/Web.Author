@@ -1,7 +1,9 @@
 require! {
+  '@codemirror/state': { EditorState }
   '../infra/keymap': { KeyMap }
   './layout.ls': { IDELayout, ProgressWidget, ActionsWidget }
   './config.ls': { IDEConfig }
+  '../editor/editor-base': { setup, createWidgetPlugin }
   '../viewer/pdf-viewer.ls': { PDFViewer }
   '../viewer/html-viewer': { HTMLViewer }
 }
@@ -116,11 +118,9 @@ class IDE
     @home!
 
   interim-message: (msg-text, actions) ->
-    console.warn '@todo port to CodeMirror 6'
-    /*
-    @editor.cm.swapDoc new CodeMirror.Doc(msg-text)
-    if actions
-      @editor.cm.addLineWidget 0, ActionsWidget(actions).0*/
+    @editor.cm.setState EditorState.create do
+      doc: msg-text
+      extensions: [createWidgetPlugin(-> ActionsWidget(actions).0).extension]
 
 
 export IDE

@@ -3,7 +3,7 @@ import { minimalSetup } from 'codemirror';
 import { Extension, StateField, EditorSelection,
          SelectionRange } from '@codemirror/state';
 import { EditorView, lineNumbers, keymap, highlightActiveLine,
-         highlightActiveLineGutter } from '@codemirror/view';
+         highlightActiveLineGutter, WidgetType, ViewPlugin, DecorationSet, Decoration } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 
 
@@ -72,7 +72,27 @@ class EditorViewWithBenefits extends EditorView {
 
 type LineCh = {line: number, ch: number};
 
+
+/** A crutch because LiveScript code cannot extend ES6 classes :/ */
+function createWidgetPlugin(factory: () => HTMLElement) {
+    class WidgetWrapper extends WidgetType {
+        toDOM(view: EditorView): HTMLElement { return factory(); }
+    }
+
+    return ViewPlugin.fromClass(class {
+        decorations: DecorationSet
+        constructor(view: EditorView) {
+            this.decorations = Decoration.set(Decoration.widget({
+                widget: new WidgetWrapper,
+                side: 1
+            }).range(view.state.doc.length));
+        }
+    }, {decorations: v => v.decorations});
+}
+
+
 function defer<T>(op: () => T) { Promise.resolve().then(op); }
 
 
-export { setup, changeGeneration, events, EditorViewWithBenefits, LineCh }
+export { setup, changeGeneration, events, EditorViewWithBenefits, LineCh,
+         createWidgetPlugin }

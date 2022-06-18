@@ -46,7 +46,7 @@ class EditItem
 
   checkpoint: (cm) ->
     @selections = @_get-selections(cm)
-    @scroll = @_get-scroll(cm)
+    @scroll = cm.get-scroll!
 
   _set-selections: (cm, sel) ->
     cm.dispatch {selection: EditorSelection.fromJSON(sel)}
@@ -78,7 +78,9 @@ class FileEdit extends EditItem
     content-type = detect-content-type(filename) || 'plain'
     EditorState.create do
       doc: text
-      extensions: [setup, new StreamLanguage(stex)]
+      extensions: @_extensions!
+
+  _extensions: -> [setup, new StreamLanguage(stex)]
 
   load: (cm) ->>
     @doc = @make-doc(cm, await @_read!)

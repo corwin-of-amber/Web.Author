@@ -75,12 +75,13 @@ div.gutter.gutter-horizontal {
     flex-direction: column;
 }
 
+.project-view .project-main,
 .project-view .project-files {
     flex-grow: 1;
     overflow: auto;
 }
 
-.project-header div.bar {
+.ide-pane-section div.bar {
     display: flex;
     flex-direction: row;
     background: #f8f8f8;
@@ -90,6 +91,10 @@ div.gutter.gutter-horizontal {
     padding: 3px 0 1px 5px;
     border-bottom: 1px solid #d8d8d8;
     cursor: pointer;
+}
+
+.ide-pane-section:not(:first-child) div.bar {
+    border-top: 1px solid #d8d8d8;
 }
 
 .project-header div.bar > .name {

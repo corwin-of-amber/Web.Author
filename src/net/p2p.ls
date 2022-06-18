@@ -5,12 +5,12 @@ require! {
   assert
   lodash: _
   vue: Vue
-  codemirror: CodeMirror
   automerge
-  'dat-p2p-crowd/src/net/docs': { DocumentClient }
-  'dat-p2p-crowd/src/addons/syncpad': { SyncPad, FirepadShare }
-  'dat-p2p-crowd/src/addons/fs-sync': { DirectorySync, FileSync, FileShare }
+  'ronin-p2p/src/net/client-docs': { DocumentClient }
+  'ronin-p2p/src/addons/syncpad': { SyncPad, FirepadShare }
+  'ronin-p2p/src/addons/fs-sync': { DirectorySync, FileSync, FileShare }
   '../ide/project.ls': { ProjectView, TeXProject }
+  '../editor/editor-base': { changeGeneration }
   '../editor/edit-items.ls': { FileEdit, EditCancelled }
 }
 
@@ -161,10 +161,10 @@ class SyncPadEdit extends FileEdit
   load: (cm) ->>
     @waiting cm
     assert !@pad
-    @pad = new SyncPad(cm, @slot)
+    @pad = new SyncPad(cm, @slot, {type: 'CodeMirror6', extensions: @_extensions!})
       try await ..ready catch => throw new EditCancelled
-      @doc = cm.getDoc!
-    @rev.generation = @doc.changeGeneration!
+      @doc = cm.state
+    @rev.generation = @doc.field(changeGeneration)
     @rev.timestamp = @_timestamp!
 
   leave: (cm) -> super cm ; @pad?destroy! ; @pad = null
@@ -176,7 +176,7 @@ class SyncPadEdit extends FileEdit
   _timestamp: -> 0
 
   waiting: (cm) ->
-    cm.swapDoc @make-doc(cm, "opening synchronous document...")
+    cm.setState @make-doc(cm, "opening synchronous document...")
 
 
 Vue.component 'source-folder.automerge', do

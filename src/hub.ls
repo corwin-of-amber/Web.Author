@@ -101,6 +101,7 @@ $ ->>
   if p2p
     ide.interim-message "connecting to P2P workspace... 📡" do
       "Start A New Project Here": -> p2p.create-project!
+    ide.project.vue.clientState = {client: p2p, p2p-workspace}
     do ->> await p2p.list-projects!
       p2p.project = await p2p.open-project ..0
         ide.project.open ..
