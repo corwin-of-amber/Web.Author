@@ -11,6 +11,7 @@ require! {
   '../infra/file-browse.ls': { FileDialog }
   '../typeset/wasi-pdflatex': { PDFLatexBuild: WASI_PDFLatexBuild }
   '../typeset/latexmk.ls': { LatexmkBuild }
+  '../typeset/error-reporting': { BuildLog }
   '../net/local': { VolumeArchive }
   './problems.ls': { safe }
 }
@@ -114,6 +115,9 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   update-log: (build-result) ->
     if (log = build-result.log ? build-result.error?log)?
       log.saveAs(@current.get-file('out/build.log'))
+      @build-log = new BuildLog(log.toText!)
+        @vue.build-errors = ..errors
+        console.log ..errors
       @refresh!
 
   select: (loc, {type ? 'file', silent ? false} ? {}) ->

@@ -19,7 +19,7 @@
 }
 </style>
 
-<script>
+<script lang="ts">
 import ProjectListDropdown from './project-list-dropdown.vue';
 import SpanEditable from '../../../packages/file-list/span-editable.vue';
 
@@ -27,13 +27,14 @@ export default {
     props: ['name', 'build-status', 'projects'],
     data: () => ({p2pStatus: undefined, nameEditing: false}),
     mounted() {
-        this.$watch(() => this.$refs.name.editing, v => this.nameEditing = v);
+        this.$watch(() => this.$refs.name.editing,
+                    (v: boolean) => this.nameEditing = v);
     },
     methods: {
         toggle() { this.$refs.status.toggle(); },
         menu() { this.$refs.list.open(); },
         renameStart() { this.$refs.name.edit() },
-        rename(newName) { this.action({type: 'rename', name: newName}); },
+        rename(newName: string) { this.action({type: 'rename', name: newName}); },
         action(ev) { this.$emit('action', ev) }
     },
     components: { ProjectListDropdown, SpanEditable }

@@ -198,3 +198,8 @@ div.ide-bar-status.hidden {
 div.ide-interim-actions {
     padding: 1em;
 }
+
+div.project-errors table {
+    font-family: sans-serif;
+    font-size: 12px;    
+}

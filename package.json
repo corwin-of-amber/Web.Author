@@ -6,6 +6,7 @@
   "browser": {
     "mass-confusion": true,
     "jsdom": {},
+    "canvas": {},
     "worker_threads": {},
     "memfs": "node_modules/@corwin.amber/memfs",
     "memfs/lib/volume": "node_modules/@corwin.amber/memfs/lib/volume.js",

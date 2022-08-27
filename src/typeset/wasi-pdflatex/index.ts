@@ -315,7 +315,8 @@ class PDFLatexPod {
         var flags = [
             `-output-directory=${this.opts.outdir}`,
             `-synctex=${this.opts.synctex}`,
-            `-interaction=${this.opts.interaction}`
+            `-interaction=${this.opts.interaction}`,
+            '-file-line-error'
         ]
         return this.core.start('/bin/tex/pdftex.wasm',
             ['pdflatex', ...flags, fn], {PATH: '/bin', PWD: wd});
@@ -369,6 +370,10 @@ namespace PDFLatexPod {
             ifs.mkdirSync((loc.volume?.path ?? path).dirname(loc.filename), {recursive: true});
             ifs.writeFileSync(loc.filename, this.content);
             return loc;
+        }
+
+        toText() {
+            return new TextDecoder().decode(this.content);
         }
 
         toBlob() {
