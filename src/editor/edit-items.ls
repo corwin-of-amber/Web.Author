@@ -45,6 +45,9 @@ class EditItem
   leave: (cm) -> @checkpoint cm
 
   checkpoint: (cm) ->
+    @doc = cm.state
+    # - this may be needed even with cm6 because a reloaded doc
+    #   will not have selections set.
     @selections = @_get-selections(cm)
     @scroll = cm.get-scroll!
 
@@ -66,7 +69,9 @@ class FileEdit extends EditItem
     @watch cm
 
   save: (cm) ->>
-    assert.equal cm.state.doc, @doc.doc
+    /* @todo how to assert that doc was not swapped in the meantime */
+    # assert.equal cm.state.doc, @doc.doc
+    @doc = cm.state
     @unwatch! ; await @_write! ; @watch cm
     @rev.generation = @doc.field(changeGeneration)
 

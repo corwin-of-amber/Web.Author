@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
 import { minimalSetup } from 'codemirror';
-import { Extension, StateField, EditorSelection,
-         SelectionRange } from '@codemirror/state';
+import { Extension, StateField, EditorSelection } from '@codemirror/state';
 import { EditorView, lineNumbers, keymap, highlightActiveLine,
-         highlightActiveLineGutter, WidgetType, ViewPlugin, DecorationSet, Decoration } from '@codemirror/view';
+         highlightActiveLineGutter, WidgetType, ViewPlugin,
+         DecorationSet, Decoration } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
 
 
@@ -25,6 +25,7 @@ const setup: Extension[] = [
     keymap.of([{key: "Mod-Enter", run: () => true}]),
     minimalSetup, keymap.of([indentWithTab]),
     lineNumbers(), highlightActiveLine(), highlightActiveLineGutter(),
+    EditorView.lineWrapping,
     changeGeneration, events
 ];
 
@@ -57,10 +58,8 @@ class EditorViewWithBenefits extends EditorView {
     }
 
     scrollTo(scroll: {top: number, left: number}) {
-        let doc = this.state.doc,
-            go = () => doc == this.state.doc && (this.scrollDOM.scrollTop = scroll.top);
-        // and again once the DOM has settled
-        go!; if (scroll.top !== 0) requestAnimationFrame(go);
+        let s = this.scrollDOM;
+        s.scrollTop = scroll.top; s.scrollLeft = scroll.left;
     }
 
     getScroll() {
