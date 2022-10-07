@@ -8,6 +8,8 @@
     "jsdom": {},
     "canvas": {},
     "worker_threads": {},
+    "child-process-promise": {},
+    "glob": {},
     "memfs": "node_modules/@corwin.amber/memfs",
     "memfs/lib/volume": "node_modules/@corwin.amber/memfs/lib/volume.js",
     "memfs/lib/node": "node_modules/@corwin.amber/memfs/lib/node.js"
@@ -62,7 +64,8 @@
   },
   "devDependencies": {
     "@types/jquery": "^3.5.5",
-    "@types/mysql": "^2.15.18"
+    "@types/mysql": "^2.15.18",
+    "debug": "^4.3.4"
   },
   "window": {
     "icon": "img/icon.png"

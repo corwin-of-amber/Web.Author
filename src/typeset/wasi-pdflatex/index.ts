@@ -12,7 +12,10 @@ import { EventEmitter } from 'events';
 import { ExecCore } from 'wasi-kernel/src/kernel/exec';
 import { PackageManager, Resource, ResourceBundle, DownloadProgress }
      from 'basin-shell/src/package-mgr';
-     
+
+import { PackageRepository } from '../../../packages/nanotex/lib/repo.js';
+import { PackageRequirements } from '../../../packages/nanotex/lib/predict.js';
+          
 import { Volume } from '../../infra/volume';
 import { concat } from '../../infra/binary-data';
 // @ts-ignore
@@ -32,6 +35,8 @@ class PDFLatexBuild extends EventEmitter {
     mainTexFile: Volume.Location
     _watch: FileWatcher
 
+    nanotex: PackageRepository
+
     constructor(mainTexFile: Volume.Location) {
         super();
         this.mainTexFile = mainTexFile;
@@ -45,6 +50,9 @@ class PDFLatexBuild extends EventEmitter {
 
         this._watch = new FileWatcher();
         this._watch.on('change', () => this.makeWatch());
+
+        this.nanotex = new PackageRepository();
+        this.nanotex.opts.dbfn = 'packages/nanotex/data/texlive2021-pkg-info.json';
     }
 
     setMain(mainTexFile: Volume.Location) {
@@ -58,7 +66,7 @@ class PDFLatexBuild extends EventEmitter {
         try {
             var {volume, filename} = this.mainTexFile,
                 source = this._collect(volume),
-                pkgs = this._guessRequiredPackages(source);
+                pkgs = await this._guessRequiredPackages(source);
 
             await this._stage('prepare', {}, () =>
                 this.pdflatex.prepare(pkgs)
@@ -94,12 +102,14 @@ class PDFLatexBuild extends EventEmitter {
             this.emit('finished', {
                 outcome: 'ok', 
                 pdf: out.pdf && PDFLatexPod.CompiledPDF.from(out.pdf),
-                log: out.log && PDFLatexPod.CompiledAsset.from(out.log)
+                log: out.log && PDFLatexPod.CompiledAsset.from(out.log),
+                out: out.out
             });
             return out;
         }
         catch (e) {
             if (e.log) e.log = PDFLatexPod.CompiledAsset.from(e.log);
+            if (e.out) e.out = PDFLatexPod.CompiledAsset.from(e.out);
             this.emit('finished', {outcome: 'error', error: e});
             if (e.$type !== 'BuildError') throw e;
         }
@@ -145,9 +155,10 @@ class PDFLatexBuild extends EventEmitter {
         );
     }
 
-    _guessRequiredPackages(source: PDFLatexBuild.SourceFiles) {
+    async _guessRequiredPackages(source: PDFLatexBuild.SourceFiles) {
         if (localStorage['toxin-dist-dev']) return ['dev'];  // for faster dev cycles
         else {
+            /*
             var pkgs = ['latex', 'bibtex'];
             for (let [fn, content] of Object.entries(source)) {
                 if (fn.match(/[.](tex|ltx|sty)$/)) {
@@ -156,6 +167,16 @@ class PDFLatexBuild extends EventEmitter {
                 }
             }
             return pkgs;
+            */
+            await this.nanotex.db.open();
+            let texSources = Object.entries(source).map(([fn, content]) =>
+                fn.match(/[.](tex|ltx|sty)$/) ?
+                    new TextDecoder().decode(content) : undefined
+            ).filter(x => x);
+
+            return ['latex', 'l3kernel', 'l3backend',
+                    ...new PackageRequirements(this.nanotex.db)
+                        .predictDeps(texSources)];
         }
     }
 
@@ -268,13 +289,16 @@ class PDFLatexPod {
 
     mainTex: string = '/home/doc.tex'
     opts = {outdir: 'out', synctex: 1, interaction: 'nonstopmode'}
+    stdout = new Stdout
 
     utils: {bibtex: BibTexPod}
 
     constructor() {
         this.core = new ExecCore({stdin: false});
-        this.core.on('stream:out', ({fd, data}) =>
-            console.log(fd, new TextDecoder().decode(data)));
+        this.core.on('stream:out', ({fd, data}) => {
+            this.stdout.push(data);
+            console.log(fd, new TextDecoder().decode(data));
+        });
 
         this.packageManager = new PackageManager(this.core.fs);
         this.tlmgr = new PDFLatexPod.NanoTexMgr();
@@ -285,6 +309,7 @@ class PDFLatexPod {
     }
 
     prepare(packages: string[] = []) {
+        this.stdout.clear();
         if (!this._ready || packages.some(pkg => !this._installed.has(pkg)))
             this._ready = this._prepare(packages);
         return this._ready;
@@ -333,7 +358,8 @@ class PDFLatexPod {
             outdir = path.resolve('/home', this.opts.outdir),
             file = (fn: string) => ({volume, filename: `${outdir}/${fn}`}),
             job = main ? path.basename(main).replace(/\.(tex|ltx)$/, '') : 'doc',
-            log = PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`));
+            log = PDFLatexPod.CompiledAsset.fromFileMaybe(file(`${job}.log`)),
+            out = new PDFLatexPod.CompiledAsset(this.stdout.buffer);
 
         if (rc == 0) {
             var timestamps = timestampAll(['**'], {type: 'file', cwd: '/home', fs: volume});
@@ -341,10 +367,10 @@ class PDFLatexPod {
                 job,
                 pdf: PDFLatexPod.CompiledPDF.fromFile(file(`${job}.pdf`))
                         .withSyncTeXMaybe(file(`${job}.synctex.gz`)),
-                log, timestamps
+                log, out, timestamps
             };
         }
-        else throw new PDFLatexPod.BuildError(rc).withLog(log);
+        else throw new PDFLatexPod.BuildError(rc).withLog(log, out);
     }
 }
 
@@ -353,7 +379,13 @@ class PDFLatexPod {
 namespace PDFLatexPod {
 
     export type CompileInput = {[fn: string]: string | Uint8Array};
-    export type CompileRet = {job: string, pdf: CompiledPDF, log?: CompiledAsset, timestamps?: any};
+    export type CompileRet = {
+        job: string,
+        pdf: CompiledPDF,
+        log?: CompiledAsset,
+        out?: CompiledAsset,
+        timestamps?: any
+    };
 
     type This<T extends new(...args: any) => any> = {
         new(...args: ConstructorParameters<T>): any
@@ -434,11 +466,13 @@ namespace PDFLatexPod {
         prog = 'pdflatex'
         code: number
         log?: CompiledAsset
+        out?: CompiledAsset
         constructor(code: number) {
             this.code = code;
         }
-        withLog(log: CompiledAsset) {
+        withLog(log: CompiledAsset, out?: CompiledAsset) {
             this.log = log;
+            if (out) this.out = out;
             return this;
         }
     }
@@ -454,7 +488,7 @@ namespace PDFLatexPod {
 
     const TLNET_DEPLOY_LIST_URI = '/data/distutils/texlive/tlnet-deploy.list';
 
-    const NANOTEX_BASE = '/bin/tlnet',
+    const NANOTEX_BASE = 'https://ftp.cc.uoc.gr/mirrors/CTAN/systems/texlive/tlnet/archive',
           NANOTEX_DEV = '/bin/tex/tldist.tar';
 
     export class NanoTexMgr extends Tlmgr {
@@ -474,7 +508,7 @@ namespace PDFLatexPod {
         }
 
         async bundleOf(joy: string[]) {
-            var pkgs = await this.collect(new Set(joy));
+            var pkgs = [...joy]; //await this.collect(new Set(joy));
             console.log('%c[nanotex] installing from tlmgr:', 'color: green', pkgs);
             return {
                 '/tldist/': pkgs.map(nm =>
@@ -491,7 +525,7 @@ class BibTexPod {
     core: ExecCore
     opts: {outdir: string}
 
-    stdout = new BibTexPod.Stdout
+    stdout = new Stdout
 
     constructor(core: ExecCore, opts: {outdir: string}) {
         this.core = core;
@@ -524,14 +558,13 @@ namespace BibTexPod {
     export class BuildError extends PDFLatexPod.BuildError {
         prog = 'bibtex'
     }
+}
 
-    export class Stdout {
-        _buffer: Uint8Array[] = []
-        clear() { this._buffer = []; }
-        push(data: Uint8Array) { this._buffer.push(data); }
-        get buffer() { return concat(this._buffer); }
-    }
-
+export class Stdout {
+    _buffer: Uint8Array[] = []
+    clear() { this._buffer = []; }
+    push(data: Uint8Array) { this._buffer.push(data); }
+    get buffer() { return concat(this._buffer); }
 }
 
 

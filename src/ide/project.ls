@@ -114,11 +114,13 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
   update-log: (build-result) ->
     if (log = build-result.log ? build-result.error?log)?
-      log.saveAs(@current.get-file('out/build.log'))
+      log.saveAs @current.get-file('out/build.log')
       @build-log = new BuildLog(log.toText!)
         @vue.build-errors = ..errors
         console.log ..errors
-      @refresh!
+    if (out = build-result.out ? build-result.error?out)?
+      out.saveAs @current.get-file('out/build.out')
+    @refresh!
 
   select: (loc, {type ? 'file', silent ? false} ? {}) ->
     if loc.volume == @volume

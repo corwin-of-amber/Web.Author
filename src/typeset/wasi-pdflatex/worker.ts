@@ -46,4 +46,5 @@ class PDFLatexWorker {
 
 type Command = {id: number, method: string, args: any[]};
 
-const worker = new PDFLatexWorker();
+// @ts-ignore
+self.worker = new PDFLatexWorker();
