@@ -66,11 +66,12 @@ class IDE
       if item.focus then @editor.cm.focus!
 
   synctex-forward: !->
+    @_track?destroy!;
     one-shot = ~>
       {loc, at} = @editor.pos
       @viewer.synctex-forward {loc.filename, at.line}
     if !@_stay?value
-      one-shot!; @_track?destroy!; @_stay = @editor.stay-flag!
+      one-shot!; @_stay = @editor.stay-flag!
     else
       @_track = @editor.track-line one-shot
 
@@ -86,10 +87,13 @@ class IDE
     @layout.bars.status
       if it.info?done then ..hide 50
       else
+        task = if it.info.task then " (#{it.info.task.index}/#{it.info.task.total})" else ""
         widget = if it.info.download && it.info.download.downloaded > 1e6
           then ProgressWidget(" #{Math.floor(it.info.download?downloaded / 1e6)}MB")
+        label = (it.info.uri ? it.info.path)?.replace(/^.*[/]/, '')
         switch it.stage
-        | 'install'   => ..show text: "installing #{it.info.uri ? it.info.path}", widget: widget
+        | 'load'      => ..show text: "loading pdflatex..."
+        | 'install'   => ..show text: "installing#{task} #{label}", widget: widget
         | 'compile'   => ..show text: "compiling #{it.info.filename}"
         | 'recompile' => ..show text: "recompiling #{it.info.filename}"
         | 'bibtex'    => ..show text: "running bibtex & recompiling..."

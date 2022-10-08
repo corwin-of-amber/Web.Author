@@ -14,8 +14,7 @@ class PDFLatexWorker {
     pdflatex: PDFLatexPod = new PDFLatexPod()
 
     constructor() {
-        this.pdflatex.packageManager.on('progress',
-            (info) => this.emit('progress', {stage: 'install', info}));
+        this.pdflatex.on('progress', ev => this.emit('progress', ev));
 
         addEventListener('message', ev => this.execute(ev.data));
     }

@@ -41,18 +41,13 @@ class PDFLatexBuild extends EventEmitter {
         super();
         this.mainTexFile = mainTexFile;
         this.pdflatex = new PDFLatexWorkerI();
-        // set up events
-        if (this.pdflatex instanceof PDFLatexPod)
-            this.pdflatex.packageManager.on('progress',
-                (info) => this.emit('progress', {stage: 'install', info}));
-        if (this.pdflatex instanceof EventEmitter)
-            this.pdflatex.on('progress', ev => this.emit('progress', ev));
+        this.pdflatex.on('progress', ev => this.emit('progress', ev));
 
         this._watch = new FileWatcher();
         this._watch.on('change', () => this.makeWatch());
 
         this.nanotex = new PackageRepository();
-        this.nanotex.opts.dbfn = 'packages/nanotex/data/texlive2021-pkg-info.json';
+        this.nanotex.opts.dbfn = 'http:/packages/nanotex/data/texlive2021-pkg-info.json';
     }
 
     setMain(mainTexFile: Volume.Location) {
@@ -103,7 +98,7 @@ class PDFLatexBuild extends EventEmitter {
                 outcome: 'ok', 
                 pdf: out.pdf && PDFLatexPod.CompiledPDF.from(out.pdf),
                 log: out.log && PDFLatexPod.CompiledAsset.from(out.log),
-                out: out.out
+                out: out.out && PDFLatexPod.CompiledAsset.from(out.out)
             });
             return out;
         }
@@ -158,23 +153,13 @@ class PDFLatexBuild extends EventEmitter {
     async _guessRequiredPackages(source: PDFLatexBuild.SourceFiles) {
         if (localStorage['toxin-dist-dev']) return ['dev'];  // for faster dev cycles
         else {
-            /*
-            var pkgs = ['latex', 'bibtex'];
-            for (let [fn, content] of Object.entries(source)) {
-                if (fn.match(/[.](tex|ltx|sty)$/)) {
-                    pkgs.push(...this._extractImports(
-                        new TextDecoder().decode(content)));
-                }
-            }
-            return pkgs;
-            */
             await this.nanotex.db.open();
             let texSources = Object.entries(source).map(([fn, content]) =>
                 fn.match(/[.](tex|ltx|sty)$/) ?
                     new TextDecoder().decode(content) : undefined
             ).filter(x => x);
 
-            return ['latex', 'l3kernel', 'l3backend',
+            return ['some-fonts',
                     ...new PackageRequirements(this.nanotex.db)
                         .predictDeps(texSources)];
         }
@@ -218,6 +203,7 @@ class PDFLatexWorkerI extends EventEmitter {
 
     _startup() {
         if (!this.worker) {
+            this.emit('progress', {stage: 'load', info: {}});
             this.worker = new Worker('./wasi-pdflatex.worker.js' /* compiled from `./worker.ts` */);
             this.worker.addEventListener('message', ev => this._handle(ev.data));
             this.worker.addEventListener('messageerror', ev => {
@@ -279,7 +265,7 @@ type MessageFromWorker = {type: 'completed' | 'progress',
 type Future = {resolve: (v: any) => void, reject: (err: any) => void};
 
 
-class PDFLatexPod {
+class PDFLatexPod extends EventEmitter {
     core: ExecCore
     packageManager: PackageManager
     tlmgr: PDFLatexPod.NanoTexMgr
@@ -294,6 +280,7 @@ class PDFLatexPod {
     utils: {bibtex: BibTexPod}
 
     constructor() {
+        super();
         this.core = new ExecCore({stdin: false});
         this.core.on('stream:out', ({fd, data}) => {
             this.stdout.push(data);
@@ -319,12 +306,24 @@ class PDFLatexPod {
         packages = packages.filter(pkg => !this._installed.has(pkg));
         if (!this._installed.has('texdist'))
             await this.packageManager.install(PDFLatexPod.texdist);
-        if (packages.length > 0)
-            await this.packageManager.install(
-                await this.tlmgr.bundleOf(packages));
+        if (packages.length > 0) {
+            let pkgs = await this.tlmgr.bundleOf(packages),
+                uris = (pkgs['/tldist/'] as Resource[]).map(rc => rc.uri);
+            await this._installWithProgress(pkgs, ev =>
+                this.emit('progress', {stage: 'install', info: {...ev,
+                    task: {index: uris.indexOf(ev.uri) + 1, total: uris.length}}}));
+        }
 
         this._installed.add('texdist');
         for (let pkg of packages) this._installed.add(pkg);
+    }
+
+    async _installWithProgress(pkgs: ResourceBundle, progress: (ev: {uri: string}) => void) {
+        this.packageManager.on('progress', progress);
+        try {
+            await this.packageManager.install(pkgs);
+        }
+        finally { this.packageManager.off('progress', progress); }
     }
 
     uploadDocument(content: string | Uint8Array, fn = this.mainTex, wd = '/home') {
@@ -486,34 +485,20 @@ namespace PDFLatexPod {
         '/dist/pdftex.map': new Resource('/bin/tex/pdftex.map'),
     };
 
-    const TLNET_DEPLOY_LIST_URI = '/data/distutils/texlive/tlnet-deploy.list';
+    const NANOTEX_BASE = '/packages/nanotex/extra/pkgs',
+          NANOTEX_DEV = '/bin/tex/tldist.tar',
+          TLNET_MIRROR = process.versions?.nw ? 
+            'https://ftp.cc.uoc.gr/mirrors/CTAN/systems/texlive/tlnet/archive' :
+            'https://pl.cs.technion.ac.il/tlmirror' /* CORS version */;
 
-    const NANOTEX_BASE = 'https://ftp.cc.uoc.gr/mirrors/CTAN/systems/texlive/tlnet/archive',
-          NANOTEX_DEV = '/bin/tex/tldist.tar';
-
-    export class NanoTexMgr extends Tlmgr {
-        async _fetch() {
-            var json = await super._fetch(),
-                list = await (await fetch(TLNET_DEPLOY_LIST_URI)).text();
-            // fill in packages from the list, with no deps
-            for (let pkg of list.split(/\n+/).map(s => s.trim()))
-                if (pkg) json.packages[pkg] ??= {};
-            json.packages['dev'] = {};
-            return json;
-        }
-
-        async collect(pkgs: Set<string>) {
-            var exists = (await this.pkgInfo).packages;
-            return (await super.collect(pkgs)).filter(pkg => exists[pkg]);
-        }
-
+    export class NanoTexMgr {
         async bundleOf(joy: string[]) {
-            var pkgs = [...joy]; //await this.collect(new Set(joy));
-            console.log('%c[nanotex] installing from tlmgr:', 'color: green', pkgs);
+            console.log('%c[nanotex] installing from tlmgr:', 'color: green', joy);
             return {
-                '/tldist/': pkgs.map(nm =>
+                '/tldist/': joy.map(nm =>
                     nm == 'dev' ? new Resource(NANOTEX_DEV) :
-                        new XzResource(`${NANOTEX_BASE}/${nm}.tar.xz`))
+                    nm == 'some-fonts' ? new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
+                        new XzResource(`${TLNET_MIRROR}/${nm}.tar.xz`))
             } as ResourceBundle;
         }
     }
