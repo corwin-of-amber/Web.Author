@@ -117,7 +117,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   update-log: (build-result) ->
     if (log = build-result.log ? build-result.error?log)?
       log.saveAs? @current.get-file('out/build.log')
-      @build-log = new BuildLog(log.toText!)
+      @build-log = new BuildLog(log.toText!, log)
         @vue.build-errors = ..errors
         console.log ..errors
     if (out = build-result.out ? build-result.error?out)?
@@ -125,9 +125,9 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
     @refresh!
 
   error-goto-log: ({error}) ->
-    @current.get-file('out/article.log')
+    @current.get-file(error.inLog.log.loc.filename)
       @select .., {silent: true}
-      @emit 'file:jump-to' loc: .., cursor: {offset: error.offsetInLog}
+      @emit 'file:jump-to' loc: .., cursor: {error.inLog.offset}
 
   error-goto-source: ({error}) ->
     @current.get-file(error.at.filename)
@@ -197,6 +197,8 @@ class TeXProject
     filename && @get-file filename
 
   get-file: (filename) ->
+    if filename.startsWith('/') and @loc.scheme == 'file'
+      filename = path.relative(@loc.path, filename)
     volume = @volume
       filename = (..path ? path).normalize(filename)
     return {volume, filename}

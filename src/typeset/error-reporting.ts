@@ -23,25 +23,28 @@ class BuildError {
 
 class BuildLog {
     text: string
+    log?: CompiledAsset
     errors: LogError[]
 
-    constructor(text: string) {
+    constructor(text: string, log?: CompiledAsset) {
         this.text = text;
+        this.log = log;
         this.locateErrors();
     }
 
     locateErrors() {
-        let err = [];
+        let err: LogError[] = [];
         for (let mo of this.text.matchAll(/^([./]\S+):(\d+):\s(.*)/mg)) {
             let at = {filename: mo[1], line: +mo[2]};
-            err.push({at, message: mo[3], offsetInLog: mo.index});
+            err.push({at, message: mo[3],
+                      inLog: {log: this.log, offset: mo.index}});
         }
         this.errors = err;
     }
 }
 
 
-type LogError = {at: Loc, message: string, offsetInLog: number}
+type LogError = {at: Loc, message: string, inLog: {log?: CompiledAsset, offset: number}}
 type Loc = {filename: string, line: number}
 
 

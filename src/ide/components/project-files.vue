@@ -71,7 +71,10 @@ export default {
         },
         delete(ev) {
             var vol = this.$refs.source.volume, path = vol.path;
-            vol.unlinkSync(path.join(...ev.for.path));
+            try {
+                vol.unlinkSync(path.join(...ev.for.path));
+            }
+            catch (e) { console.warn(e); }
             this.$refs.list.delete(ev.for.path);
         },
         select(path, {silent} = {}) {

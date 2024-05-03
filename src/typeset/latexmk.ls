@@ -10,7 +10,7 @@ require! {
     '../infra/fs-watch.ls': { FileWatcher }
     '../infra/non-reentrant.ls': non-reentrant
     '../infra/ongoing.ls': { global-tasks }
-    './build': { CompiledAsset }
+    './build': { CompiledAssetFile }
     './error-reporting': { BuildError }
 }
 
@@ -30,8 +30,8 @@ class LatexmkBuild extends EventEmitter
     @latexmk = 'latexmk'
     @latexmk-flags = <[ -pdf -f ]>
     @pdflatex-flags = <[ -interaction=nonstopmode -synctex=1 -file-line-error ]>
-    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:",  \
-                'BIBINPUTS': "#{path.join(@base-dir, @src-dir)}/:", \
+    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:src/:",  \
+                'BIBINPUTS': "#{path.join(@base-dir, @src-dir)}/:#{path.join(@base-dir, 'src')}/:", \
                 'max_print_line': '9999'}
 
     @on 'job:start' global-tasks~add
@@ -67,11 +67,13 @@ class LatexmkBuild extends EventEmitter
     path.join(@base-dir, @out-dir, bn + ext)
 
   read-log: ->
-    try new CompiledAsset(fs.readFileSync(@get-output('.log')))
+    try
+      CompiledAssetFile.fromFile({volume: fs, filename: @get-output('.log')})
     catch
 
   clean: ->
-    fs.unlinkSync @get-output('.fdb_latexmk')
+    try fs.unlinkSync @get-output('.fdb_latexmk')
+    catch
 
   _args: -> @latexmk-flags ++ @pdflatex-flags ++ ["-outdir='#{@out-dir}'", @main-tex-fn]
   _env:  -> ^^global.process.env <<< @envvars

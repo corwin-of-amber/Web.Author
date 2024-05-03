@@ -1,3 +1,4 @@
+import { Volume } from "../infra/volume";
 
 class CompiledAsset {
     content: Uint8Array
@@ -10,5 +11,19 @@ class CompiledAsset {
     }
 }
 
+class CompiledAssetFile extends CompiledAsset {
+    loc: Volume.Location
 
-export { CompiledAsset }
+    withLoc(loc: Volume.Location) {
+        this.loc = loc;
+        return this;
+    }
+
+    static fromFile(loc: Volume.Location) {
+        return new this(loc.volume.readFileSync(loc.filename))
+                .withLoc(loc);
+    }
+}
+
+
+export { CompiledAsset, CompiledAssetFile }
