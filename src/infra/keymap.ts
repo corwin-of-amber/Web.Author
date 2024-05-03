@@ -1,4 +1,3 @@
-import { keyName } from 'w3c-keyname';
 
 
 class KeyMap {
@@ -17,7 +16,9 @@ class KeyMap {
     invoke(ev: KeyboardEvent) {
         for (let mod of [{}, {[KeyMap.Mod]: "Mod-"}] as KeyMap.ModSet[]) {
             let cb = this.mapping.get(KeyMap.keyDescriptor(ev, mod));
-            if (cb && cb(ev) !== false) { ev.stopPropagation(); break; }
+            if (cb && cb(ev) !== false) {
+                ev.stopPropagation(); ev.preventDefault(); break;
+            }
         }
     }
 
@@ -32,7 +33,7 @@ namespace KeyMap {
     export type ModSet = {[modKey: string]: string}
 
     export function keyDescriptor(event: KeyboardEvent, mod?: ModSet) {
-        var base = keyName(event);
+        var base = event.key;  /** @todo this is already modified by Shift */
         if (base.length === 1) base = base.toUpperCase();
         return modifiers(base, event, mod);
     }

@@ -38,6 +38,7 @@ class IDE
       document.title = "#{it.project.name} │ #{@app-title}"
       recent := @project.lookup-recent it.project.loc
     @project.on 'file:select' ~> @file-select it
+    @project.on 'file:jump-to' ~> @file-jump-to it
     @project.on 'build:progress' ~> @build-progress it
     @project.on 'build:finished' ~> @build-finished it
     @editor.on 'open' ~> @project.select it.loc, {it.type, +silent}
@@ -64,6 +65,9 @@ class IDE
     else
       @editor?open item.loc
       if item.focus then @editor.cm.focus!
+
+  file-jump-to: (item) ->
+    @editor?jump-to item.loc, item.cursor
 
   synctex-forward: !->
     @_track?destroy!;

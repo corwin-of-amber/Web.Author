@@ -1,9 +1,14 @@
 /* Kremlin is a bit incomplete at the moment */
 if typeof window != 'undefined'
   window.Buffer = require('buffer').Buffer
-  _env = if typeof process != 'undefined' then process.env
-  window.process = require('process')
-  if _env then window.process.env = _env
+  /** @oops not doing that ends up with a very weird error in `stream-readable` */
+  /* because `process.nextTick` gets set to `setTimeout` by memfs!! */
+  if typeof process == 'undefined' || !process.nextTick
+    window.process = require('process')
+
+  #_env = if typeof process != 'undefined' then process.env
+  #window.process = require('process')
+  #if _env then window.process.env = _env
   #window.process.nextTick = (f, ...args) -> f(...args) # risky!!
 
 
@@ -68,6 +73,8 @@ $ ->>
     opts.mode = 'html'
 
   ide.start opts
+
+  window.addEventListener 'beforeunload' -> ide.store!
 
   if 1
     ide.project.add-recent {scheme: 'memfs', path: '/home/toxin-manual'}, , 'end'

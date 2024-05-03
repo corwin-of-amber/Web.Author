@@ -24,7 +24,6 @@ import { FileWatcher } from '../../infra/fs-watch.ls';
 import { globAll, timestampAll } from '../../infra/fs-traverse.ls';
 // @ts-ignore
 import { LatexmkClone } from '../latexmk.ls';
-import { Tlmgr } from '../../distutils/texlive/tlmgr';
 import { XzResource } from './assets';
 
 
@@ -159,7 +158,7 @@ class PDFLatexBuild extends EventEmitter {
                     new TextDecoder().decode(content) : undefined
             ).filter(x => x);
 
-            return ['some-fonts',
+            return ['some-fonts', 'ls-R',
                     ...new PackageRequirements(this.nanotex.db)
                         .predictDeps(texSources)];
         }
@@ -487,9 +486,11 @@ namespace PDFLatexPod {
 
     const NANOTEX_BASE = '/packages/nanotex/extra/pkgs',
           NANOTEX_DEV = '/bin/tex/tldist.tar',
-          TLNET_MIRROR = process.versions?.nw ? 
-            'https://ftp.cc.uoc.gr/mirrors/CTAN/systems/texlive/tlnet/archive' :
-            'https://pl.cs.technion.ac.il/tlmirror' /* CORS version */;
+          TLNET_MIRROR = process.versions?.nw ?
+            'https://ftp.tu-chemnitz.de/pub/tug/historic/systems/texlive/2021/tlnet-final/archive' :
+            'https://pl.cs.technion.ac.il/mirror/texlive2021/archive' /* CORS version */;
+
+    export const NANOTEX_EXTRA_PKGS = ['some-fonts', 'ls-R'];
 
     export class NanoTexMgr {
         async bundleOf(joy: string[]) {
@@ -497,7 +498,8 @@ namespace PDFLatexPod {
             return {
                 '/tldist/': joy.map(nm =>
                     nm == 'dev' ? new Resource(NANOTEX_DEV) :
-                    nm == 'some-fonts' ? new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
+                    NANOTEX_EXTRA_PKGS.includes(nm) ?
+                        new Resource(`${NANOTEX_BASE}/${nm}.tar`) :
                         new XzResource(`${TLNET_MIRROR}/${nm}.tar.xz`))
             } as ResourceBundle;
         }

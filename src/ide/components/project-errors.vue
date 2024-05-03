@@ -4,8 +4,8 @@
         <div>
             <table>
                 <tr v-for="error in errors">
-                    <th>{{basename(error.at.filename)}}:{{error.at.line}}</th>
-                    <td><div>{{error.message}}</div></td>
+                    <th @click="gotoSource(error)">{{basename(error.at.filename)}}:{{error.at.line}}</th>
+                    <td @click="gotoLog(error)"><div>{{error.message}}</div></td>
                 </tr>
             </table>
         </div>
@@ -18,6 +18,12 @@ export default {
     methods: {
         basename(fn: string) {
             return fn.match(/[^/]*$/)[0];
+        },
+        gotoLog(error) {
+            this.$emit('goto-log', {error});
+        },
+        gotoSource(error) {
+            this.$emit('goto-source', {error});
         }
     }
 }

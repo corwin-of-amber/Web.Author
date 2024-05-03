@@ -29,6 +29,7 @@
     "@codemirror/commands": "^6.0.0",
     "@codemirror/language": "^6.0.0",
     "@codemirror/legacy-modes": "^6.0.0",
+    "@codemirror/search": "^6.5.5",
     "@codemirror/state": "^6.0.0",
     "@codemirror/view": "^6.0.0",
     "@corwin.amber/memfs": "file:packages/memfs/corwin.amber-memfs-3.3.1.tgz",

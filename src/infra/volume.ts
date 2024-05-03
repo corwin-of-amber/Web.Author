@@ -202,6 +202,7 @@ namespace WatchPolicy {
         }
 
         watch(filename: string, opts: any, listener: Volume.WatchListener) {
+            filename = filename.replace(/^[/]+/, '');
             var delegate = (eventType: string, eventFilename: string) => {
                 if (eventFilename === filename) /** @todo or descendant thereof if `opts.recursive` */
                     listener(eventType, eventFilename);

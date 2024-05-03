@@ -42,11 +42,11 @@
     padding: 3px;
 }
 
-#ide-pane-editor .cm-searching {
+#ide-pane-editor .cm-searchMatch {
     background: rgba(182, 182, 0, .4);
 }
 
-#ide-pane-editor .cm-searching.CodeMirror-selectedtext {
+#ide-pane-editor .cm-searchMatch-selected {
     background: rgba(255, 240, 0, .8);
 }
 

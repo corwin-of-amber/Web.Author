@@ -24,13 +24,15 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
   ->
     @_recent = []
 
-    @vue = new Vue project-view-component <<<
-      methods:
-        select: ~> @emit 'file:select', loc: @current.get-file(it)
-        action: ~> @action it
-        build: ~> @build!
+    @vue = new Vue project-view-component
     .$mount!
       ..projects = @_recent
+
+    @vue.$on 'action' @~action
+    @vue.$on 'build' @~build
+    @vue.$on 'select' ~> @emit 'file:select', loc: @current.get-file(it)
+    @vue.$on 'error:goto-log' @~error-goto-log
+    @vue.$on 'error:goto-source' @~error-goto-source
 
     @file-dialog = new FileDialog(/*select-directory*/true)
 
@@ -101,7 +103,7 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
         ..on 'intermediate' ~> @emit 'build:intermediate' it
     else
       @_builder.set-main @current.get-main-tex-file!
-    @_builder.make-watch!
+    @_builder.remake-watch!
 
   unbuild: ->
     @_builder?unwatch!
@@ -114,13 +116,23 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
   update-log: (build-result) ->
     if (log = build-result.log ? build-result.error?log)?
-      log.saveAs @current.get-file('out/build.log')
+      log.saveAs? @current.get-file('out/build.log')
       @build-log = new BuildLog(log.toText!)
         @vue.build-errors = ..errors
         console.log ..errors
     if (out = build-result.out ? build-result.error?out)?
-      out.saveAs @current.get-file('out/build.out')
+      out.saveAs? @current.get-file('out/build.out')
     @refresh!
+
+  error-goto-log: ({error}) ->
+    @current.get-file('out/article.log')
+      @select .., {silent: true}
+      @emit 'file:jump-to' loc: .., cursor: {offset: error.offsetInLog}
+
+  error-goto-source: ({error}) ->
+    @current.get-file(error.at.filename)
+      @select .., {silent: true}
+      @emit 'file:jump-to' loc: .., cursor: {error.at.line}
 
   select: (loc, {type ? 'file', silent ? false} ? {}) ->
     if loc.volume == @volume

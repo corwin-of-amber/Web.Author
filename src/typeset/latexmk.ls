@@ -1,13 +1,17 @@
 node_require = global.require ? (->)
   fs = .. 'fs'
   util = .. 'util'
+  spawn = util.promisify(..('child_process').spawn)
+  execFile = util.promisify(..('child_process').execFile)
   promisify-child-process = .. 'promisify-child-process'
 require! {
     path,
-    events: {EventEmitter}
-    '../infra/fs-watch.ls': {FileWatcher}
+    events: { EventEmitter }
+    '../infra/fs-watch.ls': { FileWatcher }
     '../infra/non-reentrant.ls': non-reentrant
-    '../infra/ongoing.ls': {global-tasks}
+    '../infra/ongoing.ls': { global-tasks }
+    './build': { CompiledAsset }
+    './error-reporting': { BuildError }
 }
 
 
@@ -47,19 +51,27 @@ class LatexmkBuild extends EventEmitter
     @emit 'started'
     await @_yield! # @hmm this is needed because child_process delays Vue updates somehow?
     try
-      rc = await promisify-child-process.spawn @latexmk, @_args!, \
+      rc = await execFile @latexmk, @_args!, \
           shell: true, cwd: @base-dir, env: @_env!, encoding: 'utf-8'
       console.log 'build complete', rc
       @emit 'finished', {outcome: 'ok'}
     catch
-      if !e.code? then throw e
       console.warn 'build failed', e
+      if e.code?
+        e = new BuildError('latexmk', e.code).withLog(@read-log!)
       @emit 'finished', {outcome: 'error', error: e}
     rc
   
+  get-output: (ext) ->
+    bn = path.basename(@main-tex-fn).replace(/[.]tex$/, '')
+    path.join(@base-dir, @out-dir, bn + ext)
+
+  read-log: ->
+    try new CompiledAsset(fs.readFileSync(@get-output('.log')))
+    catch
+
   clean: ->
-    bn = path.basename(@main-tex-fn)
-    fs.unlinkSync path.join(@base-dir, @out-dir, bn.replace(/[.]tex$/, '') + '.fdb_latexmk')
+    fs.unlinkSync @get-output('.fdb_latexmk')
 
   _args: -> @latexmk-flags ++ @pdflatex-flags ++ ["-outdir='#{@out-dir}'", @main-tex-fn]
   _env:  -> ^^global.process.env <<< @envvars
@@ -77,6 +89,7 @@ class LatexmkBuild extends EventEmitter
   unwatch: -> @_watch.clear!
 
   make-watch: ->> await @make! ; @watch!
+  remake-watch: ->> await @remake! ; @watch!
 
   /**
    * Reads the names of the input files from the .fls file produced by latexmk

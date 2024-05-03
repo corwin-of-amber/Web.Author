@@ -1,10 +1,11 @@
 import { EventEmitter } from 'events';
 import { minimalSetup } from 'codemirror';
-import { Extension, StateField, EditorSelection } from '@codemirror/state';
+import { Extension, StateField, StateEffect, EditorSelection } from '@codemirror/state';
 import { EditorView, lineNumbers, keymap, highlightActiveLine,
          highlightActiveLineGutter, WidgetType, ViewPlugin,
          DecorationSet, Decoration } from '@codemirror/view';
 import { indentWithTab } from '@codemirror/commands';
+import { search } from '@codemirror/search';
 
 
 const changeGeneration = StateField.define<number>({
@@ -25,12 +26,24 @@ const setup: Extension[] = [
     keymap.of([{key: "Mod-Enter", run: () => true}]),
     minimalSetup, keymap.of([indentWithTab]),
     lineNumbers(), highlightActiveLine(), highlightActiveLineGutter(),
+    search({
+        createPanel: () => ({dom: document.createElement('div')}),
+        scrollToMatch(range, view) {
+            console.log(range);
+            console.log(view.coordsAtPos(range.from), view.coordsAtPos(range.to));
+            return EditorView.scrollIntoView(range, {yMargin: 80});
+        },
+    }),
     EditorView.lineWrapping,
     changeGeneration, events
 ];
 
 
 class EditorViewWithBenefits extends EditorView {
+
+    getValue() {
+        return this.state.doc.toString();
+    }
 
     setCursor(pos: number | LineCh) {
         if (typeof pos !== 'number') pos = this.posToOffset(pos)
@@ -65,6 +78,10 @@ class EditorViewWithBenefits extends EditorView {
     getScroll() {
         let s = this.scrollDOM;
         return {top: s.scrollTop, left: s.scrollLeft};
+    }
+
+    applyEffect(...effects: StateEffect<any>[]) {
+        this.dispatch(this.state.update({effects}));
     }
 }
 
