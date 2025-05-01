@@ -5,7 +5,7 @@ class BuildError {
     $type = 'BuildError'
     prog: string
     code: number
-    log?: CompiledAsset
+    log?: BuildLog
     out?: CompiledAsset
 
     constructor(prog: string, code: number) {
@@ -13,8 +13,8 @@ class BuildError {
         this.code = code;
     }
 
-    withLog(log: CompiledAsset, out?: CompiledAsset) {
-        this.log = log;
+    withLog(log: BuildLog | CompiledAsset, out?: CompiledAsset) {
+        this.log = BuildLog.promote(log);
         if (out) this.out = out;
         return this;
     }
@@ -30,6 +30,11 @@ class BuildLog {
         this.text = text;
         this.log = log;
         this.locateErrors();
+    }
+
+    static promote(log: BuildLog | CompiledAsset) {
+        return log instanceof BuildLog ? log :
+            new BuildLog(log.toText(), log);
     }
 
     locateErrors() {

@@ -52,7 +52,9 @@ class EditItem
     @scroll = cm.get-scroll!
 
   _set-selections: (cm, sel) ->
-    cm.dispatch {selection: EditorSelection.fromJSON(sel)}
+    try
+      cm.dispatch {selection: EditorSelection.fromJSON(sel)}
+    catch # can happen if file has changed and old selection is now invalid
   
   _get-selections: (cm) -> cm.state.selection.toJSON!
 

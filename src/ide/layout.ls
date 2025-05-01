@@ -1,6 +1,6 @@
 require! {
   jquery: $
-  'split.js': Split
+  'split.js': { default: Split }
   '../editor/tex-editor.ls': { TeXEditor }
   './project.ls': { ProjectView }
 }

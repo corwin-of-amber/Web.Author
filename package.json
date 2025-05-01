@@ -10,6 +10,7 @@
     "worker_threads": {},
     "child-process-promise": {},
     "glob": {},
+    "axios": {},
     "memfs": "node_modules/@corwin.amber/memfs",
     "memfs/lib/volume": "node_modules/@corwin.amber/memfs/lib/volume.js",
     "memfs/lib/node": "node_modules/@corwin.amber/memfs/lib/node.js"
@@ -56,7 +57,7 @@
     "stream-buffers": "^3.0.2",
     "synctex-js": "^1.0.0",
     "tempy": "^0.2.1",
-    "vue": "^2.6.10",
+    "vue": "^2.6.12",
     "vue-context-menu": "^2.0.6",
     "w3c-keyname": "^2.2.4",
     "wasi-kernel": "^0.1.6",

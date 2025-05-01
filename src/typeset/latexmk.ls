@@ -30,7 +30,8 @@ class LatexmkBuild extends EventEmitter
     @latexmk = 'latexmk'
     @latexmk-flags = <[ -pdf -f ]>
     @pdflatex-flags = <[ -interaction=nonstopmode -synctex=1 -file-line-error ]>
-    @envvars = {'TEXINPUTS': "#{@src-dir}/:./:src/:",  \
+    @envvars = {'PATH': "/Library/TeX/texbin:#{process.env['PATH']}", \
+                'TEXINPUTS': "#{@src-dir}/:./:src/:",  \
                 'BIBINPUTS': "#{path.join(@base-dir, @src-dir)}/:#{path.join(@base-dir, 'src')}/:", \
                 'max_print_line': '9999'}
 

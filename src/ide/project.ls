@@ -2,7 +2,7 @@ require! {
   fs, path, os
   events: { EventEmitter }
   lodash: _
-  'vue': Vue
+  'vue': { default: Vue }
   #'dat-p2p-crowd/src/ui/ui': {App: CrowdApp}
   '../infra/volume': { SubdirectoryVolume }
   '../infra/volume-factory': { VolumeFactory }
@@ -116,10 +116,13 @@ class ProjectView /*extends CrowdApp*/ implements EventEmitter::
 
   update-log: (build-result) ->
     if (log = build-result.log ? build-result.error?log)?
-      log.saveAs? @current.get-file('out/build.log')
-      @build-log = new BuildLog(log.toText!, log)
+      log.log.saveAs? @current.get-file('out/build.log')
+      @build-log = log
         @vue.build-errors = ..errors
         console.log ..errors
+    else
+      @build-log = null
+      @vue.build-errors = []
     if (out = build-result.out ? build-result.error?out)?
       out.saveAs? @current.get-file('out/build.out')
     @refresh!
