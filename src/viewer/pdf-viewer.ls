@@ -88,17 +88,19 @@ class PDFViewerCore extends EventEmitter
   render-page: (page-num) ->
     canvas = $('<canvas>')
     @pdf.getPage(page-num).then (page) ~>
-      page-size = page.getViewport({scale: 1})
-      scale = Math.max(@zoom, 1) * @resolution
-      viewport = page.getViewport({scale})
-      ctx = canvas.0.getContext('2d')
+      r = @resolution
+      viewport = page.getViewport({scale: @zoom})
+      ctx = canvas.0.getContext('2d', {alpha: false})
+      ctx.scale r, r
       canvas.0
-        ..width = viewport.width ; ..height = viewport.height
-        ..style.width = "#{page-size.width * @zoom}px"
+        ..width = Math.floor(viewport.width * r)
+        ..height = Math.floor(viewport.height * r)
+        ..style.width = "#{Math.floor(viewport.width)}px"  # height is adjusted by the browser
 
       @_ongoing?cancel!
       @_ongoing = page.render do
         canvasContext: ctx
+        transform: [r, 0, 0, r, 0, 0]
         viewport: viewport
       @_ongoing.promise.then ~>
         {page, canvas}
