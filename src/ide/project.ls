@@ -242,7 +242,8 @@ class TeXProject
     fn && path.join(root-dir, fn)
 
   _is-document: ({volume, filename}) ->
-    try      volume.readFileSync(filename, 'utf-8').match(/\\documentclass\s*[[{]/)
+    try      volume.readFileSync(filename, 'utf-8') \
+               .match(/^\s*\\documentclass\s*[[{]/)
     catch => false
 
   _ignored:~ -> @@IGNORE ++ (@get-config!?ignore ? [])
